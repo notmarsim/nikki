@@ -70,5 +70,6 @@ export const SETTINGS_CATEGORIES = [
   { id: "navigation", label: "Navigation & Shortcuts", keywords: "sidebar hide modules keybindings shortcuts" },
   { id: "finances", label: "Finances & Privacy", keywords: "privacy hide values cents budget analytics" },
   { id: "notifications", label: "Notifications", keywords: "quiet hours alerts reminders" },
+  { id: "devices", label: "Aplicativo e Dispositivos", keywords: "pwa android ios capacitor offline cache push" },
   { id: "data", label: "Account & Data Export", keywords: "export backup json reset defaults" },
 ] as const;

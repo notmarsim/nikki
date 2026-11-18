@@ -8,6 +8,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  Pencil,
   PiggyBank,
   Plus,
   RefreshCw,
@@ -691,7 +692,27 @@ export function FinancesWorkspace({
                         {a.accountType}
                       </div>
                     </div>
-                    <span className="font-bold">{fmt(a.balanceCents, a.currency)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">{fmt(a.balanceCents, a.currency)}</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const nextName = window.prompt("Rename account:", a.name);
+                          if (!nextName || !nextName.trim() || nextName.trim() === a.name) return;
+                          const res = await fetch("/api/finances/accounts", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: a.id, name: nextName.trim() }),
+                          });
+                          if (res.ok) refresh();
+                        }}
+                        title="Rename account"
+                        aria-label={`Rename account ${a.name}`}
+                        className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -346,9 +346,9 @@ export function NotesWorkspace({
   };
 
   return (
-    <div className="flex h-[calc(100vh-7.5rem)] flex-col gap-4 lg:flex-row">
+    <div className="flex min-h-[calc(100dvh-10rem)] flex-col gap-4 lg:h-[calc(100dvh-7.5rem)] lg:flex-row">
       {/* Left Page Tree Sidebar */}
-      <aside className="flex w-full shrink-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 lg:w-64">
+      <aside className="flex max-h-56 w-full shrink-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 lg:max-h-none lg:w-64">
         <div className="mb-3 flex items-center justify-between gap-2">
           <span className="text-sm font-semibold">Pages</span>
           <Button

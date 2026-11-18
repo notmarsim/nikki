@@ -417,6 +417,33 @@ export async function createAccount(
   });
 }
 
+export async function updateAccount(
+  userId: string,
+  accountId: string,
+  input: {
+    name?: string;
+    institution?: string | null;
+    color?: string;
+    status?: "active" | "archived";
+  }
+) {
+  return withUserRls(userId, async (tx) => {
+    const [updated] = await tx
+      .update(financeAccounts)
+      .set({
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.institution !== undefined ? { institution: input.institution } : {}),
+        ...(input.color !== undefined ? { color: input.color } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(financeAccounts.id, accountId), eq(financeAccounts.userId, userId)))
+      .returning();
+    if (!updated) throw new FinanceServiceError(404, "NOT_FOUND", "Account not found");
+    return updated;
+  });
+}
+
 export async function archiveAccount(userId: string, accountId: string) {
   return withUserRls(userId, async (tx) => {
     const [updated] = await tx

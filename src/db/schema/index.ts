@@ -6,3 +6,4 @@ export * from "./core-phase2";
 export * from "./phase3";
 export * from "./phase4";
 export * from "./phase5";
+export * from "./notifications";

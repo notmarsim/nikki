@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, RotateCcw, Search, Settings as SettingsIcon } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell, Download, RotateCcw, Search, Settings as SettingsIcon, Smartphone, Trash2 } from "lucide-react";
+import { detectNikkiPlatform, isIosSafariBrowser, type NikkiPlatform } from "@/lib/platform";
 import { APP_MODULES } from "@/config/modules";
 import {
   DEFAULT_KEYBINDINGS,
@@ -38,7 +40,43 @@ export function SettingsWorkspace({
   initialPreferences: UserPreferences;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { setTheme } = useTheme();
+  const [platform, setPlatform] = useState<NikkiPlatform>("desktop-web");
+  const [iosSafariPrompt, setIosSafariPrompt] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [notifPerm, setNotifPerm] = useState<string>("default");
+  const [deviceMsg, setDeviceMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPlatform(detectNikkiPlatform());
+    setIosSafariPrompt(isIosSafariBrowser());
+    setIsOnline(navigator.onLine);
+    if (typeof Notification !== "undefined") {
+      setNotifPerm(Notification.permission);
+    }
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  const { data: deviceSubs } = useQuery<{
+    devices: Array<{ id: string; platform: string; deviceLabel: string; lastSeenAt: string }>;
+    vapidConfigured: boolean;
+  }>({
+    queryKey: ["notification-devices"],
+    queryFn: async () => {
+      const res = await fetch("/api/notifications/subscriptions");
+      if (!res.ok) return { devices: [], vapidConfigured: false };
+      const json = await res.json();
+      return json.data;
+    },
+  });
   const {
     spellcheckEnabled,
     setSpellcheckEnabled,
@@ -670,6 +708,156 @@ export function SettingsWorkspace({
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {activeCat === "devices" && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Smartphone className="h-4 w-4 text-[var(--accent)]" />
+                    Aplicativo e Dispositivos
+                  </CardTitle>
+                  <CardDescription>
+                    Versão do Nikki, plataforma detectada, notificações e cache local.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3 text-xs">
+                  <div className="rounded-lg border border-[var(--border)] p-3">
+                    <div className="text-[var(--muted-foreground)]">Versão</div>
+                    <div className="mt-0.5 font-semibold">Nikki v0.2.0</div>
+                  </div>
+                  <div className="rounded-lg border border-[var(--border)] p-3">
+                    <div className="text-[var(--muted-foreground)]">Plataforma</div>
+                    <div className="mt-0.5 font-semibold">{platform}</div>
+                  </div>
+                  <div className="rounded-lg border border-[var(--border)] p-3">
+                    <div className="text-[var(--muted-foreground)]">Conexão</div>
+                    <div className={`mt-0.5 font-semibold ${isOnline ? "text-emerald-500" : "text-amber-500"}`}>
+                      {isOnline ? "Online (Supabase)" : "Offline"}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {iosSafariPrompt && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Instalar no iPhone (Safari PWA)</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1.5 text-xs text-[var(--muted-foreground)]">
+                    <p>1. Certifique-se de abrir o Nikki no Safari.</p>
+                    <p>2. Toque no ícone de Compartilhar na barra inferior.</p>
+                    <p>3. Selecione &ldquo;Adicionar à Tela de Início&rdquo; e confirme.</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-[var(--accent)]" />
+                    Permissões &amp; Dispositivos de Notificação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-xs">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>Permissão do navegador: <strong>{notifPerm}</strong></span>
+                    {typeof Notification !== "undefined" && notifPerm !== "granted" && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          const res = await Notification.requestPermission();
+                          setNotifPerm(res);
+                          if (res === "granted") {
+                            await fetch("/api/notifications/subscriptions", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                platform: platform === "capacitor-android" ? "capacitor_android" : "web_push",
+                                deviceLabel: `${platform} (${new Date().toLocaleDateString()})`,
+                              }),
+                            });
+                            queryClient.invalidateQueries({ queryKey: ["notification-devices"] });
+                          }
+                        }}
+                      >
+                        Permitir Notificações
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        const res = await fetch("/api/notifications/test", { method: "POST" });
+                        if (res.ok) {
+                          const json = await res.json();
+                          const vapid = json.data?.remotePushConfigured?.webPushVapid;
+                          setDeviceMsg(
+                            vapid
+                              ? "Notificação de teste registrada e enviada."
+                              : "Notificação in-app criada no Supabase (VAPID/FCM remoto requer chaves configuradas no servidor)."
+                          );
+                          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                            new Notification("Nikki Test", { body: "Notificação local funcionando!" });
+                          }
+                        }
+                      }}
+                    >
+                      Enviar Notificação de Teste
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        if ("caches" in window) {
+                          const keys = await caches.keys();
+                          await Promise.all(keys.map((k) => caches.delete(k)));
+                          setDeviceMsg("Cache estático limpo com segurança.");
+                        }
+                      }}
+                    >
+                      Limpar Cache Estático
+                    </Button>
+                  </div>
+
+                  {deviceMsg && <p className="text-emerald-500">{deviceMsg}</p>}
+
+                  <div className="space-y-1.5 pt-2">
+                    {(deviceSubs?.devices ?? []).map((d) => (
+                      <div
+                        key={d.id}
+                        className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2"
+                      >
+                        <div>
+                          <div className="font-medium">{d.deviceLabel}</div>
+                          <div className="text-[11px] text-[var(--muted-foreground)]">
+                            {d.platform} · Last seen {new Date(d.lastSeenAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await fetch(`/api/notifications/subscriptions?id=${d.id}`, {
+                              method: "DELETE",
+                            });
+                            queryClient.invalidateQueries({ queryKey: ["notification-devices"] });
+                          }}
+                          className="text-[var(--muted-foreground)] hover:text-red-500"
+                          title="Remover dispositivo"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {activeCat === "data" && (
