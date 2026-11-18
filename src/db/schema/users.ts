@@ -30,6 +30,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   avatarUrl: text("avatar_url"),
   bio: text("bio"),
+  isAdmin: boolean("is_admin").notNull().default(false),
   timezone: text("timezone").notNull().default("UTC"),
   theme: themeEnum("theme").notNull().default("system"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

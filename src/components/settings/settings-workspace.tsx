@@ -882,6 +882,50 @@ export function SettingsWorkspace({
               </CardContent>
             </Card>
           )}
+
+          {activeCat === "diagnostics" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Help &amp; Diagnostics</CardTitle>
+                <CardDescription>
+                  Generate a sanitized diagnostic snapshot (no tokens, cookies, or private note/finance content).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-xs text-[var(--muted-foreground)]">
+                  Platform: {typeof navigator !== "undefined" ? detectNikkiPlatform() : "web"} · App Version: 2.0.0
+                </div>
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    const res = await fetch("/api/diagnostics", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        platform: typeof navigator !== "undefined" ? detectNikkiPlatform() : "web",
+                        appVersion: "2.0.0",
+                        summary: {
+                          online: typeof navigator !== "undefined" ? navigator.onLine : true,
+                          swSupported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
+                          viewport:
+                            typeof window !== "undefined"
+                              ? `${window.innerWidth}x${window.innerHeight}`
+                              : "unknown",
+                        },
+                      }),
+                    });
+                    if (res.ok) {
+                      alert("Sanitized diagnostic report submitted.");
+                    } else {
+                      alert("Failed to submit diagnostic report.");
+                    }
+                  }}
+                >
+                  Send Diagnostic Report
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

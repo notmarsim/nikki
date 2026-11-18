@@ -13,7 +13,7 @@ export interface AppModule {
   href: string;
   icon: string;
   section: ModuleSection;
-  phase: 1 | 2 | 3 | 4 | 5;
+  phase: 1 | 2 | 3 | 4 | 5 | 6;
   status: ModuleStatus;
   description: string;
   plannedFeatures: string[];
@@ -266,6 +266,119 @@ export const APP_MODULES: AppModule[] = [
       "Real-data weekly review generator",
       "Task, project, habit, and study time distribution",
       "Zero fabricated metrics",
+    ],
+  },
+  {
+    id: "spaces",
+    name: "Spaces",
+    href: "/spaces",
+    icon: "Users",
+    section: "core",
+    phase: 6,
+    status: "active",
+    description: "Personal and shared collaborative workspaces with RBAC permissions.",
+    plannedFeatures: [
+      "Role-based access control (owner, admin, editor, viewer)",
+      "One-time SHA-256 token invitations",
+      "Workspace switching and resource movement",
+    ],
+  },
+  {
+    id: "goals",
+    name: "Goals",
+    href: "/goals",
+    icon: "Target",
+    section: "planning",
+    phase: 6,
+    status: "active",
+    description: "Life areas, goal hierarchies, and progress tracking.",
+    plannedFeatures: [
+      "Life areas and multi-horizon goals",
+      "Manual and task-linked progress",
+    ],
+  },
+  {
+    id: "journal",
+    name: "Journal",
+    href: "/journal",
+    icon: "BookOpen",
+    section: "planning",
+    phase: 6,
+    status: "active",
+    description: "Private-by-default daily journal with mood and reflection templates.",
+    plannedFeatures: [
+      "Daily entries, gratitude & reflection templates",
+      "Private personal isolation",
+    ],
+  },
+  {
+    id: "home",
+    name: "Home",
+    href: "/home",
+    icon: "Home",
+    section: "planning",
+    phase: 6,
+    status: "active",
+    description: "Household shopping lists, pantry inventory, recipes, and meal plans.",
+    plannedFeatures: [
+      "Shared shopping lists and low-stock pantry alerts",
+      "Weekly meal planning and recipes",
+    ],
+  },
+  {
+    id: "vault",
+    name: "Vault",
+    href: "/vault",
+    icon: "FileLock2",
+    section: "knowledge",
+    phase: 6,
+    status: "active",
+    description: "Private document vault with MIME/size validation and expiry dates.",
+    plannedFeatures: [
+      "Strict MIME & 20 MB size enforcement",
+      "Expiration tracking",
+    ],
+  },
+  {
+    id: "focus-rooms",
+    name: "Focus Rooms",
+    href: "/focus-rooms",
+    icon: "Radio",
+    section: "planning",
+    phase: 6,
+    status: "active",
+    description: "Shared study and deep work rooms with synchronized Pomodoro cycles.",
+    plannedFeatures: [
+      "Synchronized or independent cycles",
+      "Invite code joining and activity privacy toggle",
+    ],
+  },
+  {
+    id: "feed",
+    name: "Feed",
+    href: "/feed",
+    icon: "Rss",
+    section: "knowledge",
+    phase: 6,
+    status: "active",
+    description: "RSS & Atom reader with SSRF/XXE protection and bookmark saving.",
+    plannedFeatures: [
+      "SSRF & XXE protected feed ingestion",
+      "One-click save to Bookmarks",
+    ],
+  },
+  {
+    id: "templates",
+    name: "Templates",
+    href: "/templates",
+    icon: "LayoutTemplate",
+    section: "system",
+    phase: 6,
+    status: "active",
+    description: "Multi-module starter packs for projects, study, and weekly planning.",
+    plannedFeatures: [
+      "Fresh ID remapping without private data leakage",
+      "Built-in starter packs",
     ],
   },
   {

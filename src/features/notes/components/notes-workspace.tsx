@@ -462,6 +462,30 @@ export function NotesWorkspace({
                   {saveState === "conflict" && "Reloaded newer version"}
                 </span>
 
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={async () => {
+                    const res = await fetch(`/api/notes/${detail.note.id}/collab`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "checkpoint",
+                        label: `Checkpoint ${new Date().toLocaleTimeString()}`,
+                      }),
+                    });
+                    if (res.ok) {
+                      setSaveState("saved");
+                    } else {
+                      setSaveState("error");
+                    }
+                  }}
+                  title="Save CRDT collaboration checkpoint"
+                  className="h-8 px-2 text-xs"
+                >
+                  CRDT Sync
+                </Button>
+
                 <select
                   value={detail.note.projectId ?? ""}
                   onChange={(e) =>

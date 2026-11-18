@@ -46,6 +46,7 @@ export async function createUserWithDefaults(params: {
         bio: users.bio,
         timezone: users.timezone,
         theme: users.theme,
+        isAdmin: users.isAdmin,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       });

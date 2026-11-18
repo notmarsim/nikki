@@ -1,0 +1,184 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { BookOpen, Lock, Plus, Trash2 } from "lucide-react";
+
+interface JournalEntry {
+  id: string;
+  entryDate: string;
+  title: string | null;
+  content: string;
+  mood: string | null;
+  templateKind: string;
+}
+
+export function JournalWorkspace() {
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [mood, setMood] = useState("calm");
+  const [templateKind, setTemplateKind] = useState("free");
+
+  const load = useCallback(async () => {
+    const res = await fetch("/api/journal");
+    if (!res.ok) return;
+    const json = (await res.json()) as { data?: { entries: JournalEntry[] } };
+    setEntries(json.data?.entries ?? []);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  function applyTemplate(kind: string) {
+    setTemplateKind(kind);
+    if (kind === "gratitude" && !content) {
+      setContent("1. Grateful for:\n2. Highlight of today:\n3. One small win:");
+    } else if (kind === "reflection" && !content) {
+      setContent("What went well?\n\nWhat challenged me?\n\nWhat will I focus on tomorrow?");
+    }
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!content.trim()) return;
+    const res = await fetch("/api/journal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        entryDate,
+        title: title.trim() || null,
+        content: content.trim(),
+        mood,
+        templateKind,
+      }),
+    });
+    if (res.ok) {
+      setTitle("");
+      setContent("");
+      await load();
+    }
+  }
+
+  async function handleDelete(id: string) {
+    await fetch(`/api/journal?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    await load();
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-6">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <BookOpen className="h-6 w-6 text-[var(--accent)]" />
+            Nikki Journal
+          </h1>
+          <p className="text-sm text-[var(--muted)]">
+            Private daily reflections, gratitude prompts, and mood tracking.
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1 text-xs">
+          <Lock className="h-3.5 w-3.5 text-[var(--accent)]" /> Private by default
+        </span>
+      </header>
+
+      <form
+        onSubmit={handleSave}
+        className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <input
+            type="date"
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+            className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+          />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Entry title (optional)"
+            className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm sm:col-span-2"
+          />
+          <select
+            value={mood}
+            onChange={(e) => setMood(e.target.value)}
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+          >
+            <option value="calm">Calm</option>
+            <option value="energized">Energized</option>
+            <option value="focused">Focused</option>
+            <option value="tired">Tired</option>
+            <option value="stressed">Stressed</option>
+          </select>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {["free", "gratitude", "reflection"].map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => applyTemplate(k)}
+              className={`rounded-full border px-3 py-1 text-xs capitalize ${
+                templateKind === k
+                  ? "border-[var(--accent)] bg-[var(--accent)]/15"
+                  : "border-[var(--border)]"
+              }`}
+            >
+              {k} template
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          rows={5}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Write your private thoughts for today..."
+          className="w-full rounded-lg border border-[var(--border)] bg-transparent p-3 text-sm"
+          required
+        />
+
+        <button
+          type="submit"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+        >
+          <Plus className="h-4 w-4" /> Save Entry
+        </button>
+      </form>
+
+      <div className="space-y-3">
+        {entries.length === 0 ? (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted)]">
+            Your private journal is empty. Write your first reflection above.
+          </div>
+        ) : (
+          entries.map((entry) => (
+            <article
+              key={entry.id}
+              className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold">{entry.title || entry.entryDate}</h3>
+                  <div className="text-xs text-[var(--muted)]">
+                    {entry.entryDate} · Mood: {entry.mood ?? "—"} · {entry.templateKind}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(entry.id)}
+                  className="rounded p-1 text-[var(--muted)] hover:text-red-500"
+                  aria-label="Delete journal entry"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="whitespace-pre-wrap text-sm">{entry.content}</p>
+            </article>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

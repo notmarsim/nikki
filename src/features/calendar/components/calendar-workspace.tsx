@@ -325,19 +325,32 @@ export function CalendarWorkspace({
                       const taskId = e.dataTransfer.getData("text/task-id");
                       if (taskId) void handleScheduleTaskOnDate(taskId, day);
                     }}
-                    className={`min-h-[140px] rounded-xl border p-2.5 flex flex-col gap-1.5 ${
+                    className={`min-h-[140px] rounded-xl p-2.5 flex flex-col gap-1.5 ${
                       isToday
-                        ? "border-[var(--accent)] bg-[var(--surface)]"
-                        : "border-[var(--border)] bg-[var(--surface)]/60"
+                        ? "border-2 border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/25"
+                        : "border border-[var(--border)] bg-[var(--surface)]/60"
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span>
-                        {day.toLocaleDateString("en-US", {
-                          weekday: view === "month" ? undefined : "short",
-                          day: "numeric",
-                          month: view === "day" ? "long" : "short",
-                        })}
+                      <span className="flex items-center gap-1.5">
+                        <span
+                          className={
+                            isToday
+                              ? "rounded-md bg-[var(--accent)] px-1.5 py-0.5 text-white"
+                              : ""
+                          }
+                        >
+                          {day.toLocaleDateString("en-US", {
+                            weekday: view === "month" ? undefined : "short",
+                            day: "numeric",
+                            month: view === "day" ? "long" : "short",
+                          })}
+                        </span>
+                        {isToday && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]">
+                            Today
+                          </span>
+                        )}
                       </span>
                       <button
                         type="button"
@@ -470,14 +483,14 @@ export function CalendarWorkspace({
                 onChange={(e) => setTitle(e.target.value)}
               />
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Input
                   type="date"
                   value={dateStr}
                   onChange={(e) => setDateStr(e.target.value)}
                   required
                 />
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5">
                   <input
                     type="checkbox"
                     id="all-day"
@@ -491,29 +504,35 @@ export function CalendarWorkspace({
                     type="color"
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    className="ml-auto h-8 w-10 rounded border border-[var(--border)]"
+                    className="ml-auto h-7 w-10 rounded border border-[var(--border)]"
                   />
                 </div>
               </div>
 
               {!isAllDay && (
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    required
-                  />
-                  <Input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    required
-                  />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-[var(--muted-foreground)]">Start</label>
+                    <Input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-[var(--muted-foreground)]">End</label>
+                    <Input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <select
                   value={recurrence}
                   onChange={(e) =>

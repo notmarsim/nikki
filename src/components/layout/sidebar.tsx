@@ -47,6 +47,22 @@ export function Sidebar({ workspaceName }: SidebarProps) {
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
   >({});
+  const [spaces, setSpaces] = useState<Array<{ id: string; name: string; spaceType: string }>>([]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/spaces");
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          data?: { spaces?: Array<{ id: string; name: string; spaceType: string }> };
+        };
+        if (json.data?.spaces) setSpaces(json.data.spaces);
+      } catch {
+        // Ignore transient network errors when offline
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!mobileSidebarOpen) return;
@@ -122,6 +138,37 @@ export function Sidebar({ workspaceName }: SidebarProps) {
             </button>
           )}
         </div>
+
+        {!collapsed && spaces.length > 1 && (
+          <div className="border-b border-[var(--border)] px-3 py-2">
+            <select
+              aria-label="Switch active space"
+              defaultValue=""
+              onChange={async (e) => {
+                const spaceId = e.target.value;
+                if (!spaceId) return;
+                const res = await fetch("/api/spaces/switch", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ workspaceId: spaceId }),
+                });
+                if (res.ok) {
+                  window.location.reload();
+                }
+              }}
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs"
+            >
+              <option value="" disabled>
+                Space: {workspaceName}
+              </option>
+              {spaces.map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {sp.name} ({sp.spaceType})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Navigation Links */}
         <nav

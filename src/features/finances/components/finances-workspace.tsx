@@ -609,7 +609,12 @@ export function FinancesWorkspace({
 
           <Card>
             <CardContent className="pt-4 space-y-2">
-              {data.transactions.map((t) => (
+              {data.transactions.length === 0 ? (
+                <p className="py-8 text-center text-xs text-[var(--muted-foreground)]">
+                  No transactions recorded yet. Add your first income or expense above.
+                </p>
+              ) : (
+                data.transactions.map((t) => (
                 <div
                   key={t.id}
                   className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-xs"
@@ -636,7 +641,8 @@ export function FinancesWorkspace({
                     </span>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </CardContent>
           </Card>
         </div>
@@ -1206,14 +1212,14 @@ export function FinancesWorkspace({
                   onChange={(e) => setGoalName(e.target.value)}
                   placeholder="Goal name (e.g. Emergency Fund)"
                   required
-                  className="w-56"
+                  className="w-full sm:w-72"
                 />
                 <Input
                   value={goalTarget}
                   onChange={(e) => setGoalTarget(e.target.value)}
                   placeholder="Target (e.g. 5000,00)"
                   required
-                  className="w-44"
+                  className="w-full sm:w-48"
                 />
                 <Button type="submit" size="sm">
                   <Target className="h-4 w-4" /> Create Goal

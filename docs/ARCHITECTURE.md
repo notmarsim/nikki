@@ -290,3 +290,30 @@ A Fase 5 completa a plataforma Nikki com finanças pessoais em precisão de cent
 3. **Settings & Personalization (`/settings`)**
    - **Preference Registry** versionado em `src/modules/settings/registry.ts` persistido em `user_settings.preferences` (JSONB) + perfil (`users.bio`, `timezone`, `theme`).
    - Categorias pesquisáveis: General & Profile, Appearance & Accessibility, Productivity & Modules, Navigation & Shortcuts (com ocultação de módulos da sidebar sem perda de dados), Finances & Privacy (`hideFinancialValues`), Notifications e Full JSON Backup.
+
+
+---
+
+## Fase 6 — Nikki 2.0: Collaboration, Personal Life, Native Ecosystem & Reliability
+
+A Fase 6 expande o Nikki para suportar espaços compartilhados, colaboração em notas via CRDT, organização pessoal avançada, extensões nativas iOS e observabilidade operacional (`0008_phase6_modules.sql`):
+
+1. **Nikki Spaces (`/spaces`) & RBAC**
+   - `workspace_members` (`owner | admin | editor | viewer`) e `workspace_invitations` com tokens hashed em SHA-256 e uso único.
+   - Switcher na Sidebar (`/api/spaces/switch`) e movimentação de recursos preservando privacidade padrão de módulos pessoais.
+
+2. **Edição Colaborativa em Notas (`yjs` CRDT)**
+   - Persistência de updates CRDT (`note_collab_states`) e checkpoints (`note_collab_snapshots`) em `/api/notes/[id]/collab`, bloqueando alterações para membros `viewer`.
+
+3. **Organização Pessoal & Colaborativa**
+   - **Goals & Life Areas (`/goals`):** Áreas da vida, horizontes e cálculo de progresso manual ou vinculado a `tasks`.
+   - **Nikki Journal (`/journal`):** Diário estritamente privado por padrão com templates de reflexão/gratidão e humor.
+   - **Nikki Home (`/home`):** Listas de compras, despensa com alertas de estoque mínimo, receitas e planejamento de refeições.
+   - **Document Vault (`/vault`):** Registro privado de documentos com validação de MIME, limite de 20 MB e datas de expiração.
+   - **Focus Rooms (`/focus-rooms`):** Salas compartilhadas com código de convite, modos `synchronized` e `independent` e privacidade de atividade.
+   - **Nikki Feed (`/feed`):** Leitor RSS/Atom com proteção SSRF, bloqueio de XXE (`<!DOCTYPE`/`<!ENTITY`), sanitização XSS e salvamento em Bookmarks.
+   - **Nikki Templates (`/templates`):** Instalação de pacotes multi-módulo com novos IDs isolados no workspace ativo.
+
+4. **Ecossistema iOS & Confiabilidade**
+   - Endpoint `/api/ios/widget-snapshot` + referências Swift (`ios-extensions/NikkiWidget.swift`, `NikkiAppIntents.swift`, `NikkiShareExtension.swift`) documentadas em `docs/IOS_NATIVE_ECOSYSTEM.md`.
+   - **Nikki Diagnostics** (`Settings -> Help & Diagnostics` + `/api/diagnostics`) com remoção de chaves sensíveis e **Nikki Ops** (`/ops` + `/api/ops`) restrito a administradores (`users.isAdmin === true`).

@@ -72,4 +72,5 @@ export const SETTINGS_CATEGORIES = [
   { id: "notifications", label: "Notifications", keywords: "quiet hours alerts reminders" },
   { id: "devices", label: "Aplicativo e Dispositivos", keywords: "pwa android ios capacitor offline cache push" },
   { id: "data", label: "Account & Data Export", keywords: "export backup json reset defaults" },
+  { id: "diagnostics", label: "Help & Diagnostics", keywords: "diagnostics health support bug report logs" },
 ] as const;
