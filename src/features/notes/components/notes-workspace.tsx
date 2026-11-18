@@ -18,11 +18,12 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import type { NoteBlockDocument, NoteRecord, ProjectRecord } from "@/db/schema";
+import type { NoteBlockDocument, NoteBlockNode, NoteRecord, ProjectRecord } from "@/db/schema";
 import { NOTE_TEMPLATES, type NoteTemplateId } from "@/modules/notes/templates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { HeadingToc, type HeadingTocItem } from "./heading-toc";
 import { TiptapEditor } from "./tiptap-editor";
 
 interface NoteDetailPayload {
@@ -58,7 +59,9 @@ export function NotesWorkspace({
   const [templateParentId, setTemplateParentId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error" | "conflict">("idle");
   const [titleDraft, setTitleDraft] = useState("");
+  const [liveDoc, setLiveDoc] = useState<NoteBlockDocument | null>(null);
 
+  const editorScrollRef = useRef<HTMLDivElement | null>(null);
   const versionRef = useRef<number>(1);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -93,10 +96,35 @@ export function NotesWorkspace({
     const activeNote = detail?.note;
     if (activeNote) {
       setTitleDraft(activeNote.title);
+      setLiveDoc(activeNote.contentJson);
       versionRef.current = activeNote.version;
       setSaveState("idle");
     }
   }, [detail?.note]);
+
+  const headings: HeadingTocItem[] = useMemo(() => {
+    const doc = liveDoc ?? detail?.note?.contentJson;
+    if (!doc || !Array.isArray(doc.content)) return [];
+    const list: HeadingTocItem[] = [];
+    const extractText = (node: NoteBlockNode): string => {
+      if (typeof node.text === "string") return node.text;
+      if (Array.isArray(node.content)) return node.content.map(extractText).join("");
+      return "";
+    };
+    let idx = 0;
+    for (const block of doc.content) {
+      if (block.type === "heading") {
+        const rawLevel = Number(block.attrs?.level ?? 1);
+        const level: 1 | 2 | 3 = rawLevel === 2 ? 2 : rawLevel === 3 ? 3 : 1;
+        const text = extractText(block).trim();
+        if (text) {
+          list.push({ index: idx, level, text });
+        }
+        idx += 1;
+      }
+    }
+    return list;
+  }, [liveDoc, detail?.note?.contentJson]);
 
   const invalidateAll = async () => {
     await Promise.all([
@@ -481,32 +509,44 @@ export function NotesWorkspace({
 
             {/* Editor + Relationships Split */}
             <div className="flex flex-1 overflow-hidden">
-              <div className="flex-1 overflow-y-auto px-6 py-5">
-                <input
-                  type="text"
-                  value={titleDraft}
-                  onChange={(e) => setTitleDraft(e.target.value)}
-                  onBlur={() => {
-                    const clean = titleDraft.trim() || "Untitled";
-                    if (clean !== detail.note.title) {
-                      patchNote(detail.note.id, { title: clean });
-                    }
-                  }}
-                  placeholder="Untitled"
-                  className="mb-4 w-full bg-transparent text-3xl font-bold tracking-tight focus:outline-none"
-                />
+              <div className="relative flex flex-1 overflow-hidden">
+                <div ref={editorScrollRef} className="flex-1 overflow-y-auto px-6 py-5 pr-12">
+                  <input
+                    type="text"
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    onBlur={() => {
+                      const clean = titleDraft.trim() || "Untitled";
+                      if (clean !== detail.note.title) {
+                        patchNote(detail.note.id, { title: clean });
+                      }
+                    }}
+                    placeholder="Untitled"
+                    className="mb-4 w-full bg-transparent text-3xl font-bold tracking-tight focus:outline-none"
+                  />
 
-                <TiptapEditor
-                  noteId={detail.note.id}
-                  initialContent={detail.note.contentJson}
-                  linkableNotes={notesList.map((n) => ({
-                    id: n.id,
-                    title: n.title,
-                    icon: n.icon,
-                  }))}
-                  onChange={(doc) => scheduleContentSave(detail.note.id, doc)}
-                  onConvertSelectionToTask={handleConvertSelectionToTask}
-                />
+                  <TiptapEditor
+                    noteId={detail.note.id}
+                    initialContent={detail.note.contentJson}
+                    linkableNotes={notesList.map((n) => ({
+                      id: n.id,
+                      title: n.title,
+                      icon: n.icon,
+                    }))}
+                    onChange={(doc) => {
+                      setLiveDoc(doc);
+                      scheduleContentSave(detail.note.id, doc);
+                    }}
+                    onConvertSelectionToTask={handleConvertSelectionToTask}
+                  />
+                </div>
+
+                {/* Floating Heading Minimap & Hover TOC */}
+                {headings.length > 0 && (
+                  <div className="pointer-events-none absolute right-4 top-16 z-20">
+                    <HeadingToc headings={headings} scrollContainerRef={editorScrollRef} />
+                  </div>
+                )}
               </div>
 
               {/* Right Context & Relationships Panel */}
