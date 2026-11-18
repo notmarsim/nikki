@@ -54,6 +54,7 @@ interface TiptapEditorProps {
   onChange: (doc: NoteBlockDocument) => void;
   onConvertSelectionToTask: (text: string) => Promise<void>;
   onCreateFlashcardFromSelection?: (text: string) => void;
+  onSaveSnippetFromCode?: (code: string, language: string) => void;
 }
 
 interface SlashCommandItem {
@@ -70,6 +71,7 @@ export function TiptapEditor({
   onChange,
   onConvertSelectionToTask,
   onCreateFlashcardFromSelection,
+  onSaveSnippetFromCode,
 }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
@@ -570,6 +572,31 @@ export function TiptapEditor({
           </button>
         )}
       </BubbleMenu>
+
+      {/* Contextual Code Block Controls */}
+      {editor.isActive("codeBlock") && onSaveSnippetFromCode && (
+        <div className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/70 px-2.5 py-1 text-xs">
+          <span className="text-[var(--muted-foreground)]">Code Block:</span>
+          <button
+            type="button"
+            onClick={() => {
+              const $from = editor.state.selection.$from;
+              const code = $from.parent.textContent;
+              const lang =
+                typeof $from.parent.attrs?.language === "string" &&
+                $from.parent.attrs.language
+                  ? $from.parent.attrs.language
+                  : "typescript";
+              if (code.trim()) {
+                onSaveSnippetFromCode(code, lang);
+              }
+            }}
+            className="inline-flex items-center gap-1 rounded bg-[var(--primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--primary-foreground)] hover:opacity-90"
+          >
+            <Code className="h-3 w-3" /> Save as Snippet
+          </button>
+        </div>
+      )}
 
       {/* Contextual Table Controls (only when cursor is inside a table) */}
       {editor.isActive("table") && (

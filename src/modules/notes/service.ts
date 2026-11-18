@@ -244,6 +244,7 @@ export async function createNote(
         projectId: input.projectId ?? null,
         title: input.title ?? template.title,
         icon: input.icon ?? template.icon,
+        docKind: input.docKind ?? "note",
         contentJson,
         contentText,
       })

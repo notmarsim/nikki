@@ -19,8 +19,9 @@ export const updateInboxItemSchema = z.object({
 });
 
 export const convertInboxItemSchema = z.object({
-  targetType: z.enum(["note", "task"]),
+  targetType: z.enum(["note", "task", "bookmark"]),
   projectId: z.string().uuid().nullable().optional(),
+  collectionId: z.string().uuid().nullable().optional(),
 });
 
 export type CreateInboxItemInput = z.infer<typeof createInboxItemSchema>;

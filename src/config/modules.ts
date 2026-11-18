@@ -185,7 +185,7 @@ export const APP_MODULES: AppModule[] = [
     icon: "Network",
     section: "knowledge",
     phase: 4,
-    status: "planned",
+    status: "active",
     description: "Interactive graph of bidirectional note and entity relationships.",
     plannedFeatures: [
       "Global and local node neighborhood graphs",
@@ -200,7 +200,7 @@ export const APP_MODULES: AppModule[] = [
     icon: "Bookmark",
     section: "knowledge",
     phase: 4,
-    status: "planned",
+    status: "active",
     description: "Curated digital library with SSRF-safe metadata extraction.",
     plannedFeatures: [
       "Collections, tags, and reading status",
@@ -215,12 +215,27 @@ export const APP_MODULES: AppModule[] = [
     icon: "Code2",
     section: "knowledge",
     phase: 4,
-    status: "planned",
+    status: "active",
     description: "Code snippets, API references, debugging notes, and GitHub links.",
     plannedFeatures: [
       "Syntax-highlighted snippet library",
       "Frequent commands and debugging logs",
       "Scoped GitHub repository integration",
+    ],
+  },
+  {
+    id: "search",
+    name: "Search",
+    href: "/search",
+    icon: "Search",
+    section: "knowledge",
+    phase: 4,
+    status: "active",
+    description: "Advanced PostgreSQL full-text and fuzzy search across all modules.",
+    plannedFeatures: [
+      "Full-text + trigram fuzzy matching",
+      "Type, tag, date, and contextual filters",
+      "Ranked results with snippet highlights",
     ],
   },
   {

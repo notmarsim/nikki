@@ -121,6 +121,7 @@ export const notes = pgTable(
     contentText: text("content_text").notNull().default(""),
     isFavorite: boolean("is_favorite").notNull().default(false),
     isArchived: boolean("is_archived").notNull().default(false),
+    docKind: text("doc_kind").notNull().default("note"),
     sortOrder: integer("sort_order").notNull().default(0),
     version: integer("version").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

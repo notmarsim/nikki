@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
 import { apiError, apiOk } from "@/lib/api-response";
 import { getCurrentSession } from "@/modules/auth/session";
-import { globalSearch, type SearchEntityType } from "@/modules/search/service";
+import {
+  ALL_SEARCH_TYPES,
+  globalSearch,
+  type SearchEntityType,
+} from "@/modules/search/service";
 import { getOrCreateDefaultWorkspace } from "@/modules/users/service";
 
 export async function GET(request: NextRequest) {
@@ -12,18 +16,10 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get("q") ?? "";
   const typeParam = searchParams.get("type");
   const limitParam = Number(searchParams.get("limit") ?? "20");
+  const offsetParam = Number(searchParams.get("offset") ?? "0");
 
-  const allowedTypes: SearchEntityType[] = [
-    "note",
-    "task",
-    "project",
-    "course",
-    "event",
-    "deck",
-    "habit",
-  ];
   const types: SearchEntityType[] | undefined =
-    typeParam && allowedTypes.includes(typeParam as SearchEntityType)
+    typeParam && ALL_SEARCH_TYPES.includes(typeParam as SearchEntityType)
       ? [typeParam as SearchEntityType]
       : undefined;
 
@@ -33,7 +29,13 @@ export async function GET(request: NextRequest) {
     workspaceId: workspace.id,
     query,
     types,
+    tag: searchParams.get("tag") ?? undefined,
+    projectId: searchParams.get("projectId") ?? undefined,
+    collectionId: searchParams.get("collectionId") ?? undefined,
+    dateFrom: searchParams.get("dateFrom") ?? undefined,
+    dateTo: searchParams.get("dateTo") ?? undefined,
     limit: Number.isFinite(limitParam) ? limitParam : 20,
+    offset: Number.isFinite(offsetParam) ? offsetParam : 0,
   });
 
   return apiOk({ results });

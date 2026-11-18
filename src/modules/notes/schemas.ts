@@ -17,6 +17,7 @@ export const createNoteSchema = z.object({
   templateId: z
     .enum(["blank", "study", "tech_doc", "meeting", "journal", "project_plan"])
     .optional(),
+  docKind: z.enum(["note", "cheatsheet", "documentation"]).optional(),
   contentJson: noteDocumentSchema.optional(),
 });
 

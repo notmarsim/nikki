@@ -8,10 +8,13 @@ export const entityTypeEnum = pgEnum("entity_type", [
   "project",
   "inbox_item",
   "course",
+  "lesson",
   "bookmark",
   "event",
   "habit",
   "snippet",
+  "command",
+  "reference",
 ]);
 
 export const relationTypeEnum = pgEnum("relation_type", [

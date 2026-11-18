@@ -8,7 +8,11 @@ export type ActivityEntityType =
   | "inbox_item"
   | "event"
   | "course"
-  | "habit";
+  | "habit"
+  | "bookmark"
+  | "snippet"
+  | "command"
+  | "reference";
 
 export async function recordActivity(params: {
   userId: string;

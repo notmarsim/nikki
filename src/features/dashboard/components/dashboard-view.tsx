@@ -90,6 +90,19 @@ export interface DashboardPayload {
     startedAt: string | Date;
     elapsedSeconds: number;
   } | null;
+  recentBookmarks?: Array<{
+    id: string;
+    title: string;
+    url: string;
+    domain: string;
+    readingStatus: string;
+  }>;
+  favoriteSnippets?: Array<{
+    id: string;
+    title: string;
+    language: string;
+    isFavorite: boolean;
+  }>;
 }
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -618,6 +631,87 @@ export function DashboardView({
           )}
         </CardContent>
       </Card>
+
+      {/* Phase 4: Library & Developer Hub Widgets */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Recent Bookmarks</CardTitle>
+              <CardDescription>Saved articles, docs, and resources.</CardDescription>
+            </div>
+            <Link href="/bookmarks" className="text-xs font-medium text-[var(--accent)] hover:underline">
+              Open Library →
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {!data.recentBookmarks || data.recentBookmarks.length === 0 ? (
+              <div className="py-5 text-center text-sm text-[var(--muted-foreground)]">
+                No bookmarks saved yet.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data.recentBookmarks.map((b) => (
+                  <a
+                    key={b.id}
+                    href={b.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--surface-muted)]"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{b.title}</div>
+                      <div className="text-xs text-[var(--muted-foreground)]">{b.domain}</div>
+                    </div>
+                    <Badge variant="outline" className="ml-2 shrink-0 text-[10px] capitalize">
+                      {b.readingStatus}
+                    </Badge>
+                  </a>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Developer Hub Snippets</CardTitle>
+              <CardDescription>Quick access to your saved code snippets.</CardDescription>
+            </div>
+            <div className="flex items-center gap-3 text-xs font-medium">
+              <Link href="/knowledge-graph" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+                Graph
+              </Link>
+              <Link href="/developer-hub" className="text-[var(--accent)] hover:underline">
+                Open Dev Hub →
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {!data.favoriteSnippets || data.favoriteSnippets.length === 0 ? (
+              <div className="py-5 text-center text-sm text-[var(--muted-foreground)]">
+                No code snippets saved yet.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data.favoriteSnippets.map((s) => (
+                  <Link
+                    key={s.id}
+                    href={`/developer-hub?tab=snippets&id=${s.id}`}
+                    className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--surface-muted)]"
+                  >
+                    <span className="truncate font-medium">{s.title}</span>
+                    <Badge variant="outline" className="ml-2 shrink-0 text-[10px]">
+                      {s.language}
+                    </Badge>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

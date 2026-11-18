@@ -241,3 +241,31 @@ A Fase 3 expande o Nikki com cinco módulos integrados, mantendo a arquitetura m
    - **Global Search** (`/api/search`) indexando também `course`, `event`, `deck` e `habit`.
    - **Command Palette** (`Ctrl+K`) com ações rápidas da Fase 3 e ícones dedicados.
    - **Dashboard** (`/dashboard`) exibindo eventos próximos, sessão de foco ativa, flashcards pendentes, tempo de estudo hoje e hábitos do dia.
+
+
+---
+
+## Fase 4 — Knowledge, Library & Developer Hub
+
+A Fase 4 transforma o Nikki em uma plataforma integrada de conhecimento técnico, biblioteca digital e recuperação avançada de informações, com persistência em PostgreSQL (Supabase) e RLS em todas as novas tabelas (`0005_phase4_modules.sql`):
+
+1. **Knowledge Graph (`/knowledge-graph` e Local Graph em `/notes`)**
+   - Projeção em tempo real das relações reais existentes em `note_links`, `entity_relations`, `learning_resource_links`, `notes.project_id`, `developer_snippets.project_id`/`source_note_id` e `tasks.project_id`.
+   - Grafo global com simulação de forças, zoom/pan, drag-and-drop de nós, menu de contexto, legenda acessível, filtros por categoria/tag/favoritos e painel de detalhes com conexões de entrada/saída.
+   - Grafo local nas páginas de Notes (`/api/graph/local`) com BFS delimitado (Level 1, 2 e 3) e notas relacionadas por tags/projeto.
+   - Preferências de layout e posições fixadas persistidas em `graph_preferences` e `graph_node_positions`.
+
+2. **Bookmarks & Digital Library (`/bookmarks`)**
+   - Tabelas `bookmarks` e `bookmark_collections` (hierarquia com detecção de ciclo), reutilizando `tags` e `entity_tags`.
+   - Extração server-side de metadados (`Open Graph`, `Twitter Cards`, `<title>`, favicon) com proteção SSRF em `src/modules/bookmarks/ssrf.ts`: bloqueio de protocolos não HTTP(S), credenciais em URL, endereços privados/loopback/link-local/CGNAT/metadata (`169.254.169.254`), validação pós-DNS, revalidação de redirecionamentos (máx. 3), timeout de 5s, limite de 1MB e rate limiting.
+   - Modos Grid/List, Read Later, Favorites, importação Netscape HTML e exportação HTML/JSON, além de conversão direta de itens da Universal Inbox (`targetType: "bookmark"`).
+
+3. **Developer Hub (`/developer-hub`)**
+   - **Snippets Manager** (`developer_snippets`): syntax highlighting com `lowlight`, numeração de linhas, cópia rápida, tags, vínculo com projetos e criação direta a partir de blocos de código no editor de Notes.
+   - **Commands Manager** (`developer_commands`): biblioteca de comandos CLI com placeholders `{param}` interpolados apenas como texto para cópia segura (sem execução).
+   - **Cheatsheets & Documentation Hub**: cheatsheets e documentação interna reutilizando `notes` (`doc_kind` = `'cheatsheet' | 'documentation'`) no editor Tiptap, e referências externas em `developer_references`.
+   - **GitHub Integration (opcional, somente leitura)**: conexão via PAT criptografado com AES-256-GCM (`github_connections`), cache em memória com TTL de 5 minutos, listagem de repositórios, issues/PRs/releases/commits sob demanda e vinculação com Projetos (`project_repositories`).
+
+4. **Advanced Global Search (`/search` e Command Palette)**
+   - Busca unificada em 12 tipos de entidade (`note`, `task`, `project`, `course`, `lesson`, `event`, `deck`, `habit`, `bookmark`, `snippet`, `command`, `reference`) usando PostgreSQL FTS (`to_tsvector` + `plainto_tsquery` com índices GIN) e busca aproximada via `pg_trgm` (`similarity`).
+   - Estratégia de relevância: correspondência exata de título (+2.0) > prefixo (+0.8) > substring (+0.3) somados ao score FTS/trigram, com paginação e filtros por tipo, tag, projeto, coleção e período.

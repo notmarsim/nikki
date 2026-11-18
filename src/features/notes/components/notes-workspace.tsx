@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HeadingToc, type HeadingTocItem } from "./heading-toc";
+import { LocalGraphPanel } from "./local-graph-panel";
 import { TiptapEditor } from "./tiptap-editor";
 
 interface NoteDetailPayload {
@@ -69,6 +70,12 @@ export function NotesWorkspace({
   } | null>(null);
   const [decks, setDecks] = useState<Array<{ id: string; title: string }>>([]);
   const [savingFlashcard, setSavingFlashcard] = useState(false);
+  const [snippetModal, setSnippetModal] = useState<{
+    title: string;
+    language: string;
+    code: string;
+  } | null>(null);
+  const [savingSnippet, setSavingSnippet] = useState(false);
   const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
 
   const editorScrollRef = useRef<HTMLDivElement | null>(null);
@@ -549,6 +556,13 @@ export function NotesWorkspace({
                       scheduleContentSave(detail.note.id, doc);
                     }}
                     onConvertSelectionToTask={handleConvertSelectionToTask}
+                    onSaveSnippetFromCode={(code, language) => {
+                      setSnippetModal({
+                        title: `${detail.note.title} snippet`,
+                        language,
+                        code,
+                      });
+                    }}
                     onCreateFlashcardFromSelection={async (text) => {
                       setFlashcardModal({
                         front: text,
@@ -652,6 +666,11 @@ export function NotesWorkspace({
                     </div>
                   )}
                 </div>
+
+                <LocalGraphPanel
+                  noteId={detail.note.id}
+                  onSelectNote={(id) => setSelectedNoteId(id)}
+                />
               </aside>
             </div>
           </>
@@ -813,6 +832,77 @@ export function NotesWorkspace({
                   {savingFlashcard ? "Saving..." : "Create Flashcard"}
                 </Button>
               )}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {snippetModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={() => setSnippetModal(null)}
+        >
+          <form
+            className="w-full max-w-md space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!snippetModal.title.trim() || !snippetModal.code.trim()) return;
+              setSavingSnippet(true);
+              try {
+                const res = await fetch("/api/developer-hub/snippets", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title: snippetModal.title.trim(),
+                    language: snippetModal.language.trim() || "typescript",
+                    code: snippetModal.code,
+                    sourceNoteId: detail?.note.id ?? null,
+                    projectId: detail?.note.projectId ?? null,
+                  }),
+                });
+                if (res.ok) {
+                  setSnippetModal(null);
+                  queryClient.invalidateQueries({ queryKey: ["developer-hub-overview"] });
+                }
+              } finally {
+                setSavingSnippet(false);
+              }
+            }}
+          >
+            <h2 className="text-base font-semibold">Save Code Block as Snippet</h2>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Title</label>
+              <Input
+                value={snippetModal.title}
+                onChange={(e) =>
+                  setSnippetModal({ ...snippetModal, title: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Language</label>
+              <Input
+                value={snippetModal.language}
+                onChange={(e) =>
+                  setSnippetModal({ ...snippetModal, language: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSnippetModal(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={savingSnippet}>
+                {savingSnippet ? "Saving..." : "Save Snippet"}
+              </Button>
             </div>
           </form>
         </div>

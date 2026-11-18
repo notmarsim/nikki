@@ -83,7 +83,10 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
     }
   };
 
-  const handleConvert = async (itemId: string, targetType: "note" | "task") => {
+  const handleConvert = async (
+    itemId: string,
+    targetType: "note" | "task" | "bookmark"
+  ) => {
     setBusyId(itemId);
     try {
       const projectId = selectedProjectByItem[itemId] || null;
@@ -377,6 +380,16 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                         <CheckSquare className="h-3.5 w-3.5" />
                         Convert to Task
                       </Button>
+                      {(item.url || /https?:\/\/\S+/.test(item.content)) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busyId === item.id}
+                          onClick={() => handleConvert(item.id, "bookmark")}
+                        >
+                          Save as Bookmark
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -388,7 +401,9 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                       href={
                         item.convertedToType === "note"
                           ? `/notes?id=${item.convertedToId}`
-                          : `/tasks?taskId=${item.convertedToId}`
+                          : item.convertedToType === "bookmark"
+                            ? `/bookmarks?id=${item.convertedToId}`
+                            : `/tasks?taskId=${item.convertedToId}`
                       }
                       className="font-medium text-[var(--accent)] hover:underline"
                     >

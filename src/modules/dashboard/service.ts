@@ -2,7 +2,9 @@ import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { withUserRls } from "@/db/rls";
 import {
   activityLogs,
+  bookmarks,
   calendarEvents,
+  developerSnippets,
   flashcardDecks,
   flashcards,
   focusSessions,
@@ -34,6 +36,8 @@ export async function getDashboardData(userId: string, workspaceId: string) {
       dueFlashcardRows,
       activeHabitRows,
       todayHabitEntryRows,
+      recentBookmarkRows,
+      favoriteSnippetRows,
     ] = await Promise.all([
       tx
         .select()
@@ -179,6 +183,40 @@ export async function getDashboardData(userId: string, workspaceId: string) {
             eq(habitEntries.entryDate, todayDateStr)
           )
         ),
+      tx
+        .select({
+          id: bookmarks.id,
+          title: bookmarks.title,
+          url: bookmarks.url,
+          domain: bookmarks.domain,
+          readingStatus: bookmarks.readingStatus,
+        })
+        .from(bookmarks)
+        .where(
+          and(
+            eq(bookmarks.userId, userId),
+            eq(bookmarks.workspaceId, workspaceId),
+            isNull(bookmarks.archivedAt)
+          )
+        )
+        .orderBy(desc(bookmarks.updatedAt))
+        .limit(5),
+      tx
+        .select({
+          id: developerSnippets.id,
+          title: developerSnippets.title,
+          language: developerSnippets.language,
+          isFavorite: developerSnippets.isFavorite,
+        })
+        .from(developerSnippets)
+        .where(
+          and(
+            eq(developerSnippets.userId, userId),
+            eq(developerSnippets.workspaceId, workspaceId)
+          )
+        )
+        .orderBy(desc(developerSnippets.isFavorite), desc(developerSnippets.updatedAt))
+        .limit(5),
     ]);
 
     const tasksToday = allTasks.filter((t) => {
@@ -245,6 +283,8 @@ export async function getDashboardData(userId: string, workspaceId: string) {
       recentActivity: activityRows,
       upcomingEvents: upcomingEventRows,
       activeFocus: activeFocusRows[0] ?? null,
+      recentBookmarks: recentBookmarkRows,
+      favoriteSnippets: favoriteSnippetRows,
     };
   });
 }

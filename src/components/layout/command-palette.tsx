@@ -20,7 +20,19 @@ import { useUiStore } from "@/stores/ui-store";
 
 interface SearchResultItem {
   id: string;
-  type: "note" | "task" | "project" | "course" | "event" | "deck" | "habit";
+  type:
+    | "note"
+    | "task"
+    | "project"
+    | "course"
+    | "lesson"
+    | "event"
+    | "deck"
+    | "habit"
+    | "bookmark"
+    | "snippet"
+    | "command"
+    | "reference";
   title: string;
   snippet: string;
   href: string;
@@ -185,6 +197,50 @@ export function CommandPalette() {
           setCommandPaletteOpen(false);
         },
       },
+      {
+        id: "act-knowledge-graph",
+        label: "Open Knowledge Graph",
+        subtitle: "Explore interactive connections across Nikki",
+        icon: "Network",
+        group: "Actions",
+        action: () => {
+          router.push("/knowledge-graph");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-bookmarks",
+        label: "Save Bookmark",
+        subtitle: "Open Bookmarks & Digital Library",
+        icon: "Bookmark",
+        group: "Actions",
+        action: () => {
+          router.push("/bookmarks");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-dev-hub",
+        label: "Open Developer Hub",
+        subtitle: "Snippets, commands, cheatsheets, and GitHub",
+        icon: "Code2",
+        group: "Actions",
+        action: () => {
+          router.push("/developer-hub");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-advanced-search",
+        label: "Advanced Global Search",
+        subtitle: "Search with FTS, fuzzy matching, and filters",
+        icon: "Search",
+        group: "Actions",
+        action: () => {
+          router.push("/search");
+          setCommandPaletteOpen(false);
+        },
+      },
     ];
 
     const moduleItems: PaletteItem[] = APP_MODULES.map((mod) => ({
@@ -254,13 +310,19 @@ export function CommandPalette() {
             ? "CheckSquare"
             : res.type === "project"
               ? "FolderKanban"
-              : res.type === "course"
+              : res.type === "course" || res.type === "lesson"
                 ? "GraduationCap"
                 : res.type === "event"
                   ? "Calendar"
                   : res.type === "deck"
                     ? "Layers"
-                    : "Flame",
+                    : res.type === "bookmark"
+                      ? "Bookmark"
+                      : res.type === "snippet" ||
+                          res.type === "command" ||
+                          res.type === "reference"
+                        ? "Code2"
+                        : "Flame",
       group: "Search Results",
       action: () => {
         router.push(res.href);

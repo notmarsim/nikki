@@ -1,6 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { withUserRls } from "@/db/rls";
 import {
+  bookmarks,
   inboxItems,
   notes,
   projects,
@@ -8,6 +9,7 @@ import {
   type InboxItemRecord,
 } from "@/db/schema";
 import { recordActivity } from "@/modules/activity/service";
+import { canonicalizeUrl } from "@/modules/bookmarks/ssrf";
 import { recalculateProjectProgressTx } from "@/modules/projects/progress";
 import type {
   ConvertInboxItemInput,
@@ -137,7 +139,7 @@ export async function convertInboxItem(
   workspaceId: string,
   itemId: string,
   input: ConvertInboxItemInput
-): Promise<{ item: InboxItemRecord; convertedId: string; targetType: "note" | "task" }> {
+): Promise<{ item: InboxItemRecord; convertedId: string; targetType: "note" | "task" | "bookmark" }> {
   const result = await withUserRls(userId, async (tx) => {
     const rows = await tx
       .select()
@@ -155,7 +157,12 @@ export async function convertInboxItem(
       return {
         item,
         convertedId: item.convertedToId,
-        targetType: item.convertedToType === "note" ? ("note" as const) : ("task" as const),
+        targetType:
+          item.convertedToType === "note"
+            ? ("note" as const)
+            : item.convertedToType === "bookmark"
+              ? ("bookmark" as const)
+              : ("task" as const),
       };
     }
 
@@ -202,6 +209,61 @@ export async function convertInboxItem(
         throw new InboxServiceError(500, "CONVERT_FAILED", "Failed to create note");
       }
       convertedId = createdNote.id;
+    } else if (input.targetType === "bookmark") {
+      const targetUrl = item.url?.trim() || item.content.match(/https?:\/\/\S+/)?.[0];
+      if (!targetUrl) {
+        throw new InboxServiceError(
+          400,
+          "URL_REQUIRED",
+          "Inbox item does not contain a valid HTTP/HTTPS URL"
+        );
+      }
+      let canonicalUrl: string;
+      let domain: string;
+      try {
+        const c = canonicalizeUrl(targetUrl);
+        canonicalUrl = c.canonicalUrl;
+        domain = c.domain;
+      } catch (err) {
+        throw new InboxServiceError(
+          400,
+          "INVALID_URL",
+          err instanceof Error ? err.message : "Invalid URL"
+        );
+      }
+      const existingBookmark = await tx
+        .select({ id: bookmarks.id })
+        .from(bookmarks)
+        .where(
+          and(
+            eq(bookmarks.workspaceId, workspaceId),
+            eq(bookmarks.canonicalUrl, canonicalUrl)
+          )
+        )
+        .limit(1);
+      if (existingBookmark[0]) {
+        convertedId = existingBookmark[0].id;
+      } else {
+        const [createdBookmark] = await tx
+          .insert(bookmarks)
+          .values({
+            userId,
+            workspaceId,
+            url: targetUrl,
+            canonicalUrl,
+            title: derivedTitle,
+            description: item.content !== derivedTitle ? item.content : null,
+            domain,
+            collectionId: input.collectionId ?? null,
+            resourceType: "website",
+            readingStatus: "unread",
+          })
+          .returning({ id: bookmarks.id });
+        if (!createdBookmark) {
+          throw new InboxServiceError(500, "CONVERT_FAILED", "Failed to create bookmark");
+        }
+        convertedId = createdBookmark.id;
+      }
     } else {
       const description = item.url ? `${item.content}\n\nURL: ${item.url}` : item.content;
       const [createdTask] = await tx
