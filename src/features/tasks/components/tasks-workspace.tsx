@@ -39,7 +39,7 @@ type TaskPriority = "none" | "low" | "medium" | "high" | "urgent";
 
 const BOARD_COLUMNS: Array<{ id: TaskStatus; label: string }> = [
   { id: "todo", label: "To Do" },
-  { id: "in_progress", label: "In Progress" },
+  { id: "in_progress", label: "Working" },
   { id: "blocked", label: "Blocked" },
   { id: "done", label: "Done" },
 ];
@@ -553,7 +553,20 @@ export function TasksWorkspace({
 
                 <div className="flex items-center gap-2 shrink-0">
                   <Badge variant={PRIORITY_BADGE[task.priority]}>{task.priority}</Badge>
-                  <Badge variant="outline">{task.status.replace("_", " ")}</Badge>
+                  <select
+                    value={task.status}
+                    onChange={(e) =>
+                      handleUpdateTask(task.id, { status: e.target.value })
+                    }
+                    className="h-7 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
+                    aria-label={`Status for ${task.title}`}
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in_progress">Working</option>
+                    <option value="done">Done</option>
+                    <option value="blocked">Blocked</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
                 </div>
               </div>
             );
@@ -650,7 +663,7 @@ export function TasksWorkspace({
                     className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-sm"
                   >
                     <option value="todo">To Do</option>
-                    <option value="in_progress">In Progress</option>
+                    <option value="in_progress">Working</option>
                     <option value="blocked">Blocked</option>
                     <option value="done">Done</option>
                     <option value="cancelled">Cancelled</option>

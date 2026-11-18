@@ -29,6 +29,7 @@ import {
   Underline as UnderlineIcon,
 } from "lucide-react";
 import type { NoteBlockDocument } from "@/db/schema";
+import { matchesKeybinding } from "@/lib/keybindings";
 import { useUiStore } from "@/stores/ui-store";
 import { CalloutExtension } from "../extensions/callout-extension";
 import { MathBlockExtension } from "../extensions/math-extension";
@@ -69,6 +70,7 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
+  const keybindings = useUiStore((s) => s.keybindings);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const [slashIndex, setSlashIndex] = useState(0);
   const [wikiQuery, setWikiQuery] = useState<string | null>(null);
@@ -413,6 +415,33 @@ export function TiptapEditor({
           } else if (e.key === "Escape") {
             setWikiQuery(null);
           }
+          return;
+        }
+
+        if (matchesKeybinding(e, keybindings.bold)) {
+          e.preventDefault();
+          editor.chain().focus().toggleBold().run();
+        } else if (matchesKeybinding(e, keybindings.italic)) {
+          e.preventDefault();
+          editor.chain().focus().toggleItalic().run();
+        } else if (matchesKeybinding(e, keybindings.underline)) {
+          e.preventDefault();
+          editor.chain().focus().toggleUnderline().run();
+        } else if (matchesKeybinding(e, keybindings.strike)) {
+          e.preventDefault();
+          editor.chain().focus().toggleStrike().run();
+        } else if (matchesKeybinding(e, keybindings.code)) {
+          e.preventDefault();
+          editor.chain().focus().toggleCode().run();
+        } else if (matchesKeybinding(e, keybindings.highlight)) {
+          e.preventDefault();
+          editor.chain().focus().toggleHighlight().run();
+        } else if (matchesKeybinding(e, keybindings.checklist)) {
+          e.preventDefault();
+          editor.chain().focus().toggleTaskList().run();
+        } else if (matchesKeybinding(e, keybindings.toTask)) {
+          e.preventDefault();
+          void handleConvertToTask();
         }
       }}
     >
@@ -422,73 +451,95 @@ export function TiptapEditor({
         tippyOptions={{ duration: 120 }}
         className="flex flex-wrap items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl"
       >
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("bold") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
-          title="Bold"
-        >
-          <Bold className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("italic") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
-          title="Italic"
-        >
-          <Italic className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("underline") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
-          title="Underline"
-        >
-          <UnderlineIcon className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("strike") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
-          title="Strikethrough"
-        >
-          <Strikethrough className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleCode().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("code") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
-          title="Inline Code"
-        >
-          <Code className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleHighlight().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("highlight") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
-          title="Highlight"
-        >
-          <Highlighter className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleTaskList().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("taskList") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
-          title="Checklist"
-        >
-          <ListChecks className="h-3.5 w-3.5" />
-        </button>
+        {[
+          {
+            id: "bold",
+            label: "Bold",
+            shortcut: keybindings.bold,
+            active: editor.isActive("bold"),
+            icon: <Bold className="h-3.5 w-3.5" />,
+            run: () => editor.chain().focus().toggleBold().run(),
+          },
+          {
+            id: "italic",
+            label: "Italic",
+            shortcut: keybindings.italic,
+            active: editor.isActive("italic"),
+            icon: <Italic className="h-3.5 w-3.5" />,
+            run: () => editor.chain().focus().toggleItalic().run(),
+          },
+          {
+            id: "underline",
+            label: "Underline",
+            shortcut: keybindings.underline,
+            active: editor.isActive("underline"),
+            icon: <UnderlineIcon className="h-3.5 w-3.5" />,
+            run: () => editor.chain().focus().toggleUnderline().run(),
+          },
+          {
+            id: "strike",
+            label: "Strikethrough",
+            shortcut: keybindings.strike,
+            active: editor.isActive("strike"),
+            icon: <Strikethrough className="h-3.5 w-3.5" />,
+            run: () => editor.chain().focus().toggleStrike().run(),
+          },
+          {
+            id: "code",
+            label: "Inline Code",
+            shortcut: keybindings.code,
+            active: editor.isActive("code"),
+            icon: <Code className="h-3.5 w-3.5" />,
+            run: () => editor.chain().focus().toggleCode().run(),
+          },
+          {
+            id: "highlight",
+            label: "Highlight",
+            shortcut: keybindings.highlight,
+            active: editor.isActive("highlight"),
+            icon: <Highlighter className="h-3.5 w-3.5" />,
+            run: () => editor.chain().focus().toggleHighlight().run(),
+          },
+          {
+            id: "checklist",
+            label: "Checklist",
+            shortcut: keybindings.checklist,
+            active: editor.isActive("taskList"),
+            icon: <ListChecks className="h-3.5 w-3.5" />,
+            run: () => editor.chain().focus().toggleTaskList().run(),
+          },
+        ].map((btn) => (
+          <button
+            key={btn.id}
+            type="button"
+            onClick={btn.run}
+            title={`${btn.label} (${btn.shortcut})`}
+            aria-label={`${btn.label} (${btn.shortcut})`}
+            className={`group relative rounded p-1.5 hover:bg-[var(--surface-muted)] ${
+              btn.active ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""
+            }`}
+          >
+            {btn.icon}
+            <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--foreground)] shadow-md group-hover:block">
+              {btn.label} <span className="ml-1 text-[var(--muted-foreground)] font-mono">{btn.shortcut}</span>
+            </span>
+          </button>
+        ))}
 
         <div className="mx-1 h-4 w-px bg-[var(--border)]" />
 
         <button
           type="button"
           onClick={handleConvertToTask}
-          className="inline-flex items-center gap-1 rounded bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90"
-          title="Create a Task from selected text"
+          title={`Convert to Task (${keybindings.toTask})`}
+          aria-label={`Convert to Task (${keybindings.toTask})`}
+          className="group relative inline-flex items-center gap-1 rounded bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90"
         >
           <CheckSquare className="h-3.5 w-3.5" />
           To Task
+          <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--foreground)] shadow-md group-hover:block">
+            To Task <span className="ml-1 text-[var(--muted-foreground)] font-mono">{keybindings.toTask}</span>
+          </span>
         </button>
       </BubbleMenu>
 

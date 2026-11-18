@@ -401,12 +401,6 @@ export function ProjectsWorkspace({
                         <div className="text-xl font-bold">{detail.milestones.length}</div>
                       </div>
                     </div>
-
-                    <div className="rounded-lg bg-[var(--surface-muted)] p-3 text-xs text-[var(--muted-foreground)]">
-                      <strong>Progress formula:</strong>{" "}
-                      <code>completed_tasks / total_active_tasks × 100</code> (cancelled tasks
-                      and subtasks are excluded from the denominator).
-                    </div>
                   </div>
                 )}
 
@@ -432,34 +426,55 @@ export function ProjectsWorkspace({
                         {detail.tasks.map((task) => (
                           <div
                             key={task.id}
-                            className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
+                            className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
                           >
                             <button
                               type="button"
                               onClick={() => handleToggleTask(task)}
-                              className="flex items-center gap-2 text-left"
+                              className="flex items-center gap-2 text-left min-w-0 flex-1"
                             >
                               {task.status === "done" ? (
-                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
                               ) : (
-                                <Circle className="h-4 w-4 text-[var(--muted-foreground)]" />
+                                <Circle className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
                               )}
                               <span
-                                className={
+                                className={`truncate ${
                                   task.status === "done"
                                     ? "line-through text-[var(--muted-foreground)]"
                                     : ""
-                                }
+                                }`}
                               >
                                 {task.title}
                               </span>
                             </button>
-                            <Link
-                              href={`/tasks?taskId=${task.id}`}
-                              className="text-xs text-[var(--accent)] hover:underline"
-                            >
-                              Open →
-                            </Link>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <select
+                                value={task.status}
+                                onChange={async (e) => {
+                                  await fetch(`/api/tasks/${task.id}`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ status: e.target.value }),
+                                  });
+                                  await invalidateAll();
+                                }}
+                                className="h-7 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
+                                aria-label={`Status for ${task.title}`}
+                              >
+                                <option value="todo">To Do</option>
+                                <option value="in_progress">Working</option>
+                                <option value="done">Done</option>
+                                <option value="blocked">Blocked</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                              <Link
+                                href={`/tasks?taskId=${task.id}`}
+                                className="text-xs text-[var(--accent)] hover:underline"
+                              >
+                                Open →
+                              </Link>
+                            </div>
                           </div>
                         ))}
                       </div>

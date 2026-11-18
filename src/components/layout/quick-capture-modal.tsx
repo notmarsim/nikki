@@ -5,11 +5,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Inbox, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { matchesKeybinding } from "@/lib/keybindings";
 import { useUiStore } from "@/stores/ui-store";
 
 export function QuickCaptureModal() {
   const queryClient = useQueryClient();
-  const { quickCaptureOpen, setQuickCaptureOpen } = useUiStore();
+  const { quickCaptureOpen, setQuickCaptureOpen, keybindings } = useUiStore();
   const [type, setType] = useState<"note" | "idea" | "link" | "task" | "quick_note">("note");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -19,7 +20,7 @@ export function QuickCaptureModal() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "i") {
+      if (matchesKeybinding(event, keybindings.quickCapture)) {
         event.preventDefault();
         setQuickCaptureOpen(!quickCaptureOpen);
       } else if (event.key === "Escape" && quickCaptureOpen) {
@@ -28,7 +29,7 @@ export function QuickCaptureModal() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [quickCaptureOpen, setQuickCaptureOpen]);
+  }, [quickCaptureOpen, setQuickCaptureOpen, keybindings.quickCapture]);
 
   if (!quickCaptureOpen) return null;
 

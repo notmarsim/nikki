@@ -14,6 +14,7 @@ import {
 import { APP_MODULES } from "@/config/modules";
 import { useTheme } from "@/components/providers/theme-provider";
 import { ModuleIcon } from "@/components/ui/module-icon";
+import { matchesKeybinding } from "@/lib/keybindings";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -42,6 +43,7 @@ export function CommandPalette() {
     setCommandPaletteOpen,
     setQuickCaptureOpen,
     toggleSidebar,
+    keybindings,
   } = useUiStore();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -50,7 +52,7 @@ export function CommandPalette() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      if (matchesKeybinding(event, keybindings.commandPalette)) {
         event.preventDefault();
         setCommandPaletteOpen(!commandPaletteOpen);
       } else if (event.key === "Escape" && commandPaletteOpen) {
@@ -59,7 +61,7 @@ export function CommandPalette() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [commandPaletteOpen, setCommandPaletteOpen]);
+  }, [commandPaletteOpen, setCommandPaletteOpen, keybindings.commandPalette]);
 
   useEffect(() => {
     const trimmed = query.trim();
