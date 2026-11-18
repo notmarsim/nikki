@@ -23,9 +23,12 @@ export async function GET() {
   if (!session) return apiError(401, "UNAUTHORIZED", "Authentication required");
 
   const devices = await listDeviceSubscriptions(session.user.id);
+  const vapidPublicKey =
+    process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null;
   return apiOk({
     devices,
-    vapidConfigured: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+    vapidConfigured: Boolean(vapidPublicKey),
+    vapidPublicKey,
   });
 }
 

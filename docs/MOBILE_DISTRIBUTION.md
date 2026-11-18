@@ -12,7 +12,7 @@ A aplicação web e o PWA iOS são servidos diretamente pela **Vercel** com back
 
 ### Variáveis de Ambiente para Web Push Remoto (Opcional)
 Para envio remoto de notificações Web Push com o app fechado, configure na Vercel:
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- `VAPID_PUBLIC_KEY` (ou `NEXT_PUBLIC_VAPID_PUBLIC_KEY`)
 - `VAPID_PRIVATE_KEY`
 
 ---

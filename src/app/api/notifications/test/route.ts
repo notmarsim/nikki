@@ -21,7 +21,8 @@ export async function POST() {
     notification,
     remotePushConfigured: {
       webPushVapid: Boolean(
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY
+        (process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) &&
+          process.env.VAPID_PRIVATE_KEY
       ),
       fcm: Boolean(process.env.FCM_SERVER_KEY),
     },
