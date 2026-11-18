@@ -236,14 +236,15 @@ export function Sidebar({ workspaceName }: SidebarProps) {
 
   return (
     <>
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar (completely hidden when collapsed) */}
       <aside
         className={cn(
-          "hidden md:block shrink-0 transition-all duration-200",
-          sidebarCollapsed ? "w-16" : "w-64"
+          "hidden md:block shrink-0 overflow-hidden transition-all duration-200",
+          sidebarCollapsed ? "w-0 border-r-0" : "w-64"
         )}
+        aria-hidden={sidebarCollapsed}
       >
-        {renderNavContent(false)}
+        <div className="h-full w-64">{renderNavContent(false)}</div>
       </aside>
 
       {/* Mobile Drawer */}

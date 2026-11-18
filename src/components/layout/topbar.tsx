@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Menu, Monitor, Moon, Plus, Search, Sun } from "lucide-react";
+import { LogOut, Menu, Monitor, Moon, PanelLeftOpen, Plus, Search, Sun } from "lucide-react";
 import { useTheme, type ThemeMode } from "@/components/providers/theme-provider";
 import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/stores/ui-store";
@@ -21,7 +21,13 @@ const NEXT_THEME: Record<ThemeMode, ThemeMode> = {
 export function Topbar({ userName, userEmail }: TopbarProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const { setMobileSidebarOpen, setCommandPaletteOpen, setQuickCaptureOpen } = useUiStore();
+  const {
+    sidebarCollapsed,
+    toggleSidebar,
+    setMobileSidebarOpen,
+    setCommandPaletteOpen,
+    setQuickCaptureOpen,
+  } = useUiStore();
 
   const handleCycleTheme = async () => {
     const next = NEXT_THEME[theme];
@@ -42,6 +48,19 @@ export function Topbar({ userName, userEmail }: TopbarProps) {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4">
       <div className="flex items-center gap-3">
+        {sidebarCollapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:inline-flex"
+            onClick={toggleSidebar}
+            aria-label="Open sidebar"
+            title="Open sidebar"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </Button>
+        )}
+
         <Button
           variant="ghost"
           size="icon"

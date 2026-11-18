@@ -96,7 +96,10 @@ export function TiptapEditor({
       TableRow,
       TableHeader,
       TableCell,
-      CodeBlockLowlight.configure({ lowlight }),
+      CodeBlockLowlight.configure({
+        lowlight,
+        defaultLanguage: "typescript",
+      }),
       ImageExtension,
       CalloutExtension,
       ToggleExtension,
