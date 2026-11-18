@@ -1,0 +1,183 @@
+# Personal OS — Arquitetura e Plano da Fase 1 (+ Núcleo da Fase 2)
+
+## 1. Arquitetura Técnica Proposta
+
+O **Personal OS** adota uma arquitetura **monolítica modular** baseada em **Next.js (App Router)** com **TypeScript em modo strict**, **PostgreSQL** e **Drizzle ORM**:
+
+- **Camada de Apresentação (Frontend):** React 19 + Next.js App Router (Server Components para carregamento inicial autenticado e Client Components para interatividade), Tailwind CSS v4 com CSS custom properties para temas (`light`, `dark`, `system`), Zustand para estado global de UI (sidebar, command palette, módulos fixados), TanStack Query para cache e mutações de dados no cliente, e React Hook Form + Zod para validação de formulários.
+- **Camada de Aplicação / API (Backend):** Next.js Route Handlers (`/api/*`) organizados por domínio em `src/modules/*`, com validação Zod na entrada, respostas padronizadas (`{ data, error }`), rate limiting e logs estruturados sem exposição de credenciais.
+- **Camada de Persistência:** PostgreSQL 16 + Drizzle ORM (`postgres-js`) com migrations versionadas em `src/db/migrations`, transações explícitas (`db.transaction`) para operações compostas e isolamento estrito por `userId` e `workspaceId`.
+- **Infraestrutura:** Docker (`Dockerfile` multi-stage standalone + `docker-compose.yml` com PostgreSQL + App), configuração por variáveis de ambiente validadas via Zod (`src/lib/env.ts`) e suíte de testes com Vitest + Testing Library.
+
+---
+
+## 2. Estrutura Completa de Diretórios
+
+```text
+planium/
+├── Dockerfile
+├── docker-compose.yml
+├── drizzle.config.ts
+├── next.config.ts
+├── postcss.config.mjs
+├── eslint.config.mjs
+├── tsconfig.json
+├── vitest.config.ts
+├── .env.example
+├── docs/
+│   └── ARCHITECTURE.md
+└── src/
+    ├── app/
+    │   ├── (auth)/
+    │   │   ├── login/page.tsx
+    │   │   └── register/page.tsx
+    │   ├── (app)/
+    │   │   ├── layout.tsx               # Shell protegido com verificação de sessão
+    │   │   ├── dashboard/page.tsx
+    │   │   ├── settings/page.tsx
+    │   │   ├── inbox/page.tsx
+    │   │   ├── notes/page.tsx
+    │   │   ├── tasks/page.tsx
+    │   │   ├── projects/page.tsx
+    │   │   ├── calendar/page.tsx
+    │   │   ├── learning/page.tsx
+    │   │   ├── habits/page.tsx
+    │   │   ├── focus/page.tsx
+    │   │   ├── knowledge-graph/page.tsx
+    │   │   ├── bookmarks/page.tsx
+    │   │   ├── developer-hub/page.tsx
+    │   │   ├── finances/page.tsx
+    │   │   └── analytics/page.tsx
+    │   ├── api/
+    │   │   ├── health/route.ts
+    │   │   ├── settings/route.ts
+    │   │   └── auth/
+    │   │       ├── register/route.ts
+    │   │       ├── login/route.ts
+    │   │       ├── logout/route.ts
+    │   │       └── me/route.ts
+    │   ├── globals.css
+    │   ├── layout.tsx
+    │   └── page.tsx
+    ├── components/
+    │   ├── layout/                      # AppShell, Sidebar, Topbar, CommandPalette
+    │   ├── providers/                   # ThemeProvider, QueryProvider
+    │   ├── settings/                    # SettingsForm
+    │   ├── shared/                      # ModulePlaceholder
+    │   └── ui/                          # Button, Card, Badge, Input, ModuleIcon
+    ├── config/
+    │   └── modules.ts                   # Registro único dos 15 módulos e fases
+    ├── db/
+    │   ├── index.ts                     # Pool PostgreSQL + instância Drizzle
+    │   ├── migrations/                  # Migrations SQL geradas pelo drizzle-kit
+    │   └── schema/
+    │       ├── enums.ts
+    │       ├── users.ts                 # users, sessions, user_settings
+    │       ├── workspaces.ts            # workspaces
+    │       ├── relations.ts             # tags, entity_tags, entity_relations, activity_logs
+    │       ├── core-phase2.ts           # projects, notes, tasks, inbox_items
+    │       └── index.ts
+    ├── lib/
+    │   ├── api-response.ts
+    │   ├── env.ts
+    │   ├── logger.ts
+    │   ├── rate-limit.ts
+    │   └── utils.ts
+    ├── modules/
+    │   ├── auth/                        # password.ts, session.ts, schemas.ts
+    │   └── users/                       # service.ts (bootstrap de usuário + workspace)
+    ├── stores/
+    │   └── ui-store.ts
+    └── test/
+        └── setup.ts
+```
+
+---
+
+## 3. Modelagem Inicial do Banco de Dados
+
+As tabelas da Fase 1 e do núcleo da Fase 2 estão modeladas em `src/db/schema/`:
+
+- **Fundação (Fase 1):**
+  - `users`: `id (uuid PK)`, `email (unique)`, `name`, `password_hash`, `avatar_url`, `timezone`, `theme`, `created_at`, `updated_at`.
+  - `sessions`: `id (uuid PK)`, `user_id (FK -> users)`, `token_hash (unique)`, `user_agent`, `ip_address`, `expires_at`, `created_at`.
+  - `user_settings`: `id (uuid PK)`, `user_id (FK -> users, unique)`, `sidebar_collapsed`, `default_workspace_id`, `shortcuts (jsonb)`, `dashboard_layout (jsonb)`, `updated_at`.
+  - `workspaces`: `id (uuid PK)`, `owner_id (FK -> users)`, `name`, `slug`, `icon`, `description`, `created_at`, `updated_at`.
+- **Integração Transversal:**
+  - `tags` & `entity_tags`: sistema unificado de tags polimórficas por `(entity_type, entity_id)`.
+  - `entity_relations`: grafo explícito `(source_type, source_id, target_type, target_id, relation_type, metadata)` para links bidirecionais e dependências.
+  - `activity_logs`: trilha de auditoria e histórico por workspace e entidade.
+- **Núcleo da Fase 2:**
+  - `projects`: `id`, `user_id`, `workspace_id`, `name`, `description`, `icon`, `color`, `status`, `priority`, `start_date`, `target_date`, `progress`.
+  - `notes`: `id`, `user_id`, `workspace_id`, `parent_id (self-FK)`, `project_id (FK -> projects)`, `title`, `icon`, `content_json (jsonb)`, `content_text`, `is_favorite`, `sort_order`.
+  - `tasks`: `id`, `user_id`, `workspace_id`, `project_id (FK -> projects)`, `note_id (FK -> notes)`, `parent_task_id (self-FK)`, `title`, `description`, `status`, `priority`, `due_at`, `start_at`, `estimated_minutes`, `actual_minutes`, `recurrence_rule`, `completed_at`.
+  - `inbox_items`: `id`, `user_id`, `workspace_id`, `type`, `title`, `content`, `url`, `status`, `converted_to_type`, `converted_to_id`.
+
+---
+
+## 4. Entidades e Relacionamentos Principais
+
+- **User 1:N Workspaces** e **User 1:1 UserSettings** (criados atomicamente no cadastro).
+- **User 1:N Sessions** (permite revogação individual e expiração no banco).
+- **Workspace 1:N Projects / Notes / Tasks / InboxItems / Tags**.
+- **Project 1:N Notes** e **Project 1:N Tasks** (com `ON DELETE SET NULL` para preservar notas/tarefas se um projeto for removido).
+- **Note 1:N Notes** (hierarquia de subpáginas via `parent_id`) e **Note 1:N Tasks** (tarefas originadas de blocos de anotação).
+- **Task 1:N Tasks** (subtarefas aninhadas via `parent_task_id` com `ON DELETE CASCADE`).
+- **EntityRelations (N:N polimórfico por UUIDs estáveis)** conectando qualquer par `(source_type, source_id) -> (target_type, target_id)` sem depender de títulos mutáveis.
+
+---
+
+## 5. Fluxo de Autenticação
+
+1. **Cadastro (`POST /api/auth/register`):** valida dados com Zod (`registerSchema`), aplica rate limit por IP, verifica unicidade de e-mail, gera hash de senha com `crypto.scrypt` + salt aleatório de 16 bytes, executa `db.transaction` criando `user` + workspace `"Personal"` + `user_settings`, cria registro em `sessions` com hash SHA-256 de um token opaco de 32 bytes e define cookie `HttpOnly`, `SameSite=Lax`, `Secure` (em produção).
+2. **Login (`POST /api/auth/login`):** aplica rate limit, verifica senha com `crypto.timingSafeEqual`, gera nova sessão opaca e define o cookie `pos_session`.
+3. **Verificação (`getCurrentSession()`):** executada no servidor (Server Components e Route Handlers), calcula SHA-256 do cookie, consulta `sessions JOIN users` garantindo `expires_at > now()`.
+4. **Proteção de Rotas e Anti-IDOR:** o layout `src/app/(app)/layout.tsx` redireciona usuários não autenticados para `/login`. Toda consulta/mutação nas APIs exige sessão válida e filtra por `userId = session.user.id`.
+5. **Logout (`POST /api/auth/logout`):** remove o registro da tabela `sessions` e limpa o cookie.
+
+---
+
+## 6. Estratégia de Integração entre Módulos
+
+- **Identificadores Estáveis:** toda relação usa UUIDs imutáveis (`id`), nunca títulos de páginas ou nomes de tarefas.
+- **Contratos Explícitos:** `entity_relations` e `entity_tags` fornecem um barramento relacional único para links `[[Nota]]`, backlinks, dependências e conversão de `inbox_items` para `notes`/`tasks`.
+- **Desacoplamento:** cada domínio reside em `src/modules/<domínio>` sem dependências circulares; regras transversais (ex.: recalcular `projects.progress` ao concluir uma `task`) serão disparadas via serviços de domínio / eventos internos bem definidos na Fase 2.
+
+---
+
+## 7. Organização dos Componentes React
+
+- `src/components/ui/`: primitivos reutilizáveis e agnósticos de domínio (`Button`, `Card`, `Badge`, `Input`, `ModuleIcon`).
+- `src/components/providers/`: contextos globais (`ThemeProvider`, `QueryProvider`).
+- `src/components/layout/`: estrutura principal (`AppShell`, `Sidebar` recolhível com seções e favoritos, `Topbar`, `CommandPalette` via `Ctrl+K`).
+- `src/components/shared/`: componentes transversais (`ModulePlaceholder` para indicar de forma transparente módulos em desenvolvimento).
+- `src/components/<domínio>/`: componentes específicos de cada módulo (ex.: `settings/settings-form.tsx`).
+
+---
+
+## 8. Estratégia de Persistência do Editor (Fase 2)
+
+- O editor de blocos armazenará uma árvore JSON estruturada em `notes.content_json` (`NoteBlockDocument`: `{ version: 1, type: "doc", content: NoteBlockNode[] }`), preservando `id` de bloco, `type`, `attrs`, `marks` e hierarquia sem depender de HTML bruto.
+- Simultaneamente, será extraído texto plano para `notes.content_text` para indexação `tsvector`/GIN no PostgreSQL (busca global e dentro da página).
+- Links bidirecionais `[[...]]` serão resolvidos por ID e sincronizados na tabela `entity_relations` (`relation_type = 'references'`).
+
+---
+
+## 9. Plano de Implementação Incremental
+
+- **Fase 1 (Entregue agora):** configuração Next.js/TS strict, Drizzle + PostgreSQL, migrations, autenticação por sessão opaca, layout responsivo com sidebar recolhível, temas (`light`/`dark`/`system`), Command Palette (`Ctrl+K`), Dashboard com contagens reais, Settings persistido, rotas dos 15 módulos com estado explícito, Docker e testes iniciais.
+- **Fase 2 (Próxima):** Notes (editor em blocos + `[[links]]`), Tasks (listas, Kanban, subtarefas, recorrência), Projects (espaços + cálculo automático de progresso), Universal Inbox (captura global + conversão) e busca básica.
+- **Fase 3:** Calendar (time blocking), Learning (cursos + flashcards FSRS), Habits (streaks + heatmap) e Focus (Pomodoro baseado em timestamps confiáveis).
+- **Fase 4:** Knowledge Graph, Bookmarks (com proteção SSRF) e Developer Hub.
+- **Fase 5:** Automações (`Trigger -> Conditions -> Actions`), Analytics & Revisão Semanal, Finances (centavos inteiros), Dashboard customizável e PWA/offline.
+
+---
+
+## 10. Critérios Objetivos de Conclusão da Fase 1
+
+1. `npm run typecheck` (`tsc --noEmit`) passa com zero erros em modo `strict`.
+2. `npm run lint` passa sem erros.
+3. `npm run test` (Vitest) executa e aprova todos os testes unitários de fundação (hash de senha, schemas Zod, rate limiter, registro de módulos).
+4. `npm run build` (`next build`) compila todas as rotas e gera o bundle standalone com sucesso.
+5. `npx drizzle-kit generate` gera a migration SQL inicial versionada a partir do schema em `src/db/schema/`.
+6. Todos os 15 módulos possuem rotas acessíveis na Sidebar e no Command Palette, com páginas não implementadas exibindo claramente seu estado de desenvolvimento.
