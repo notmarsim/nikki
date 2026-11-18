@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -47,6 +47,15 @@ export function Sidebar({ workspaceName }: SidebarProps) {
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
   >({});
+
+  useEffect(() => {
+    if (!mobileSidebarOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileSidebarOpen]);
 
   const toggleSection = (section: string) => {
     setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -116,7 +125,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
 
         {/* Navigation Links */}
         <nav
-          className="flex-1 overflow-y-auto px-2 py-3 space-y-4"
+          className="flex-1 overflow-y-auto overscroll-contain px-2 py-3 space-y-4"
           aria-label="Main Navigation"
         >
           {/* Pinned Section */}
@@ -257,12 +266,12 @@ export function Sidebar({ workspaceName }: SidebarProps) {
 
       {/* Mobile Drawer */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
+        <div className="fixed inset-0 z-50 flex overscroll-none md:hidden">
           <div
-            className="fixed inset-0 bg-black/50"
+            className="fixed inset-0 bg-black/50 touch-none"
             onClick={() => setMobileSidebarOpen(false)}
           />
-          <aside className="relative z-10 w-64 max-w-[80vw]">
+          <aside className="relative z-10 h-full w-64 max-w-[80vw]">
             {renderNavContent(true)}
           </aside>
         </div>
