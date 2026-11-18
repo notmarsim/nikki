@@ -14,7 +14,10 @@ import {
   notes,
   projects,
   tasks,
+  userSettings,
 } from "@/db/schema";
+import { getFinanceOverview } from "@/modules/finances/service";
+import { mergeUserPreferences } from "@/modules/settings/registry";
 
 export async function getDashboardData(userId: string, workspaceId: string) {
   return withUserRls(userId, async (tx) => {
@@ -285,6 +288,23 @@ export async function getDashboardData(userId: string, workspaceId: string) {
       activeFocus: activeFocusRows[0] ?? null,
       recentBookmarks: recentBookmarkRows,
       favoriteSnippets: favoriteSnippetRows,
+      financeWidget: await (async () => {
+        const [settingsRow] = await tx
+          .select({ preferences: userSettings.preferences })
+          .from(userSettings)
+          .where(eq(userSettings.userId, userId))
+          .limit(1);
+        const prefs = mergeUserPreferences(settingsRow?.preferences);
+        if (!prefs.showFinancialWidgetsOnDashboard) return null;
+        const fin = await getFinanceOverview({ userId, workspaceId });
+        return {
+          hidden: prefs.hideFinancialValues,
+          month: fin.month,
+          totalBalanceCents: fin.summary.totalAccountBalanceCents,
+          monthIncomeCents: fin.summary.monthIncomeCents,
+          monthExpenseCents: fin.summary.monthExpenseCents,
+        };
+      })(),
     };
   });
 }

@@ -41,6 +41,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
     setMobileSidebarOpen,
     pinnedModuleIds,
     togglePinnedModule,
+    hiddenModuleIds,
   } = useUiStore();
 
   const [collapsedSections, setCollapsedSections] = useState<
@@ -51,8 +52,8 @@ export function Sidebar({ workspaceName }: SidebarProps) {
     setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const pinnedModules = APP_MODULES.filter((m) =>
-    pinnedModuleIds.includes(m.id)
+  const pinnedModules = APP_MODULES.filter(
+    (m) => pinnedModuleIds.includes(m.id) && !hiddenModuleIds.includes(m.id)
   );
 
   const renderNavContent = (isMobile = false) => {
@@ -148,7 +149,9 @@ export function Sidebar({ workspaceName }: SidebarProps) {
           {/* Grouped Module Sections */}
           {SECTION_ORDER.map((sectionKey) => {
             const sectionModules = APP_MODULES.filter(
-              (m) => m.section === sectionKey
+              (m) =>
+                m.section === sectionKey &&
+                (m.id === "settings" || !hiddenModuleIds.includes(m.id))
             );
             const isSectionCollapsed = collapsedSections[sectionKey] ?? false;
 

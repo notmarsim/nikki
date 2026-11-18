@@ -14,6 +14,7 @@ interface UiState {
   spellcheckEnabled: boolean;
   keybindings: KeybindingsConfig;
   pinnedModuleIds: string[];
+  hiddenModuleIds: string[];
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebar: () => void;
   setMobileSidebarOpen: (open: boolean) => void;
@@ -23,6 +24,7 @@ interface UiState {
   setKeybinding: (action: keyof KeybindingsConfig, combo: string) => void;
   resetKeybindings: () => void;
   togglePinnedModule: (moduleId: string) => void;
+  setHiddenModuleIds: (ids: string[]) => void;
 }
 
 const getInitialSpellcheck = (): boolean => {
@@ -42,6 +44,16 @@ const getInitialKeybindings = (): KeybindingsConfig => {
   }
 };
 
+const getInitialHiddenModules = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem("nikki-hidden-modules");
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+};
+
 export const useUiStore = create<UiState>((set) => ({
   sidebarCollapsed: false,
   mobileSidebarOpen: false,
@@ -50,6 +62,7 @@ export const useUiStore = create<UiState>((set) => ({
   spellcheckEnabled: getInitialSpellcheck(),
   keybindings: getInitialKeybindings(),
   pinnedModuleIds: ["dashboard", "inbox", "notes", "tasks", "projects"],
+  hiddenModuleIds: getInitialHiddenModules(),
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
@@ -81,4 +94,10 @@ export const useUiStore = create<UiState>((set) => ({
         ? state.pinnedModuleIds.filter((id) => id !== moduleId)
         : [...state.pinnedModuleIds, moduleId],
     })),
+  setHiddenModuleIds: (ids) => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("nikki-hidden-modules", JSON.stringify(ids));
+    }
+    set({ hiddenModuleIds: ids });
+  },
 }));

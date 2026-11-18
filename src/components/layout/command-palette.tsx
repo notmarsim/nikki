@@ -241,6 +241,39 @@ export function CommandPalette() {
           setCommandPaletteOpen(false);
         },
       },
+      {
+        id: "act-open-finances",
+        label: "Open Personal Finances",
+        subtitle: "Accounts, credit cards, budgets, and goals",
+        icon: "Wallet",
+        group: "Actions",
+        action: () => {
+          router.push("/finances");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-open-analytics",
+        label: "Open Advanced Analytics",
+        subtitle: "Cross-module metrics and custom reports",
+        icon: "BarChart3",
+        group: "Actions",
+        action: () => {
+          router.push("/analytics");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-open-settings",
+        label: "Open Settings & Personalization",
+        subtitle: "Profile, appearance, privacy, and shortcuts",
+        icon: "Settings",
+        group: "Actions",
+        action: () => {
+          router.push("/settings");
+          setCommandPaletteOpen(false);
+        },
+      },
     ];
 
     const moduleItems: PaletteItem[] = APP_MODULES.map((mod) => ({

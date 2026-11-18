@@ -26,6 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { formatCents } from "@/modules/finances/money";
 
 export interface DashboardPayload {
   overview: {
@@ -103,6 +104,13 @@ export interface DashboardPayload {
     language: string;
     isFavorite: boolean;
   }>;
+  financeWidget?: {
+    hidden: boolean;
+    month: string;
+    totalBalanceCents: number;
+    monthIncomeCents: number;
+    monthExpenseCents: number;
+  } | null;
 }
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -712,6 +720,52 @@ export function DashboardView({
           </CardContent>
         </Card>
       </div>
+
+      {/* Phase 5: Finance & Analytics Snapshot */}
+      {data.financeWidget && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base">
+                Financial Snapshot ({data.financeWidget.month})
+              </CardTitle>
+              <CardDescription>
+                {data.financeWidget.hidden
+                  ? "Privacy mode is enabled in Settings."
+                  : "Real-time account balance and monthly cash flow."}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-3 text-xs font-medium">
+              <Link href="/analytics" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+                Analytics
+              </Link>
+              <Link href="/finances" className="text-[var(--accent)] hover:underline">
+                Open Finances →
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <div className="text-xs text-[var(--muted-foreground)]">Available Balance</div>
+              <div className="text-lg font-bold">
+                {formatCents(data.financeWidget.totalBalanceCents, "BRL", true, data.financeWidget.hidden)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-[var(--muted-foreground)]">Income</div>
+              <div className="text-lg font-bold text-emerald-500">
+                {formatCents(data.financeWidget.monthIncomeCents, "BRL", true, data.financeWidget.hidden)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-[var(--muted-foreground)]">Expenses</div>
+              <div className="text-lg font-bold text-red-500">
+                {formatCents(data.financeWidget.monthExpenseCents, "BRL", true, data.financeWidget.hidden)}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

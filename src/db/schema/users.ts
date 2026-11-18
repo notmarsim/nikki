@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
   avatarUrl: text("avatar_url"),
+  bio: text("bio"),
   timezone: text("timezone").notNull().default("UTC"),
   theme: themeEnum("theme").notNull().default("system"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -74,6 +75,10 @@ export const userSettings = pgTable("user_settings", {
     .$type<DashboardWidgetConfig[]>()
     .notNull()
     .default([]),
+  preferences: jsonb("preferences")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default({}),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

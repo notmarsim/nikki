@@ -84,6 +84,7 @@ export const getCurrentSession = cache(
           email: users.email,
           name: users.name,
           avatarUrl: users.avatarUrl,
+          bio: users.bio,
           timezone: users.timezone,
           theme: users.theme,
           createdAt: users.createdAt,

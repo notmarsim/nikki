@@ -269,3 +269,24 @@ A Fase 4 transforma o Nikki em uma plataforma integrada de conhecimento técnico
 4. **Advanced Global Search (`/search` e Command Palette)**
    - Busca unificada em 12 tipos de entidade (`note`, `task`, `project`, `course`, `lesson`, `event`, `deck`, `habit`, `bookmark`, `snippet`, `command`, `reference`) usando PostgreSQL FTS (`to_tsvector` + `plainto_tsquery` com índices GIN) e busca aproximada via `pg_trgm` (`similarity`).
    - Estratégia de relevância: correspondência exata de título (+2.0) > prefixo (+0.8) > substring (+0.3) somados ao score FTS/trigram, com paginação e filtros por tipo, tag, projeto, coleção e período.
+
+
+---
+
+## Fase 5 — Personal Finances, Advanced Analytics & Comprehensive Settings
+
+A Fase 5 completa a plataforma Nikki com finanças pessoais em precisão de centavos inteiros, analytics multi-módulo e central de configurações extensível (`0006_phase5_modules.sql`):
+
+1. **Personal Finances (`/finances`)**
+   - Armazenamento monetário em centavos inteiros (`bigint`, escala explícita de 2 casas decimais) sem ponto flutuante binário (`src/modules/finances/money.ts`).
+   - **Accounts & Transfers:** saldos derivados de `initial_balance_cents` + transações confirmadas; transferências atômicas entre contas sem contabilização como receita/despesa.
+   - **Credit Cards, Installments & Statements:** parcelamentos com distribuição exata de resto em centavos, atribuição automática a faturas considerando dia de fechamento e meses curtos, e pagamento de fatura (`card_payment`) sem dupla contabilização de despesa.
+   - **Budgets, Recurring Rules & Goals:** consumo por categoria/split, geração idempotente de recorrências (`uniqueIndex(recurring_rule_id, recurrence_occurrence_key)`), metas com contribuições/retiradas atômicas, importação CSV com deduplicação e exportação CSV protegida contra formula injection.
+
+2. **Advanced Analytics (`/analytics`)**
+   - Camada compartilhada de métricas em `src/modules/analytics/service.ts` com comparação equivalente contra período anterior, retenção observada real de FSRS, consistência de hábitos por frequência, projetos inativos e integração opcional com Finances.
+   - **Custom Report Builder** (`analytics_saved_reports`) com catálogo seguro (allowlist de módulos/métricas/agrupamentos) e exportação CSV.
+
+3. **Settings & Personalization (`/settings`)**
+   - **Preference Registry** versionado em `src/modules/settings/registry.ts` persistido em `user_settings.preferences` (JSONB) + perfil (`users.bio`, `timezone`, `theme`).
+   - Categorias pesquisáveis: General & Profile, Appearance & Accessibility, Productivity & Modules, Navigation & Shortcuts (com ocultação de módulos da sidebar sem perda de dados), Finances & Privacy (`hideFinancialValues`), Notifications e Full JSON Backup.

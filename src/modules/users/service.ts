@@ -43,6 +43,7 @@ export async function createUserWithDefaults(params: {
         email: users.email,
         name: users.name,
         avatarUrl: users.avatarUrl,
+        bio: users.bio,
         timezone: users.timezone,
         theme: users.theme,
         createdAt: users.createdAt,
