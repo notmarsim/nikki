@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { cache } from "react";
 import { db } from "@/db";
 import {
   userSettings,
@@ -88,30 +89,34 @@ export async function createUserWithDefaults(params: {
   });
 }
 
-export async function getUserWorkspaces(userId: string): Promise<WorkspaceRecord[]> {
-  return db.select().from(workspaces).where(eq(workspaces.ownerId, userId));
-}
-
-export async function getOrCreateDefaultWorkspace(userId: string): Promise<WorkspaceRecord> {
-  const existing = await getUserWorkspaces(userId);
-  if (existing[0]) return existing[0];
-
-  const [created] = await db
-    .insert(workspaces)
-    .values({
-      ownerId: userId,
-      name: "Personal",
-      slug: "personal",
-      icon: "Layers",
-      description: "Default personal workspace",
-    })
-    .returning();
-
-  if (!created) {
-    throw new Error("Failed to create default workspace");
+export const getUserWorkspaces = cache(
+  async (userId: string): Promise<WorkspaceRecord[]> => {
+    return db.select().from(workspaces).where(eq(workspaces.ownerId, userId));
   }
-  return created;
-}
+);
+
+export const getOrCreateDefaultWorkspace = cache(
+  async (userId: string): Promise<WorkspaceRecord> => {
+    const existing = await getUserWorkspaces(userId);
+    if (existing[0]) return existing[0];
+
+    const [created] = await db
+      .insert(workspaces)
+      .values({
+        ownerId: userId,
+        name: "Personal",
+        slug: "personal",
+        icon: "Layers",
+        description: "Default personal workspace",
+      })
+      .returning();
+
+    if (!created) {
+      throw new Error("Failed to create default workspace");
+    }
+    return created;
+  }
+);
 
 export async function getUserSettings(userId: string): Promise<UserSettingsRecord | null> {
   const rows = await db

@@ -3,7 +3,6 @@
 import React, { useEffect, useId, useState } from "react";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
-import mermaid from "mermaid";
 
 let mermaidInitialized = false;
 
@@ -16,19 +15,19 @@ function MermaidNodeView({ node, updateAttributes, selected }: NodeViewProps) {
   const renderId = `mermaid-${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
 
   useEffect(() => {
-    if (!mermaidInitialized) {
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: "strict",
-        theme: "neutral",
-      });
-      mermaidInitialized = true;
-    }
-
     let cancelled = false;
-    mermaid
-      .render(renderId, code)
-      .then((res) => {
+
+    import("mermaid")
+      .then(async ({ default: mermaid }) => {
+        if (!mermaidInitialized) {
+          mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: "strict",
+            theme: "neutral",
+          });
+          mermaidInitialized = true;
+        }
+        const res = await mermaid.render(renderId, code);
         if (!cancelled) {
           setSvg(res.svg);
           setRenderError(null);
