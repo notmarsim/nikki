@@ -2,27 +2,51 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Command, Search } from "lucide-react";
+import {
+  ArrowRight,
+  CheckSquare,
+  Command,
+  FileText,
+  FolderKanban,
+  Inbox,
+  Search,
+} from "lucide-react";
 import { APP_MODULES } from "@/config/modules";
 import { useTheme } from "@/components/providers/theme-provider";
 import { ModuleIcon } from "@/components/ui/module-icon";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 
+interface SearchResultItem {
+  id: string;
+  type: "note" | "task" | "project";
+  title: string;
+  snippet: string;
+  href: string;
+}
+
 interface PaletteItem {
   id: string;
   label: string;
   subtitle: string;
   icon: string;
+  group: string;
   action: () => void;
 }
 
 export function CommandPalette() {
   const router = useRouter();
   const { setTheme } = useTheme();
-  const { commandPaletteOpen, setCommandPaletteOpen, toggleSidebar } = useUiStore();
+  const {
+    commandPaletteOpen,
+    setCommandPaletteOpen,
+    setQuickCaptureOpen,
+    toggleSidebar,
+  } = useUiStore();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -37,7 +61,75 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [commandPaletteOpen, setCommandPaletteOpen]);
 
-  const items: PaletteItem[] = useMemo(() => {
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!commandPaletteOpen || trimmed.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(
+          `/api/search?q=${encodeURIComponent(trimmed)}&limit=12`,
+          { signal: controller.signal }
+        );
+        if (res.ok) {
+          const json = await res.json();
+          setSearchResults(json?.data?.results ?? []);
+        }
+      } catch {
+        // Ignore aborted requests
+      } finally {
+        setSearching(false);
+      }
+    }, 180);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, commandPaletteOpen]);
+
+  const staticItems: PaletteItem[] = useMemo(() => {
+    const quickActions: PaletteItem[] = [
+      {
+        id: "act-quick-capture",
+        label: "Quick Capture to Inbox",
+        subtitle: "Capture thought, link, or task (Ctrl+Shift+I)",
+        icon: "Inbox",
+        group: "Actions",
+        action: () => {
+          setCommandPaletteOpen(false);
+          setQuickCaptureOpen(true);
+        },
+      },
+      {
+        id: "act-new-note",
+        label: "New Note",
+        subtitle: "Open Notes workspace",
+        icon: "FileText",
+        group: "Actions",
+        action: () => {
+          router.push("/notes?new=1");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-new-task",
+        label: "New Task",
+        subtitle: "Open Tasks workspace",
+        icon: "CheckSquare",
+        group: "Actions",
+        action: () => {
+          router.push("/tasks?new=1");
+          setCommandPaletteOpen(false);
+        },
+      },
+    ];
+
     const moduleItems: PaletteItem[] = APP_MODULES.map((mod) => ({
       id: `nav-${mod.id}`,
       label: mod.name,
@@ -46,18 +138,20 @@ export function CommandPalette() {
           ? `Go to ${mod.name}`
           : `${mod.name} (Phase ${mod.phase} — Planned)`,
       icon: mod.icon,
+      group: "Modules",
       action: () => {
         router.push(mod.href);
         setCommandPaletteOpen(false);
       },
     }));
 
-    const quickCommands: PaletteItem[] = [
+    const appearanceItems: PaletteItem[] = [
       {
         id: "cmd-theme-dark",
         label: "Theme: Switch to Dark Mode",
         subtitle: "Appearance",
         icon: "Settings",
+        group: "Preferences",
         action: () => {
           setTheme("dark");
           setCommandPaletteOpen(false);
@@ -68,6 +162,7 @@ export function CommandPalette() {
         label: "Theme: Switch to Light Mode",
         subtitle: "Appearance",
         icon: "Settings",
+        group: "Preferences",
         action: () => {
           setTheme("light");
           setCommandPaletteOpen(false);
@@ -78,6 +173,7 @@ export function CommandPalette() {
         label: "Toggle Sidebar",
         subtitle: "Layout",
         icon: "Layers",
+        group: "Preferences",
         action: () => {
           toggleSidebar();
           setCommandPaletteOpen(false);
@@ -85,18 +181,38 @@ export function CommandPalette() {
       },
     ];
 
-    return [...moduleItems, ...quickCommands];
-  }, [router, setCommandPaletteOpen, setTheme, toggleSidebar]);
+    return [...quickActions, ...moduleItems, ...appearanceItems];
+  }, [router, setCommandPaletteOpen, setQuickCaptureOpen, setTheme, toggleSidebar]);
 
-  const filtered = useMemo(() => {
+  const items: PaletteItem[] = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (item) =>
-        item.label.toLowerCase().includes(q) ||
-        item.subtitle.toLowerCase().includes(q)
-    );
-  }, [items, query]);
+    const dbItems: PaletteItem[] = searchResults.map((res) => ({
+      id: `search-${res.type}-${res.id}`,
+      label: res.title,
+      subtitle: `${res.type.toUpperCase()}${res.snippet ? ` · ${res.snippet.replace(/<[^>]+>/g, "")}` : ""}`,
+      icon:
+        res.type === "note"
+          ? "FileText"
+          : res.type === "task"
+            ? "CheckSquare"
+            : "FolderKanban",
+      group: "Search Results",
+      action: () => {
+        router.push(res.href);
+        setCommandPaletteOpen(false);
+      },
+    }));
+
+    const matchingStatic = q
+      ? staticItems.filter(
+          (item) =>
+            item.label.toLowerCase().includes(q) ||
+            item.subtitle.toLowerCase().includes(q)
+        )
+      : staticItems;
+
+    return [...dbItems, ...matchingStatic];
+  }, [query, searchResults, staticItems, router, setCommandPaletteOpen]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -107,28 +223,28 @@ export function CommandPalette() {
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setSelectedIndex((prev) => (filtered.length ? (prev + 1) % filtered.length : 0));
+      setSelectedIndex((prev) => (items.length ? (prev + 1) % items.length : 0));
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       setSelectedIndex((prev) =>
-        filtered.length ? (prev - 1 + filtered.length) % filtered.length : 0
+        items.length ? (prev - 1 + items.length) % items.length : 0
       );
-    } else if (event.key === "Enter" && filtered[selectedIndex]) {
+    } else if (event.key === "Enter" && items[selectedIndex]) {
       event.preventDefault();
-      filtered[selectedIndex].action();
+      items[selectedIndex].action();
     }
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh] px-4"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[14vh] px-4"
       onClick={() => setCommandPaletteOpen(false)}
       role="dialog"
       aria-modal="true"
-      aria-label="Command Palette"
+      aria-label="Global Search & Command Palette"
     >
       <div
-        className="w-full max-w-lg overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl"
+        className="w-full max-w-xl overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
@@ -139,21 +255,24 @@ export function CommandPalette() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command or search modules..."
+            placeholder="Search notes, tasks, projects, or type a command..."
             className="flex-1 bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
           />
+          {searching && (
+            <span className="text-[11px] text-[var(--muted-foreground)]">Searching...</span>
+          )}
           <kbd className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">
             ESC
           </kbd>
         </div>
 
-        <div className="max-h-80 overflow-y-auto p-1.5">
-          {filtered.length === 0 ? (
+        <div className="max-h-96 overflow-y-auto p-1.5">
+          {items.length === 0 ? (
             <div className="py-8 text-center text-sm text-[var(--muted-foreground)]">
-              No matching commands or modules.
+              No matching notes, tasks, projects, or commands.
             </div>
           ) : (
-            filtered.map((item, idx) => (
+            items.map((item, idx) => (
               <button
                 key={item.id}
                 type="button"
@@ -167,7 +286,17 @@ export function CommandPalette() {
                 )}
               >
                 <div className="flex items-center gap-2.5 truncate">
-                  <ModuleIcon name={item.icon} className="h-4 w-4 shrink-0" />
+                  {item.icon === "FileText" ? (
+                    <FileText className="h-4 w-4 shrink-0" />
+                  ) : item.icon === "CheckSquare" ? (
+                    <CheckSquare className="h-4 w-4 shrink-0" />
+                  ) : item.icon === "FolderKanban" ? (
+                    <FolderKanban className="h-4 w-4 shrink-0" />
+                  ) : item.icon === "Inbox" ? (
+                    <Inbox className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <ModuleIcon name={item.icon} className="h-4 w-4 shrink-0" />
+                  )}
                   <div className="truncate">
                     <div className="font-medium text-[var(--foreground)] truncate">
                       {item.label}
@@ -185,9 +314,9 @@ export function CommandPalette() {
 
         <div className="flex items-center justify-between border-t border-[var(--border)] px-3 py-2 text-[11px] text-[var(--muted-foreground)]">
           <span className="flex items-center gap-1">
-            <Command className="h-3 w-3" /> Personal OS Command Palette
+            <Command className="h-3 w-3" /> Nikki Command Palette & Global Search
           </span>
-          <span>↑↓ Navigate · ↵ Select</span>
+          <span>↑↓ Navigate · ↵ Open</span>
         </div>
       </div>
     </div>

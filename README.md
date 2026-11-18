@@ -1,6 +1,6 @@
-# Personal OS
+# Nikki
 
-Modular personal productivity, knowledge, and organization platform built with Next.js (App Router), TypeScript (strict), Tailwind CSS, Drizzle ORM, and PostgreSQL.
+Modular personal productivity, knowledge, and organization platform built with Next.js (App Router), TypeScript (strict), Tailwind CSS, Drizzle ORM, and Supabase PostgreSQL.
 
 ## Phase 1 Foundation
 

@@ -15,9 +15,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Personal OS — Productivity, Knowledge & Organization",
+  title: "Nikki — Productivity, Knowledge & Organization",
   description:
-    "Modular personal operating system centralizing notes, tasks, projects, learning, calendar, and analytics.",
+    "Modular personal productivity and knowledge platform centralizing notes, tasks, projects, inbox, and global search.",
+  applicationName: "Nikki",
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({

@@ -36,7 +36,7 @@ export const APP_MODULES: AppModule[] = [
     section: "core",
     phase: 1,
     status: "active",
-    description: "Central modular overview of your Personal OS.",
+    description: "Central modular overview of your Nikki workspace.",
     plannedFeatures: [
       "Customizable widget grid",
       "Real-time cross-module summaries",
@@ -50,7 +50,7 @@ export const APP_MODULES: AppModule[] = [
     icon: "Inbox",
     section: "core",
     phase: 2,
-    status: "planned",
+    status: "active",
     description: "Universal quick capture for thoughts, links, tasks, and snippets.",
     plannedFeatures: [
       "Global capture shortcut from any route",
@@ -65,7 +65,7 @@ export const APP_MODULES: AppModule[] = [
     icon: "FileText",
     section: "productivity",
     phase: 2,
-    status: "planned",
+    status: "active",
     description: "Block-based knowledge editor with bidirectional [[links]].",
     plannedFeatures: [
       "Structured JSON block tree (no raw HTML storage)",
@@ -80,7 +80,7 @@ export const APP_MODULES: AppModule[] = [
     icon: "CheckSquare",
     section: "productivity",
     phase: 2,
-    status: "planned",
+    status: "active",
     description: "Task management with subtasks, priorities, recurrence, and views.",
     plannedFeatures: [
       "List, Kanban, Today, Upcoming, and Overdue views",
@@ -95,7 +95,7 @@ export const APP_MODULES: AppModule[] = [
     icon: "FolderKanban",
     section: "productivity",
     phase: 2,
-    status: "planned",
+    status: "active",
     description: "Dedicated project spaces with milestones, docs, and roadmaps.",
     plannedFeatures: [
       "Overview, Kanban, List, Timeline, and Roadmap views",

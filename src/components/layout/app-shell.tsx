@@ -2,6 +2,7 @@
 
 import React from "react";
 import { CommandPalette } from "./command-palette";
+import { QuickCaptureModal } from "./quick-capture-modal";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 
@@ -23,6 +24,7 @@ export function AppShell({ user, workspaceName, children }: AppShellProps) {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
       </div>
       <CommandPalette />
+      <QuickCaptureModal />
     </div>
   );
 }

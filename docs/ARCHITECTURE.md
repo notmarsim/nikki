@@ -1,8 +1,8 @@
-# Personal OS — Arquitetura e Plano da Fase 1 (+ Núcleo da Fase 2)
+# Nikki — Arquitetura e Plano (Fases 1 e 2)
 
 ## 1. Arquitetura Técnica Proposta
 
-O **Personal OS** adota uma arquitetura **monolítica modular** baseada em **Next.js (App Router)** com **TypeScript em modo strict**, **PostgreSQL** e **Drizzle ORM**:
+O **Nikki** adota uma arquitetura **monolítica modular** baseada em **Next.js (App Router)** com **TypeScript em modo strict**, **Supabase PostgreSQL**, **Supabase Storage** e **Drizzle ORM**:
 
 - **Camada de Apresentação (Frontend):** React 19 + Next.js App Router (Server Components para carregamento inicial autenticado e Client Components para interatividade), Tailwind CSS v4 com CSS custom properties para temas (`light`, `dark`, `system`), Zustand para estado global de UI (sidebar, command palette, módulos fixados), TanStack Query para cache e mutações de dados no cliente, e React Hook Form + Zod para validação de formulários.
 - **Camada de Aplicação / API (Backend):** Next.js Route Handlers (`/api/*`) organizados por domínio em `src/modules/*`, com validação Zod na entrada, respostas padronizadas (`{ data, error }`), rate limiting e logs estruturados sem exposição de credenciais.
@@ -181,3 +181,21 @@ As tabelas da Fase 1 e do núcleo da Fase 2 estão modeladas em `src/db/schema/`
 4. `npm run build` (`next build`) compila todas as rotas e gera o bundle standalone com sucesso.
 5. `npx drizzle-kit generate` gera a migration SQL inicial versionada a partir do schema em `src/db/schema/`.
 6. Todos os 15 módulos possuem rotas acessíveis na Sidebar e no Command Palette, com páginas não implementadas exibindo claramente seu estado de desenvolvimento.
+
+
+---
+
+## 11. Entregas da Fase 2 (Core Productivity System)
+
+- **Renomeação:** Identidade visual, metadata, manifest (`/manifest.webmanifest`), rotas, documentação e UI atualizados para **Nikki**.
+- **Migrations & RLS (`0001_amusing_hex.sql`, `0002_rls_and_fts.sql`):**
+  - Novas tabelas: `milestones`, `note_links`, `note_attachments`, `task_tags`, `task_recurrence_rules`.
+  - Índices GIN Full-Text Search em `notes`, `tasks` e `projects`.
+  - Row Level Security (`ENABLE ROW LEVEL SECURITY`) + policies de ownership em todas as tabelas pessoais via `public.nikki_current_user_id()` e `withUserRls()` (`src/db/rls.ts`).
+- **Módulos Implementados:**
+  - **Notes (`/notes`):** Editor em blocos Tiptap (JSONB canônico + extração `content_text`), Slash commands (`/`), `[[Page Links]]` por ID + backlinks, 6 templates, hierarquia multi-nível com proteção anti-ciclo, autosave com `expectedVersion` (409 em conflito), KaTeX, Mermaid, upload privado via Supabase Storage (`/api/notes/upload`, `/api/notes/attachments/[id]`) e conversão de seleção/linha em Tarefa.
+  - **Tasks (`/tasks`):** Visões Today, Upcoming, All Tasks, Board (Kanban drag-and-drop via `@dnd-kit/core`) e Completed; subtarefas com proteção anti-ciclo, tags, recorrência (diária/semanal/mensal idempotente) e painel Task Detail.
+  - **Projects (`/projects`):** Overview, Tasks, Notes, Milestones, Settings e cálculo automático de progresso (`completed_tasks / total_active_tasks * 100`, ignorando canceladas e subtarefas).
+  - **Universal Inbox (`/inbox` + `Ctrl+Shift+I`):** Captura rápida global e conversão transacional/idempotente para Notes ou Tasks (com projeto opcional).
+  - **Global Search (`Ctrl+K`):** Busca PostgreSQL FTS integrada ao Command Palette.
+  - **Dashboard (`/dashboard`):** Widgets reais (Overview, Quick Capture, Tasks Today, Active Projects, Recent Notes, Recent Activity) com invalidação TanStack Query.

@@ -73,7 +73,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
             {!collapsed && (
               <div className="flex flex-col truncate">
                 <span className="text-sm font-semibold leading-tight">
-                  Personal OS
+                  Nikki
                 </span>
                 <span className="text-xs text-[var(--muted-foreground)] truncate">
                   {workspaceName}

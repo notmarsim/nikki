@@ -36,7 +36,7 @@ export function ModulePlaceholder({ moduleId }: { moduleId: string }) {
             <CardTitle>Module Scheduled for Phase {mod.phase}</CardTitle>
           </div>
           <CardDescription>
-            This route is wired into the Personal OS navigation, authentication, and
+            This route is wired into Nikki&apos;s navigation, authentication, and
             module registry. Full database persistence and interactive workflows will be
             implemented in Phase {mod.phase}.
           </CardDescription>

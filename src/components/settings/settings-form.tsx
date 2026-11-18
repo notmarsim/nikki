@@ -69,7 +69,7 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle>Profile</CardTitle>
           <CardDescription>
-            Manage your Personal OS identity and timezone preferences.
+            Manage your Nikki identity and timezone preferences.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

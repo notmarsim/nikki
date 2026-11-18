@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Menu, Monitor, Moon, Search, Sun } from "lucide-react";
+import { LogOut, Menu, Monitor, Moon, Plus, Search, Sun } from "lucide-react";
 import { useTheme, type ThemeMode } from "@/components/providers/theme-provider";
 import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/stores/ui-store";
@@ -21,7 +21,7 @@ const NEXT_THEME: Record<ThemeMode, ThemeMode> = {
 export function Topbar({ userName, userEmail }: TopbarProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const { setMobileSidebarOpen, setCommandPaletteOpen } = useUiStore();
+  const { setMobileSidebarOpen, setCommandPaletteOpen, setQuickCaptureOpen } = useUiStore();
 
   const handleCycleTheme = async () => {
     const next = NEXT_THEME[theme];
@@ -69,6 +69,17 @@ export function Topbar({ userName, userEmail }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setQuickCaptureOpen(true)}
+          title="Quick Capture (Ctrl+Shift+I)"
+          className="hidden sm:inline-flex"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Capture
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"

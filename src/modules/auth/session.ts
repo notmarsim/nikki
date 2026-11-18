@@ -102,3 +102,11 @@ export async function getCurrentSession(): Promise<AuthenticatedSession | null> 
     user: row.user,
   };
 }
+
+export async function requireSession(): Promise<AuthenticatedSession> {
+  const session = await getCurrentSession();
+  if (!session) {
+    throw new Error("UNAUTHORIZED");
+  }
+  return session;
+}

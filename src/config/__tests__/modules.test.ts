@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { APP_MODULES, getModuleById } from "../modules";
 
 describe("module registry", () => {
-  it("contains all 15 expected Personal OS modules with unique ids and hrefs", () => {
+  it("contains all 15 expected Nikki modules with unique ids and hrefs", () => {
     expect(APP_MODULES).toHaveLength(15);
     const ids = new Set(APP_MODULES.map((m) => m.id));
     const hrefs = new Set(APP_MODULES.map((m) => m.href));

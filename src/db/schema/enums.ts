@@ -25,11 +25,18 @@ export const relationTypeEnum = pgEnum("relation_type", [
 export const taskStatusEnum = pgEnum("task_status", [
   "todo",
   "in_progress",
+  "blocked",
   "done",
   "cancelled",
 ]);
 
-export const priorityEnum = pgEnum("priority", ["low", "medium", "high", "urgent"]);
+export const priorityEnum = pgEnum("priority", [
+  "none",
+  "low",
+  "medium",
+  "high",
+  "urgent",
+]);
 
 export const projectStatusEnum = pgEnum("project_status", [
   "planning",
@@ -37,6 +44,19 @@ export const projectStatusEnum = pgEnum("project_status", [
   "on_hold",
   "completed",
   "archived",
+]);
+
+export const milestoneStatusEnum = pgEnum("milestone_status", [
+  "planned",
+  "active",
+  "completed",
+  "cancelled",
+]);
+
+export const recurrenceFrequencyEnum = pgEnum("recurrence_frequency", [
+  "daily",
+  "weekly",
+  "monthly",
 ]);
 
 export const inboxStatusEnum = pgEnum("inbox_status", [

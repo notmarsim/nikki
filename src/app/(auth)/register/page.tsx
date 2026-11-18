@@ -50,7 +50,7 @@ export default function RegisterPage() {
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)]">
             <Layers className="h-5 w-5" />
           </div>
-          <CardTitle className="text-xl">Create your Personal OS</CardTitle>
+          <CardTitle className="text-xl">Create your Nikki account</CardTitle>
           <CardDescription>
             Set up your private workspace in seconds
           </CardDescription>
