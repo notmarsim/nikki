@@ -5,7 +5,10 @@ export type ActivityEntityType =
   | "note"
   | "task"
   | "project"
-  | "inbox_item";
+  | "inbox_item"
+  | "event"
+  | "course"
+  | "habit";
 
 export async function recordActivity(params: {
   userId: string;

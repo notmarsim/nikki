@@ -1,7 +1,14 @@
 import { sql } from "drizzle-orm";
 import { withUserRls } from "@/db/rls";
 
-export type SearchEntityType = "note" | "task" | "project";
+export type SearchEntityType =
+  | "note"
+  | "task"
+  | "project"
+  | "course"
+  | "event"
+  | "deck"
+  | "habit";
 
 export interface GlobalSearchResult {
   id: string;
@@ -26,7 +33,15 @@ export async function globalSearch(params: {
   const types =
     params.types && params.types.length > 0
       ? params.types
-      : (["note", "task", "project"] as SearchEntityType[]);
+      : ([
+          "note",
+          "task",
+          "project",
+          "course",
+          "event",
+          "deck",
+          "habit",
+        ] as SearchEntityType[]);
   const limit = Math.min(Math.max(params.limit ?? 20, 1), 50);
   const likePattern = `%${q}%`;
 
@@ -145,6 +160,162 @@ export async function globalSearch(params: {
           title: r.name,
           snippet: (r.description ?? "").slice(0, 140),
           href: `/projects?id=${r.id}`,
+          rank: Number(r.rank) || 0.1,
+          updatedAt: new Date(r.updated_at).toISOString(),
+        });
+      }
+    }
+
+    if (types.includes("course")) {
+      const courseRows = await tx.execute<{
+        id: string;
+        title: string;
+        description: string | null;
+        rank: number;
+        updated_at: string;
+      }>(sql`
+        SELECT
+          c.id,
+          c.title,
+          coalesce(c.description, '') AS description,
+          ts_rank(to_tsvector('simple', coalesce(c.title, '') || ' ' || coalesce(c.description, '')), plainto_tsquery('simple', ${q})) AS rank,
+          c.updated_at
+        FROM courses c
+        WHERE c.user_id = ${params.userId}
+          AND c.workspace_id = ${params.workspaceId}
+          AND (
+            to_tsvector('simple', coalesce(c.title, '') || ' ' || coalesce(c.description, '')) @@ plainto_tsquery('simple', ${q})
+            OR c.title ILIKE ${likePattern}
+            OR coalesce(c.description, '') ILIKE ${likePattern}
+          )
+        ORDER BY rank DESC, c.updated_at DESC
+        LIMIT ${limit}
+      `);
+
+      for (const r of courseRows) {
+        results.push({
+          id: r.id,
+          type: "course",
+          title: r.title,
+          snippet: (r.description ?? "").slice(0, 140),
+          href: `/learning?courseId=${r.id}`,
+          rank: Number(r.rank) || 0.1,
+          updatedAt: new Date(r.updated_at).toISOString(),
+        });
+      }
+    }
+
+    if (types.includes("event")) {
+      const eventRows = await tx.execute<{
+        id: string;
+        title: string;
+        description: string | null;
+        rank: number;
+        updated_at: string;
+      }>(sql`
+        SELECT
+          e.id,
+          e.title,
+          coalesce(e.description, '') AS description,
+          ts_rank(to_tsvector('simple', coalesce(e.title, '') || ' ' || coalesce(e.description, '')), plainto_tsquery('simple', ${q})) AS rank,
+          e.updated_at
+        FROM calendar_events e
+        WHERE e.user_id = ${params.userId}
+          AND e.workspace_id = ${params.workspaceId}
+          AND (
+            to_tsvector('simple', coalesce(e.title, '') || ' ' || coalesce(e.description, '')) @@ plainto_tsquery('simple', ${q})
+            OR e.title ILIKE ${likePattern}
+            OR coalesce(e.description, '') ILIKE ${likePattern}
+          )
+        ORDER BY rank DESC, e.updated_at DESC
+        LIMIT ${limit}
+      `);
+
+      for (const r of eventRows) {
+        results.push({
+          id: r.id,
+          type: "event",
+          title: r.title,
+          snippet: (r.description ?? "").slice(0, 140),
+          href: `/calendar?eventId=${r.id}`,
+          rank: Number(r.rank) || 0.1,
+          updatedAt: new Date(r.updated_at).toISOString(),
+        });
+      }
+    }
+
+    if (types.includes("deck")) {
+      const deckRows = await tx.execute<{
+        id: string;
+        title: string;
+        description: string | null;
+        rank: number;
+        updated_at: string;
+      }>(sql`
+        SELECT
+          d.id,
+          d.title,
+          coalesce(d.description, '') AS description,
+          ts_rank(to_tsvector('simple', coalesce(d.title, '') || ' ' || coalesce(d.description, '')), plainto_tsquery('simple', ${q})) AS rank,
+          d.updated_at
+        FROM flashcard_decks d
+        WHERE d.user_id = ${params.userId}
+          AND d.workspace_id = ${params.workspaceId}
+          AND (
+            to_tsvector('simple', coalesce(d.title, '') || ' ' || coalesce(d.description, '')) @@ plainto_tsquery('simple', ${q})
+            OR d.title ILIKE ${likePattern}
+            OR coalesce(d.description, '') ILIKE ${likePattern}
+          )
+        ORDER BY rank DESC, d.updated_at DESC
+        LIMIT ${limit}
+      `);
+
+      for (const r of deckRows) {
+        results.push({
+          id: r.id,
+          type: "deck",
+          title: r.title,
+          snippet: (r.description ?? "").slice(0, 140),
+          href: `/flashcards?deckId=${r.id}`,
+          rank: Number(r.rank) || 0.1,
+          updatedAt: new Date(r.updated_at).toISOString(),
+        });
+      }
+    }
+
+    if (types.includes("habit")) {
+      const habitRows = await tx.execute<{
+        id: string;
+        title: string;
+        description: string | null;
+        rank: number;
+        updated_at: string;
+      }>(sql`
+        SELECT
+          h.id,
+          h.title,
+          coalesce(h.description, '') AS description,
+          ts_rank(to_tsvector('simple', coalesce(h.title, '') || ' ' || coalesce(h.description, '')), plainto_tsquery('simple', ${q})) AS rank,
+          h.updated_at
+        FROM habits h
+        WHERE h.user_id = ${params.userId}
+          AND h.workspace_id = ${params.workspaceId}
+          AND (
+            to_tsvector('simple', coalesce(h.title, '') || ' ' || coalesce(h.description, '')) @@ plainto_tsquery('simple', ${q})
+            OR h.title ILIKE ${likePattern}
+            OR coalesce(h.description, '') ILIKE ${likePattern}
+          )
+        ORDER BY rank DESC, h.updated_at DESC
+        LIMIT ${limit}
+      `);
+
+      for (const r of habitRows) {
+        results.push({
+          id: r.id,
+          type: "habit",
+          title: r.title,
+          snippet: (r.description ?? "").slice(0, 140),
+          href: `/habits?habitId=${r.id}`,
           rank: Number(r.rank) || 0.1,
           updatedAt: new Date(r.updated_at).toISOString(),
         });

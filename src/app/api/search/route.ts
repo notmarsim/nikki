@@ -13,9 +13,18 @@ export async function GET(request: NextRequest) {
   const typeParam = searchParams.get("type");
   const limitParam = Number(searchParams.get("limit") ?? "20");
 
+  const allowedTypes: SearchEntityType[] = [
+    "note",
+    "task",
+    "project",
+    "course",
+    "event",
+    "deck",
+    "habit",
+  ];
   const types: SearchEntityType[] | undefined =
-    typeParam === "note" || typeParam === "task" || typeParam === "project"
-      ? [typeParam]
+    typeParam && allowedTypes.includes(typeParam as SearchEntityType)
+      ? [typeParam as SearchEntityType]
       : undefined;
 
   const workspace = await getOrCreateDefaultWorkspace(session.user.id);

@@ -61,6 +61,14 @@ export function NotesWorkspace({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error" | "conflict">("idle");
   const [titleDraft, setTitleDraft] = useState("");
   const [liveDoc, setLiveDoc] = useState<NoteBlockDocument | null>(null);
+  const [flashcardModal, setFlashcardModal] = useState<{
+    front: string;
+    back: string;
+    deckId: string;
+    cardType: "basic" | "basic_reversed" | "cloze";
+  } | null>(null);
+  const [decks, setDecks] = useState<Array<{ id: string; title: string }>>([]);
+  const [savingFlashcard, setSavingFlashcard] = useState(false);
   const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
 
   const editorScrollRef = useRef<HTMLDivElement | null>(null);
@@ -541,6 +549,31 @@ export function NotesWorkspace({
                       scheduleContentSave(detail.note.id, doc);
                     }}
                     onConvertSelectionToTask={handleConvertSelectionToTask}
+                    onCreateFlashcardFromSelection={async (text) => {
+                      setFlashcardModal({
+                        front: text,
+                        back: "",
+                        deckId: decks[0]?.id ?? "",
+                        cardType: "basic",
+                      });
+                      if (decks.length === 0) {
+                        try {
+                          const res = await fetch("/api/flashcards/decks");
+                          if (res.ok) {
+                            const json = await res.json();
+                            const loaded = json?.data?.decks ?? [];
+                            setDecks(loaded);
+                            if (loaded[0]?.id) {
+                              setFlashcardModal((prev) =>
+                                prev ? { ...prev, deckId: prev.deckId || loaded[0].id } : prev
+                              );
+                            }
+                          }
+                        } catch {
+                          // ignore
+                        }
+                      }
+                    }}
                   />
                 </div>
 
@@ -660,6 +693,128 @@ export function NotesWorkspace({
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {flashcardModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={() => setFlashcardModal(null)}
+        >
+          <form
+            className="w-full max-w-md space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!flashcardModal.deckId || !flashcardModal.front.trim()) return;
+              setSavingFlashcard(true);
+              try {
+                const res = await fetch("/api/flashcards/cards", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    deckId: flashcardModal.deckId,
+                    cardType: flashcardModal.cardType,
+                    front: flashcardModal.front.trim(),
+                    back: flashcardModal.back.trim() || flashcardModal.front.trim(),
+                    sourceNoteId: detail?.note.id,
+                  }),
+                });
+                if (res.ok) {
+                  setFlashcardModal(null);
+                  queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+                }
+              } finally {
+                setSavingFlashcard(false);
+              }
+            }}
+          >
+            <h2 className="text-base font-semibold">Create Flashcard from Note</h2>
+            {decks.length === 0 ? (
+              <p className="text-xs text-[var(--muted-foreground)]">
+                No flashcard decks found yet. Create a deck in{" "}
+                <Link href="/flashcards" className="text-[var(--accent)] underline">
+                  Flashcards
+                </Link>{" "}
+                first.
+              </p>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Deck</label>
+                  <select
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm"
+                    value={flashcardModal.deckId}
+                    onChange={(e) =>
+                      setFlashcardModal({ ...flashcardModal, deckId: e.target.value })
+                    }
+                  >
+                    {decks.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Type</label>
+                  <select
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm"
+                    value={flashcardModal.cardType}
+                    onChange={(e) =>
+                      setFlashcardModal({
+                        ...flashcardModal,
+                        cardType: e.target.value as "basic" | "basic_reversed" | "cloze",
+                      })
+                    }
+                  >
+                    <option value="basic">Basic</option>
+                    <option value="basic_reversed">Basic (Reversed)</option>
+                    <option value="cloze">Cloze Deletion</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Front</label>
+                  <textarea
+                    rows={2}
+                    required
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm"
+                    value={flashcardModal.front}
+                    onChange={(e) =>
+                      setFlashcardModal({ ...flashcardModal, front: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Back</label>
+                  <textarea
+                    rows={2}
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm"
+                    placeholder="Answer or explanation..."
+                    value={flashcardModal.back}
+                    onChange={(e) =>
+                      setFlashcardModal({ ...flashcardModal, back: e.target.value })
+                    }
+                  />
+                </div>
+              </>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setFlashcardModal(null)}
+              >
+                Cancel
+              </Button>
+              {decks.length > 0 && (
+                <Button type="submit" size="sm" disabled={savingFlashcard}>
+                  {savingFlashcard ? "Saving..." : "Create Flashcard"}
+                </Button>
+              )}
+            </div>
+          </form>
         </div>
       )}
     </div>

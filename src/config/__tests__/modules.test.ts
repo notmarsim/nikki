@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { APP_MODULES, getModuleById } from "../modules";
 
 describe("module registry", () => {
-  it("contains all 15 expected Nikki modules with unique ids and hrefs", () => {
-    expect(APP_MODULES).toHaveLength(15);
+  it("contains all 16 expected Nikki modules with unique ids and hrefs", () => {
+    expect(APP_MODULES).toHaveLength(16);
     const ids = new Set(APP_MODULES.map((m) => m.id));
     const hrefs = new Set(APP_MODULES.map((m) => m.href));
-    expect(ids.size).toBe(15);
-    expect(hrefs.size).toBe(15);
+    expect(ids.size).toBe(16);
+    expect(hrefs.size).toBe(16);
   });
 
   it("marks dashboard and settings as active in Phase 1", () => {

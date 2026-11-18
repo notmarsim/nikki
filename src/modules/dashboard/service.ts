@@ -1,73 +1,185 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { withUserRls } from "@/db/rls";
-import { activityLogs, inboxItems, notes, projects, tasks } from "@/db/schema";
+import {
+  activityLogs,
+  calendarEvents,
+  flashcardDecks,
+  flashcards,
+  focusSessions,
+  habitEntries,
+  habits,
+  inboxItems,
+  notes,
+  projects,
+  tasks,
+} from "@/db/schema";
 
 export async function getDashboardData(userId: string, workspaceId: string) {
   return withUserRls(userId, async (tx) => {
-    const [allTasks, activeProjectRows, recentNoteRows, pendingInboxRows, activityRows] =
-      await Promise.all([
-        tx
-          .select()
-          .from(tasks)
-          .where(and(eq(tasks.userId, userId), eq(tasks.workspaceId, workspaceId)))
-          .orderBy(desc(tasks.updatedAt)),
-        tx
-          .select()
-          .from(projects)
-          .where(
-            and(
-              eq(projects.userId, userId),
-              eq(projects.workspaceId, workspaceId),
-              eq(projects.status, "active")
-            )
-          )
-          .orderBy(desc(projects.updatedAt))
-          .limit(6),
-        tx
-          .select({
-            id: notes.id,
-            title: notes.title,
-            icon: notes.icon,
-            updatedAt: notes.updatedAt,
-            projectId: notes.projectId,
-          })
-          .from(notes)
-          .where(
-            and(
-              eq(notes.userId, userId),
-              eq(notes.workspaceId, workspaceId),
-              eq(notes.isArchived, false),
-              isNull(notes.deletedAt)
-            )
-          )
-          .orderBy(desc(notes.updatedAt))
-          .limit(6),
-        tx
-          .select({ id: inboxItems.id })
-          .from(inboxItems)
-          .where(
-            and(
-              eq(inboxItems.userId, userId),
-              eq(inboxItems.workspaceId, workspaceId),
-              eq(inboxItems.status, "pending")
-            )
-          ),
-        tx
-          .select()
-          .from(activityLogs)
-          .where(
-            and(
-              eq(activityLogs.userId, userId),
-              eq(activityLogs.workspaceId, workspaceId)
-            )
-          )
-          .orderBy(desc(activityLogs.createdAt))
-          .limit(10),
-      ]);
-
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const sevenDaysAhead = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const todayDateStr = now.toISOString().slice(0, 10);
+
+    const [
+      allTasks,
+      activeProjectRows,
+      recentNoteRows,
+      pendingInboxRows,
+      activityRows,
+      upcomingEventRows,
+      activeFocusRows,
+      todayFocusRows,
+      dueFlashcardRows,
+      activeHabitRows,
+      todayHabitEntryRows,
+    ] = await Promise.all([
+      tx
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.userId, userId), eq(tasks.workspaceId, workspaceId)))
+        .orderBy(desc(tasks.updatedAt)),
+      tx
+        .select()
+        .from(projects)
+        .where(
+          and(
+            eq(projects.userId, userId),
+            eq(projects.workspaceId, workspaceId),
+            eq(projects.status, "active")
+          )
+        )
+        .orderBy(desc(projects.updatedAt))
+        .limit(6),
+      tx
+        .select({
+          id: notes.id,
+          title: notes.title,
+          icon: notes.icon,
+          updatedAt: notes.updatedAt,
+          projectId: notes.projectId,
+        })
+        .from(notes)
+        .where(
+          and(
+            eq(notes.userId, userId),
+            eq(notes.workspaceId, workspaceId),
+            eq(notes.isArchived, false),
+            isNull(notes.deletedAt)
+          )
+        )
+        .orderBy(desc(notes.updatedAt))
+        .limit(6),
+      tx
+        .select({ id: inboxItems.id })
+        .from(inboxItems)
+        .where(
+          and(
+            eq(inboxItems.userId, userId),
+            eq(inboxItems.workspaceId, workspaceId),
+            eq(inboxItems.status, "pending")
+          )
+        ),
+      tx
+        .select()
+        .from(activityLogs)
+        .where(
+          and(
+            eq(activityLogs.userId, userId),
+            eq(activityLogs.workspaceId, workspaceId)
+          )
+        )
+        .orderBy(desc(activityLogs.createdAt))
+        .limit(10),
+      tx
+        .select({
+          id: calendarEvents.id,
+          title: calendarEvents.title,
+          startAt: calendarEvents.startsAt,
+          endAt: calendarEvents.endsAt,
+          allDay: calendarEvents.isAllDay,
+          color: calendarEvents.color,
+        })
+        .from(calendarEvents)
+        .where(
+          and(
+            eq(calendarEvents.userId, userId),
+            eq(calendarEvents.workspaceId, workspaceId),
+            gte(calendarEvents.endsAt, startOfToday),
+            lte(calendarEvents.startsAt, sevenDaysAhead)
+          )
+        )
+        .orderBy(asc(calendarEvents.startsAt))
+        .limit(5),
+      tx
+        .select({
+          id: focusSessions.id,
+          mode: focusSessions.mode,
+          status: focusSessions.status,
+          startedAt: focusSessions.startedAt,
+          elapsedSeconds: focusSessions.actualDurationSeconds,
+        })
+        .from(focusSessions)
+        .where(
+          and(
+            eq(focusSessions.userId, userId),
+            eq(focusSessions.workspaceId, workspaceId),
+            inArray(focusSessions.status, ["running", "paused"])
+          )
+        )
+        .limit(1),
+      tx
+        .select({
+          elapsedSeconds: focusSessions.actualDurationSeconds,
+        })
+        .from(focusSessions)
+        .where(
+          and(
+            eq(focusSessions.userId, userId),
+            eq(focusSessions.workspaceId, workspaceId),
+            gte(focusSessions.startedAt, startOfToday),
+            lte(focusSessions.startedAt, endOfToday)
+          )
+        ),
+      tx
+        .select({ id: flashcards.id })
+        .from(flashcards)
+        .innerJoin(flashcardDecks, eq(flashcards.deckId, flashcardDecks.id))
+        .where(
+          and(
+            eq(flashcards.userId, userId),
+            eq(flashcardDecks.workspaceId, workspaceId),
+            lte(flashcards.dueAt, now)
+          )
+        ),
+      tx
+        .select({
+          id: habits.id,
+          title: habits.title,
+          targetValue: habits.targetValue,
+        })
+        .from(habits)
+        .where(
+          and(
+            eq(habits.userId, userId),
+            eq(habits.workspaceId, workspaceId),
+            eq(habits.status, "active")
+          )
+        ),
+      tx
+        .select({
+          habitId: habitEntries.habitId,
+          value: habitEntries.value,
+        })
+        .from(habitEntries)
+        .where(
+          and(
+            eq(habitEntries.userId, userId),
+            eq(habitEntries.entryDate, todayDateStr)
+          )
+        ),
+    ]);
 
     const tasksToday = allTasks.filter((t) => {
       if (!t.dueAt) return false;
@@ -97,6 +209,18 @@ export async function getDashboardData(userId: string, workspaceId: string) {
       };
     });
 
+    const studySecondsToday = todayFocusRows.reduce(
+      (sum, row) => sum + (row.elapsedSeconds ?? 0),
+      0
+    );
+    const habitTotals = new Map<string, number>();
+    for (const entry of todayHabitEntryRows) {
+      habitTotals.set(entry.habitId, (habitTotals.get(entry.habitId) ?? 0) + entry.value);
+    }
+    const habitsCompletedToday = activeHabitRows.filter(
+      (h) => (habitTotals.get(h.id) ?? 0) >= h.targetValue
+    ).length;
+
     return {
       overview: {
         totalNotes: recentNoteRows.length,
@@ -104,6 +228,10 @@ export async function getDashboardData(userId: string, workspaceId: string) {
         openTasks: allTasks.filter((t) => t.status !== "done" && t.status !== "cancelled").length,
         activeProjects: activeProjectRows.length,
         pendingInbox: pendingInboxRows.length,
+        flashcardsDue: dueFlashcardRows.length,
+        studyMinutesToday: Math.round(studySecondsToday / 60),
+        habitsCompletedToday,
+        habitsTotal: activeHabitRows.length,
       },
       tasksToday: {
         total: tasksToday.length,
@@ -115,6 +243,8 @@ export async function getDashboardData(userId: string, workspaceId: string) {
       activeProjects: activeProjectsWithCounts,
       recentNotes: recentNoteRows,
       recentActivity: activityRows,
+      upcomingEvents: upcomingEventRows,
+      activeFocus: activeFocusRows[0] ?? null,
     };
   });
 }

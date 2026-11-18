@@ -199,3 +199,45 @@ As tabelas da Fase 1 e do núcleo da Fase 2 estão modeladas em `src/db/schema/`
   - **Universal Inbox (`/inbox` + `Ctrl+Shift+I`):** Captura rápida global e conversão transacional/idempotente para Notes ou Tasks (com projeto opcional).
   - **Global Search (`Ctrl+K`):** Busca PostgreSQL FTS integrada ao Command Palette.
   - **Dashboard (`/dashboard`):** Widgets reais (Overview, Quick Capture, Tasks Today, Active Projects, Recent Notes, Recent Activity) com invalidação TanStack Query.
+
+
+---
+
+## Fase 3 — Planning, Learning & Productivity
+
+A Fase 3 expande o Nikki com cinco módulos integrados, mantendo a arquitetura monolítica modular com persistência real em PostgreSQL (Supabase) e Row Level Security (RLS) em todas as novas tabelas:
+
+1. **Calendar (`/calendar`)**
+   - Tabelas: `calendar_events`, `calendar_event_exceptions`, `scheduled_time_blocks`.
+   - Recorrência canônica RFC 5545 RRULE via biblioteca `rrule`, com expansão sob demanda no intervalo consultado e suporte a exceções (`single` vs. `series` e `cancelled` / `rescheduled`).
+   - Time Blocking integrado a Tasks (`/api/calendar/schedule-task`) preservando `due_at` separado dos blocos de execução.
+   - Detecção de conflitos por sobreposição temporal e suporte explícito a fusos horários e eventos de dia inteiro.
+
+2. **Learning Hub (`/learning`)**
+   - Tabelas: `learning_paths`, `courses`, `learning_path_courses`, `course_modules`, `lessons`, `learning_resource_links`.
+   - Hierarquia completa: Trilha -> Curso -> Módulo -> Aula.
+   - Progresso calculado dinamicamente (`completed_lessons / total_lessons * 100`) e atualizado em transação ao marcar aulas como concluídas.
+   - Vínculos explícitos com Notes, Tasks e sessões de Focus.
+
+3. **Flashcards (`/flashcards`)**
+   - Tabelas: `flashcard_decks`, `flashcard_notes`, `flashcards`, `flashcard_reviews`.
+   - Algoritmo de repetição espaçada **FSRS** via `ts-fsrs`, suportando cards `basic`, `basic_reversed` e `cloze`.
+   - Revisões atômicas e idempotentes (`reviewRequestId` único) com gravação de histórico em `flashcard_reviews`.
+   - Criação direta de flashcards a partir de trechos selecionados no editor de Notes (`sourceNoteId`).
+
+4. **Focus (`/focus`)**
+   - Tabelas: `focus_sessions`, `focus_session_intervals`, `focus_preferences`.
+   - Modos Pomodoro e Stopwatch com cálculo server-side baseado em timestamps reais (`focus_session_intervals`), garantindo recuperação pós-reload.
+   - Índice único parcial (`focus_sessions_one_active_per_user_uidx`) impedindo múltiplas sessões ativas simultâneas por usuário.
+   - Vínculo opcional com Tasks, Projects e Courses.
+
+5. **Habits (`/habits`)**
+   - Tabelas: `habits`, `habit_entries`, `habit_activity_links`.
+   - Suporte a hábitos booleanos e quantitativos com frequências `daily`, `specific_days`, `weekly_count` e `monthly_count`.
+   - Cálculo consistente de streaks (`currentStreak`, `bestStreak`), consistência e heatmap de 90 dias.
+   - Integração com Focus, Learning e Flashcards via `habit_activity_links`.
+
+6. **Integração Global**
+   - **Global Search** (`/api/search`) indexando também `course`, `event`, `deck` e `habit`.
+   - **Command Palette** (`Ctrl+K`) com ações rápidas da Fase 3 e ícones dedicados.
+   - **Dashboard** (`/dashboard`) exibindo eventos próximos, sessão de foco ativa, flashcards pendentes, tempo de estudo hoje e hábitos do dia.

@@ -5,12 +5,16 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
+  Calendar,
   CheckCircle2,
   CheckSquare,
   FileText,
+  Flame,
   FolderKanban,
   Inbox,
+  Layers,
   Plus,
+  Timer,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +34,10 @@ export interface DashboardPayload {
     openTasks: number;
     activeProjects: number;
     pendingInbox: number;
+    flashcardsDue?: number;
+    studyMinutesToday?: number;
+    habitsCompletedToday?: number;
+    habitsTotal?: number;
   };
   tasksToday: {
     total: number;
@@ -67,6 +75,21 @@ export interface DashboardPayload {
     payload: Record<string, unknown> | null;
     createdAt: string | Date;
   }>;
+  upcomingEvents?: Array<{
+    id: string;
+    title: string;
+    startAt: string | Date;
+    endAt: string | Date;
+    allDay: boolean;
+    color: string | null;
+  }>;
+  activeFocus?: {
+    id: string;
+    mode: string;
+    status: string;
+    startedAt: string | Date;
+    elapsedSeconds: number;
+  } | null;
 }
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -269,6 +292,81 @@ export function DashboardView({
         </CardContent>
       </Card>
 
+      {/* Phase 3 Productivity Strip */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Link href="/flashcards">
+          <Card className="hover:border-[var(--accent)] transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
+                Flashcards Due
+              </CardTitle>
+              <Layers className="h-4 w-4 text-[var(--muted-foreground)]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data.overview.flashcardsDue ?? 0}</div>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Ready for FSRS review
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/focus">
+          <Card className="hover:border-[var(--accent)] transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
+                Study Time Today
+              </CardTitle>
+              <Timer className="h-4 w-4 text-[var(--muted-foreground)]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data.overview.studyMinutesToday ?? 0}m</div>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                {data.activeFocus
+                  ? `Active ${data.activeFocus.mode} (${data.activeFocus.status})`
+                  : "Start a focus session"}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/habits">
+          <Card className="hover:border-[var(--accent)] transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
+                Today&apos;s Habits
+              </CardTitle>
+              <Flame className="h-4 w-4 text-[var(--muted-foreground)]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {data.overview.habitsCompletedToday ?? 0}/{data.overview.habitsTotal ?? 0}
+              </div>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Daily consistency check-in
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/calendar">
+          <Card className="hover:border-[var(--accent)] transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
+                Upcoming Events
+              </CardTitle>
+              <Calendar className="h-4 w-4 text-[var(--muted-foreground)]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data.upcomingEvents?.length ?? 0}</div>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Next 7 days on calendar
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
       {/* Main Grid: Tasks Today + Active Projects */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Tasks Today */}
@@ -467,6 +565,59 @@ export function DashboardView({
           </CardContent>
         </Card>
       </div>
+
+      {/* Upcoming Calendar Events */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Upcoming Events</CardTitle>
+            <CardDescription>
+              Your scheduled events and time blocks for the next 7 days.
+            </CardDescription>
+          </div>
+          <Link href="/calendar" className="text-xs font-medium text-[var(--accent)] hover:underline">
+            Open Calendar →
+          </Link>
+        </CardHeader>
+        <CardContent>
+          {!data.upcomingEvents || data.upcomingEvents.length === 0 ? (
+            <div className="py-6 text-center text-sm text-[var(--muted-foreground)]">
+              <p>No upcoming events in the next 7 days.</p>
+              <Link href="/calendar" className="mt-2 inline-block text-xs text-[var(--accent)] hover:underline">
+                Schedule an event →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+              {data.upcomingEvents.map((evt) => (
+                <Link
+                  key={evt.id}
+                  href={`/calendar?eventId=${evt.id}`}
+                  className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--surface-muted)]"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: evt.color ?? "var(--accent)" }}
+                    />
+                    <span className="truncate font-medium">{evt.title}</span>
+                  </div>
+                  <span className="ml-2 shrink-0 text-xs text-[var(--muted-foreground)]">
+                    {evt.allDay
+                      ? new Date(evt.startAt).toLocaleDateString()
+                      : new Date(evt.startAt).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

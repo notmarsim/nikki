@@ -24,6 +24,7 @@ import {
   Code,
   Highlighter,
   Italic,
+  Layers,
   ListChecks,
   Strikethrough,
   Underline as UnderlineIcon,
@@ -52,6 +53,7 @@ interface TiptapEditorProps {
   linkableNotes: LinkableNote[];
   onChange: (doc: NoteBlockDocument) => void;
   onConvertSelectionToTask: (text: string) => Promise<void>;
+  onCreateFlashcardFromSelection?: (text: string) => void;
 }
 
 interface SlashCommandItem {
@@ -67,6 +69,7 @@ export function TiptapEditor({
   linkableNotes,
   onChange,
   onConvertSelectionToTask,
+  onCreateFlashcardFromSelection,
 }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
@@ -381,6 +384,18 @@ export function TiptapEditor({
     await onConvertSelectionToTask(selectedText);
   };
 
+  const handleCreateFlashcard = () => {
+    if (!editor || !onCreateFlashcardFromSelection) return;
+    const { from, to } = editor.state.selection;
+    let selectedText = editor.state.doc.textBetween(from, to, " ").trim();
+    if (!selectedText) {
+      const $from = editor.state.selection.$from;
+      selectedText = $from.parent.textContent.trim();
+    }
+    if (!selectedText) return;
+    onCreateFlashcardFromSelection(selectedText);
+  };
+
   if (!editor) return null;
 
   return (
@@ -541,6 +556,19 @@ export function TiptapEditor({
             To Task <span className="ml-1 text-[var(--muted-foreground)] font-mono">{keybindings.toTask}</span>
           </span>
         </button>
+
+        {onCreateFlashcardFromSelection && (
+          <button
+            type="button"
+            onClick={handleCreateFlashcard}
+            title="Create Flashcard from selection"
+            aria-label="Create Flashcard from selection"
+            className="inline-flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-muted)] px-2 py-1 text-xs font-medium hover:bg-[var(--surface)]"
+          >
+            <Layers className="h-3.5 w-3.5" />
+            Flashcard
+          </button>
+        )}
       </BubbleMenu>
 
       {/* Contextual Table Controls (only when cursor is inside a table) */}

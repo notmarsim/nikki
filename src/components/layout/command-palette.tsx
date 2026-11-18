@@ -20,7 +20,7 @@ import { useUiStore } from "@/stores/ui-store";
 
 interface SearchResultItem {
   id: string;
-  type: "note" | "task" | "project";
+  type: "note" | "task" | "project" | "course" | "event" | "deck" | "habit";
   title: string;
   snippet: string;
   href: string;
@@ -130,6 +130,61 @@ export function CommandPalette() {
           setCommandPaletteOpen(false);
         },
       },
+      {
+        id: "act-new-event",
+        label: "Create Event",
+        subtitle: "Schedule event or time block in Calendar",
+        icon: "Calendar",
+        group: "Actions",
+        action: () => {
+          router.push("/calendar");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-start-focus",
+        label: "Start Focus Session",
+        subtitle: "Open Pomodoro & Stopwatch timer",
+        icon: "Timer",
+        group: "Actions",
+        action: () => {
+          router.push("/focus");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-review-flashcards",
+        label: "Review Flashcards",
+        subtitle: "Practice spaced repetition decks",
+        icon: "Layers",
+        group: "Actions",
+        action: () => {
+          router.push("/flashcards");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-create-course",
+        label: "Create Course",
+        subtitle: "Open Learning Hub",
+        icon: "GraduationCap",
+        group: "Actions",
+        action: () => {
+          router.push("/learning");
+          setCommandPaletteOpen(false);
+        },
+      },
+      {
+        id: "act-create-habit",
+        label: "Create Habit",
+        subtitle: "Track daily habits & streaks",
+        icon: "Flame",
+        group: "Actions",
+        action: () => {
+          router.push("/habits");
+          setCommandPaletteOpen(false);
+        },
+      },
     ];
 
     const moduleItems: PaletteItem[] = APP_MODULES.map((mod) => ({
@@ -197,7 +252,15 @@ export function CommandPalette() {
           ? "FileText"
           : res.type === "task"
             ? "CheckSquare"
-            : "FolderKanban",
+            : res.type === "project"
+              ? "FolderKanban"
+              : res.type === "course"
+                ? "GraduationCap"
+                : res.type === "event"
+                  ? "Calendar"
+                  : res.type === "deck"
+                    ? "Layers"
+                    : "Flame",
       group: "Search Results",
       action: () => {
         router.push(res.href);
