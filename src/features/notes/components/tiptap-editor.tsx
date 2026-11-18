@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { BubbleMenu, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
@@ -25,12 +25,8 @@ import {
   Highlighter,
   Italic,
   ListChecks,
-  Paperclip,
-  Redo2,
   Strikethrough,
-  Table2,
   Underline as UnderlineIcon,
-  Undo2,
 } from "lucide-react";
 import type { NoteBlockDocument } from "@/db/schema";
 import { CalloutExtension } from "../extensions/callout-extension";
@@ -397,12 +393,16 @@ export function TiptapEditor({
         }
       }}
     >
-      {/* Formatting Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/60 p-1.5">
+      {/* Floating BubbleMenu on Text Selection */}
+      <BubbleMenu
+        editor={editor}
+        tippyOptions={{ duration: 120 }}
+        className="flex flex-wrap items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl"
+      >
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface)] ${editor.isActive("bold") ? "bg-[var(--surface)] text-[var(--accent)]" : ""}`}
+          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("bold") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
           title="Bold"
         >
           <Bold className="h-3.5 w-3.5" />
@@ -410,7 +410,7 @@ export function TiptapEditor({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface)] ${editor.isActive("italic") ? "bg-[var(--surface)] text-[var(--accent)]" : ""}`}
+          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("italic") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
           title="Italic"
         >
           <Italic className="h-3.5 w-3.5" />
@@ -418,7 +418,7 @@ export function TiptapEditor({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface)] ${editor.isActive("underline") ? "bg-[var(--surface)] text-[var(--accent)]" : ""}`}
+          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("underline") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
           title="Underline"
         >
           <UnderlineIcon className="h-3.5 w-3.5" />
@@ -426,7 +426,7 @@ export function TiptapEditor({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface)] ${editor.isActive("strike") ? "bg-[var(--surface)] text-[var(--accent)]" : ""}`}
+          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("strike") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
           title="Strikethrough"
         >
           <Strikethrough className="h-3.5 w-3.5" />
@@ -434,7 +434,7 @@ export function TiptapEditor({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleCode().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface)] ${editor.isActive("code") ? "bg-[var(--surface)] text-[var(--accent)]" : ""}`}
+          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("code") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
           title="Inline Code"
         >
           <Code className="h-3.5 w-3.5" />
@@ -442,7 +442,7 @@ export function TiptapEditor({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleHighlight().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface)] ${editor.isActive("highlight") ? "bg-[var(--surface)] text-[var(--accent)]" : ""}`}
+          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("highlight") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
           title="Highlight"
         >
           <Highlighter className="h-3.5 w-3.5" />
@@ -450,88 +450,70 @@ export function TiptapEditor({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleTaskList().run()}
-          className={`rounded p-1.5 hover:bg-[var(--surface)] ${editor.isActive("taskList") ? "bg-[var(--surface)] text-[var(--accent)]" : ""}`}
+          className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${editor.isActive("taskList") ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""}`}
           title="Checklist"
         >
           <ListChecks className="h-3.5 w-3.5" />
         </button>
+
+        <div className="mx-1 h-4 w-px bg-[var(--border)]" />
+
         <button
           type="button"
-          onClick={() =>
-            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-          }
-          className="rounded p-1.5 hover:bg-[var(--surface)]"
-          title="Insert Table"
+          onClick={handleConvertToTask}
+          className="inline-flex items-center gap-1 rounded bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90"
+          title="Create a Task from selected text"
         >
-          <Table2 className="h-3.5 w-3.5" />
+          <CheckSquare className="h-3.5 w-3.5" />
+          To Task
         </button>
+      </BubbleMenu>
 
-        {editor.isActive("table") && (
-          <div className="flex items-center gap-1 border-l border-[var(--border)] pl-1.5 text-[11px]">
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().addRowAfter().run()}
-              className="rounded px-1.5 py-0.5 hover:bg-[var(--surface)]"
-            >
-              +Row
-            </button>
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().addColumnAfter().run()}
-              className="rounded px-1.5 py-0.5 hover:bg-[var(--surface)]"
-            >
-              +Col
-            </button>
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().deleteTable().run()}
-              className="rounded px-1.5 py-0.5 text-red-500 hover:bg-[var(--surface)]"
-            >
-              Del Table
-            </button>
-          </div>
-        )}
-
-        <div className="ml-auto flex items-center gap-1">
+      {/* Contextual Table Controls (only when cursor is inside a table) */}
+      {editor.isActive("table") && (
+        <div className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/70 px-2 py-1 text-xs">
+          <span className="text-[var(--muted-foreground)] mr-1">Table:</span>
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--surface)]"
-            title="Upload image or file"
+            onClick={() => editor.chain().focus().addRowAfter().run()}
+            className="rounded px-1.5 py-0.5 hover:bg-[var(--surface)]"
           >
-            <Paperclip className="h-3.5 w-3.5" />
-            {uploading ? "Uploading..." : "Attach"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleConvertToTask}
-            className="inline-flex items-center gap-1 rounded bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90"
-            title="Create a Task from selected text or current line"
-          >
-            <CheckSquare className="h-3.5 w-3.5" />
-            To Task
-          </button>
-
-          <button
-            type="button"
-            onClick={() => editor.chain().focus().undo().run()}
-            className="rounded p-1.5 hover:bg-[var(--surface)]"
-            title="Undo"
-          >
-            <Undo2 className="h-3.5 w-3.5" />
+            +Row
           </button>
           <button
             type="button"
-            onClick={() => editor.chain().focus().redo().run()}
-            className="rounded p-1.5 hover:bg-[var(--surface)]"
-            title="Redo"
+            onClick={() => editor.chain().focus().addColumnAfter().run()}
+            className="rounded px-1.5 py-0.5 hover:bg-[var(--surface)]"
           >
-            <Redo2 className="h-3.5 w-3.5" />
+            +Col
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().deleteRow().run()}
+            className="rounded px-1.5 py-0.5 hover:bg-[var(--surface)]"
+          >
+            -Row
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().deleteColumn().run()}
+            className="rounded px-1.5 py-0.5 hover:bg-[var(--surface)]"
+          >
+            -Col
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().deleteTable().run()}
+            className="rounded px-1.5 py-0.5 text-red-500 hover:bg-[var(--surface)]"
+          >
+            Delete
           </button>
         </div>
-      </div>
+      )}
+
+      {uploading && (
+        <div className="text-xs text-[var(--muted-foreground)]">Uploading attachment...</div>
+      )}
 
       <input
         ref={fileInputRef}
