@@ -161,7 +161,12 @@ export async function getSpaceDetails(userId: string, workspaceId: string) {
   }
 
   return withUserRls(userId, async (tx) => {
-    const [members, invites] = await Promise.all([
+    const [spaceRows, members, invites] = await Promise.all([
+      tx
+        .select()
+        .from(workspaces)
+        .where(eq(workspaces.id, workspaceId))
+        .limit(1),
       tx
         .select({
           id: workspaceMembers.id,
@@ -190,7 +195,17 @@ export async function getSpaceDetails(userId: string, workspaceId: string) {
         : Promise.resolve([]),
     ]);
 
-    return { role, members, invitations: invites };
+    const ws = spaceRows[0];
+    if (!ws) {
+      throw new SpaceServiceError(404, "NOT_FOUND", "Space not found");
+    }
+
+    return {
+      space: { ...ws, role },
+      role,
+      members,
+      invitations: invites,
+    };
   });
 }
 

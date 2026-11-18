@@ -214,7 +214,7 @@ export function SpacesWorkspace() {
         </div>
 
         <div className="lg:col-span-2">
-          {details ? (
+          {details?.space ? (
             <div className="space-y-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
                 <div>

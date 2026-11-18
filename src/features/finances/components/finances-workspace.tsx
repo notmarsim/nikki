@@ -1048,7 +1048,7 @@ export function FinancesWorkspace({
                   onChange={(e) => setBudLimit(e.target.value)}
                   placeholder="Monthly limit (e.g. 800,00)"
                   required
-                  className="w-48"
+                  className="w-full sm:w-56"
                 />
                 <Button type="submit" size="sm">
                   <PiggyBank className="h-4 w-4" /> Create Budget
