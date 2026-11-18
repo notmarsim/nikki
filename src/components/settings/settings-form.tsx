@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme, type ThemeMode } from "@/components/providers/theme-provider";
+import { useUiStore } from "@/stores/ui-store";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,6 +29,7 @@ export function SettingsForm({
 }: SettingsFormProps) {
   const router = useRouter();
   const { setTheme } = useTheme();
+  const { spellcheckEnabled, setSpellcheckEnabled } = useUiStore();
   const [name, setName] = useState(initialName);
   const [timezone, setTimezone] = useState(initialTimezone);
   const [selectedTheme, setSelectedTheme] = useState<ThemeMode>(initialTheme);
@@ -130,6 +132,31 @@ export function SettingsForm({
               </Button>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Editor</CardTitle>
+          <CardDescription>
+            Customize writing behavior in Notes (code blocks never show spellcheck underlines).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-center justify-between gap-4 cursor-pointer">
+            <div>
+              <div className="text-sm font-medium">Spellcheck (red underline)</div>
+              <div className="text-xs text-[var(--muted-foreground)]">
+                Show browser spelling underlines on regular text and titles.
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={spellcheckEnabled}
+              onChange={(e) => setSpellcheckEnabled(e.target.checked)}
+              className="h-4 w-4 accent-[var(--accent)] cursor-pointer"
+            />
+          </label>
         </CardContent>
       </Card>
 

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import type { NoteBlockDocument, NoteBlockNode, NoteRecord, ProjectRecord } from "@/db/schema";
 import { NOTE_TEMPLATES, type NoteTemplateId } from "@/modules/notes/templates";
+import { useUiStore } from "@/stores/ui-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ export function NotesWorkspace({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error" | "conflict">("idle");
   const [titleDraft, setTitleDraft] = useState("");
   const [liveDoc, setLiveDoc] = useState<NoteBlockDocument | null>(null);
+  const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
 
   const editorScrollRef = useRef<HTMLDivElement | null>(null);
   const versionRef = useRef<number>(1);
@@ -513,6 +515,7 @@ export function NotesWorkspace({
                 <div ref={editorScrollRef} className="flex-1 overflow-y-auto px-6 py-5 pr-12">
                   <input
                     type="text"
+                    spellCheck={spellcheckEnabled}
                     value={titleDraft}
                     onChange={(e) => setTitleDraft(e.target.value)}
                     onBlur={() => {

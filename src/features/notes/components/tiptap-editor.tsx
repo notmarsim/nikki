@@ -29,6 +29,7 @@ import {
   Underline as UnderlineIcon,
 } from "lucide-react";
 import type { NoteBlockDocument } from "@/db/schema";
+import { useUiStore } from "@/stores/ui-store";
 import { CalloutExtension } from "../extensions/callout-extension";
 import { MathBlockExtension } from "../extensions/math-extension";
 import { MermaidBlockExtension } from "../extensions/mermaid-extension";
@@ -67,6 +68,7 @@ export function TiptapEditor({
   onConvertSelectionToTask,
 }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const [slashIndex, setSlashIndex] = useState(0);
   const [wikiQuery, setWikiQuery] = useState<string | null>(null);
@@ -78,6 +80,9 @@ export function TiptapEditor({
     extensions: [
       StarterKit.configure({
         codeBlock: false,
+        code: {
+          HTMLAttributes: { spellcheck: "false" },
+        },
       }),
       Placeholder.configure({
         placeholder: "Type '/' for commands, '[[' to link a page...",
@@ -99,6 +104,7 @@ export function TiptapEditor({
       CodeBlockLowlight.configure({
         lowlight,
         defaultLanguage: "typescript",
+        HTMLAttributes: { spellcheck: "false" },
       }),
       ImageExtension,
       CalloutExtension,
@@ -110,6 +116,7 @@ export function TiptapEditor({
     content: initialContent,
     editorProps: {
       attributes: {
+        spellcheck: spellcheckEnabled ? "true" : "false",
         class:
           "prose prose-sm dark:prose-invert max-w-none min-h-[420px] focus:outline-none px-1 py-2",
       },
@@ -142,6 +149,19 @@ export function TiptapEditor({
       }
     },
   });
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.setOptions({
+      editorProps: {
+        attributes: {
+          spellcheck: spellcheckEnabled ? "true" : "false",
+          class:
+            "prose prose-sm dark:prose-invert max-w-none min-h-[420px] focus:outline-none px-1 py-2",
+        },
+      },
+    });
+  }, [editor, spellcheckEnabled]);
 
   useEffect(() => {
     if (!editor) return;
