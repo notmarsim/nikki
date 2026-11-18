@@ -60,7 +60,12 @@ export function Sidebar({ workspaceName }: SidebarProps) {
     const collapsed = isMobile ? false : sidebarCollapsed;
 
     return (
-      <div className="flex h-full flex-col bg-[var(--surface)] border-r border-[var(--border)]">
+      <div
+        className={cn(
+          "flex h-full flex-col bg-[var(--surface)] border-r border-[var(--border)]",
+          isMobile && "pt-safe pb-safe"
+        )}
+      >
         {/* Workspace Header */}
         <div className="flex h-14 items-center justify-between border-b border-[var(--border)] px-3">
           <Link
