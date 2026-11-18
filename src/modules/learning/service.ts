@@ -483,3 +483,31 @@ export async function linkLearningResource(
     return created!;
   });
 }
+
+export async function deleteLearningPath(userId: string, pathId: string) {
+  return withUserRls(userId, async (tx) => {
+    const deleted = await tx
+      .delete(learningPaths)
+      .where(and(eq(learningPaths.id, pathId), eq(learningPaths.userId, userId)))
+      .returning({ id: learningPaths.id });
+
+    if (deleted.length === 0) {
+      throw new LearningServiceError(404, "NOT_FOUND", "Learning path not found");
+    }
+    return deleted[0]!;
+  });
+}
+
+export async function deleteCourse(userId: string, courseId: string) {
+  return withUserRls(userId, async (tx) => {
+    const deleted = await tx
+      .delete(courses)
+      .where(and(eq(courses.id, courseId), eq(courses.userId, userId)))
+      .returning({ id: courses.id });
+
+    if (deleted.length === 0) {
+      throw new LearningServiceError(404, "NOT_FOUND", "Course not found");
+    }
+    return deleted[0]!;
+  });
+}

@@ -13,6 +13,7 @@ import {
   Layers,
   Plus,
   Timer,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -117,6 +118,29 @@ export function LearningWorkspace({
       queryClient.invalidateQueries({ queryKey: ["learning-course", selectedCourseId] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
     ]);
+  };
+
+  const handleDeletePath = async (id: string, title: string) => {
+    if (!window.confirm(`Delete learning path "${title}"? Courses inside it will be kept.`)) {
+      return;
+    }
+    const res = await fetch(`/api/learning/paths/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      await refresh();
+    }
+  };
+
+  const handleDeleteCourse = async (id: string, title: string) => {
+    if (!window.confirm(`Delete course "${title}" and all its modules and lessons?`)) {
+      return;
+    }
+    const res = await fetch(`/api/learning/courses/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      if (selectedCourseId === id) {
+        setSelectedCourseId(null);
+      }
+      await refresh();
+    }
   };
 
   return (
@@ -229,9 +253,20 @@ export function LearningWorkspace({
                   key={p.id}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-sm"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">{p.title}</span>
-                    <Badge variant="outline">{p.progress}%</Badge>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold truncate">{p.title}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge variant="outline">{p.progress}%</Badge>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePath(p.id, p.title)}
+                        title="Delete learning path"
+                        aria-label={`Delete learning path ${p.title}`}
+                        className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-1 text-xs text-[var(--muted-foreground)]">
                     {p.courses.length} courses
@@ -308,11 +343,25 @@ export function LearningWorkspace({
                       <span>· {courseDetail.course.studyMinutes} min studied</span>
                     </div>
                   </div>
-                  <Link href={`/focus?courseId=${courseDetail.course.id}`}>
-                    <Button size="sm">
-                      <Timer className="h-3.5 w-3.5" /> Start Study Focus
+                  <div className="flex items-center gap-2">
+                    <Link href={`/focus?courseId=${courseDetail.course.id}`}>
+                      <Button size="sm">
+                        <Timer className="h-3.5 w-3.5" /> Start Study Focus
+                      </Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleDeleteCourse(courseDetail.course.id, courseDetail.course.title)
+                      }
+                      title="Delete course"
+                      aria-label={`Delete course ${courseDetail.course.title}`}
+                      className="text-red-500 hover:bg-red-500/10 hover:text-red-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </Link>
+                  </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-1">
