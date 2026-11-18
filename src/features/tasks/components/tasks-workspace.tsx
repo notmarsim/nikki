@@ -26,7 +26,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import type { NoteRecord, ProjectRecord } from "@/db/schema";
+import type { NoteRecord, ProjectRecord, TaskCommentRecord } from "@/db/schema";
 import type { TaskWithRelations } from "@/modules/tasks/service";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,9 +162,11 @@ export function TasksWorkspace({
   const [newRecurrence, setNewRecurrence] = useState<"" | "daily" | "weekly" | "monthly">("");
   const [creating, setCreating] = useState(false);
 
-  // Subtask input
+  // Subtask & comment inputs
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [tagInput, setTagInput] = useState("");
+  const [commentInput, setCommentInput] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
 
   const { data: tasks = initialTasks } = useQuery<TaskWithRelations[]>({
     queryKey: ["tasks"],
@@ -175,6 +177,17 @@ export function TasksWorkspace({
       return json.data.tasks;
     },
     initialData: initialTasks,
+  });
+
+  const { data: comments = [] } = useQuery<TaskCommentRecord[]>({
+    queryKey: ["task-comments", selectedTaskId],
+    queryFn: async () => {
+      const res = await fetch(`/api/tasks/${selectedTaskId}/comments`);
+      if (!res.ok) throw new Error("Failed to load comments");
+      const json = await res.json();
+      return json.data.comments;
+    },
+    enabled: Boolean(selectedTaskId),
   });
 
   const invalidateAll = async () => {
@@ -891,6 +904,97 @@ export function TasksWorkspace({
                   />
                   <Button type="submit" size="sm" variant="outline">
                     Add
+                  </Button>
+                </form>
+              </div>
+
+              {/* Comments */}
+              <div className="border-t border-[var(--border)] pt-4">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                  Comments ({comments.length})
+                </label>
+                <div className="mt-2 space-y-2">
+                  {comments.length === 0 ? (
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      No comments yet.
+                    </p>
+                  ) : (
+                    comments.map((comment) => (
+                      <div
+                        key={comment.id}
+                        className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/40 p-2.5 text-xs"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="whitespace-pre-wrap text-[var(--foreground)]">
+                            {comment.content}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await fetch(
+                                `/api/tasks/${selectedTask.id}/comments/${comment.id}`,
+                                { method: "DELETE" }
+                              );
+                              await queryClient.invalidateQueries({
+                                queryKey: ["task-comments", selectedTask.id],
+                              });
+                            }}
+                            className="shrink-0 text-[var(--muted-foreground)] hover:text-red-500"
+                            aria-label="Delete comment"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <div className="mt-1 text-[10px] text-[var(--muted-foreground)]">
+                          {new Date(comment.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <form
+                  className="mt-2 flex gap-2"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!commentInput.trim()) return;
+                    setPostingComment(true);
+                    try {
+                      const res = await fetch(
+                        `/api/tasks/${selectedTask.id}/comments`,
+                        {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ content: commentInput.trim() }),
+                        }
+                      );
+                      if (res.ok) {
+                        setCommentInput("");
+                        await Promise.all([
+                          queryClient.invalidateQueries({
+                            queryKey: ["task-comments", selectedTask.id],
+                          }),
+                          queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+                        ]);
+                      }
+                    } finally {
+                      setPostingComment(false);
+                    }
+                  }}
+                >
+                  <Input
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    placeholder="Write a comment..."
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="outline"
+                    disabled={postingComment || !commentInput.trim()}
+                  >
+                    Post
                   </Button>
                 </form>
               </div>

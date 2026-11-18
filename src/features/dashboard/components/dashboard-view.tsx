@@ -69,6 +69,29 @@ export interface DashboardPayload {
   }>;
 }
 
+const ACTIVITY_LABELS: Record<string, string> = {
+  "task.created": "Task Created",
+  "task.updated": "Task Updated",
+  "task.completed": "Task Completed",
+  "task.commented": "Task Commented",
+  "note.created": "Note Created",
+  "note.updated": "Note Updated",
+  "note.archived": "Note Archived",
+  "project.created": "Project Created",
+  "project.updated": "Project Updated",
+  "inbox.converted_to_note": "Inbox Converted to Note",
+  "inbox.converted_to_task": "Inbox Converted to Task",
+};
+
+function formatActivityAction(action: string): string {
+  if (ACTIVITY_LABELS[action]) return ACTIVITY_LABELS[action];
+  return action
+    .split(/[._]/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function DashboardView({
   userName,
   timezone,
@@ -420,7 +443,7 @@ export function DashboardView({
                     className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-xs"
                   >
                     <div className="truncate">
-                      <span className="font-medium">{event.action}</span>
+                      <span className="font-medium">{formatActivityAction(event.action)}</span>
                       {event.payload && typeof event.payload.title === "string" && (
                         <span className="text-[var(--muted-foreground)]">
                           {" "}

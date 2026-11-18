@@ -264,6 +264,29 @@ export const taskRecurrenceRules = pgTable(
   (table) => [index("task_recurrence_user_idx").on(table.userId)]
 );
 
+export const taskComments = pgTable(
+  "task_comments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("task_comments_task_idx").on(table.taskId),
+    index("task_comments_user_idx").on(table.userId),
+  ]
+);
+
 export const inboxItems = pgTable(
   "inbox_items",
   {
@@ -297,5 +320,6 @@ export type NoteRecord = typeof notes.$inferSelect;
 export type NoteLinkRecord = typeof noteLinks.$inferSelect;
 export type NoteAttachmentRecord = typeof noteAttachments.$inferSelect;
 export type TaskRecord = typeof tasks.$inferSelect;
+export type TaskCommentRecord = typeof taskComments.$inferSelect;
 export type TaskRecurrenceRuleRecord = typeof taskRecurrenceRules.$inferSelect;
 export type InboxItemRecord = typeof inboxItems.$inferSelect;
