@@ -329,26 +329,57 @@ export function FlashcardsWorkspace({
               </Card>
             ) : (
               overview.decks.map((d) => (
-                <button
+                <div
                   key={d.id}
-                  type="button"
-                  onClick={() => setSelectedDeckId(d.id)}
-                  className={`w-full rounded-xl border p-3 text-left transition-colors ${
+                  className={`flex items-start justify-between gap-2 rounded-xl border p-3 transition-colors ${
                     selectedDeckId === d.id
                       ? "border-[var(--accent)] bg-[var(--surface)]"
                       : "border-[var(--border)] bg-[var(--surface)]/60 hover:bg-[var(--surface)]"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm">{d.title}</span>
-                    <Badge variant={d.dueCount > 0 ? "accent" : "outline"}>
-                      {d.dueCount} {tr("due", "pendentes")}
-                    </Badge>
-                  </div>
-                  <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                    {d.totalCards} {tr("cards", "cartões")} · {d.newCount} {tr("new", "novos")}
-                  </div>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDeckId(d.id)}
+                    className="flex-1 text-left"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-sm">{d.title}</span>
+                      <Badge variant={d.dueCount > 0 ? "accent" : "outline"}>
+                        {d.dueCount} {tr("due", "pendentes")}
+                      </Badge>
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      {d.totalCards} {tr("cards", "cartões")} · {d.newCount} {tr("new", "novos")}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (
+                        !window.confirm(
+                          tr(
+                            `Delete deck "${d.title}" and all its cards?`,
+                            `Excluir o baralho "${d.title}" e todos os seus cartões?`
+                          )
+                        )
+                      ) {
+                        return;
+                      }
+                      const res = await fetch(`/api/flashcards/decks?id=${d.id}`, {
+                        method: "DELETE",
+                      });
+                      if (res.ok) {
+                        if (selectedDeckId === d.id) setSelectedDeckId(null);
+                        queryClient.invalidateQueries({ queryKey: ["flashcards-overview"] });
+                      }
+                    }}
+                    title={tr("Delete deck", "Excluir baralho")}
+                    aria-label={tr("Delete deck", "Excluir baralho")}
+                    className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))
             )}
           </div>

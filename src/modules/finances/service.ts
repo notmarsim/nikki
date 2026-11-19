@@ -102,7 +102,8 @@ export async function getFinanceOverview(params: {
         .where(
           and(
             eq(financeAccounts.userId, params.userId),
-            eq(financeAccounts.workspaceId, params.workspaceId)
+            eq(financeAccounts.workspaceId, params.workspaceId),
+            eq(financeAccounts.status, "active")
           )
         )
         .orderBy(asc(financeAccounts.name)),
@@ -1138,6 +1139,85 @@ export async function importCsvTransactions(
       .returning();
 
     return { batch: batch!, imported, skipped };
+  });
+}
+
+export async function deleteTransaction(userId: string, transactionId: string) {
+  return withUserRls(userId, async (tx) => {
+    await tx
+      .delete(financeTransactionSplits)
+      .where(
+        and(
+          eq(financeTransactionSplits.transactionId, transactionId),
+          eq(financeTransactionSplits.userId, userId)
+        )
+      );
+    const [deleted] = await tx
+      .delete(financeTransactions)
+      .where(
+        and(eq(financeTransactions.id, transactionId), eq(financeTransactions.userId, userId))
+      )
+      .returning();
+    if (!deleted) throw new FinanceServiceError(404, "NOT_FOUND", "Transaction not found");
+    return { deleted: true, id: transactionId };
+  });
+}
+
+export async function deleteCreditCard(userId: string, cardId: string) {
+  return withUserRls(userId, async (tx) => {
+    await tx
+      .delete(financeInstallments)
+      .where(and(eq(financeInstallments.cardId, cardId), eq(financeInstallments.userId, userId)));
+    await tx
+      .delete(financeCardPurchases)
+      .where(and(eq(financeCardPurchases.cardId, cardId), eq(financeCardPurchases.userId, userId)));
+    await tx
+      .delete(financeStatements)
+      .where(and(eq(financeStatements.cardId, cardId), eq(financeStatements.userId, userId)));
+    const [deleted] = await tx
+      .delete(financeCreditCards)
+      .where(and(eq(financeCreditCards.id, cardId), eq(financeCreditCards.userId, userId)))
+      .returning();
+    if (!deleted) throw new FinanceServiceError(404, "NOT_FOUND", "Credit card not found");
+    return { deleted: true, id: cardId };
+  });
+}
+
+export async function deleteBudget(userId: string, budgetId: string) {
+  return withUserRls(userId, async (tx) => {
+    const [deleted] = await tx
+      .delete(financeBudgets)
+      .where(and(eq(financeBudgets.id, budgetId), eq(financeBudgets.userId, userId)))
+      .returning();
+    if (!deleted) throw new FinanceServiceError(404, "NOT_FOUND", "Budget not found");
+    return { deleted: true, id: budgetId };
+  });
+}
+
+export async function deleteGoal(userId: string, goalId: string) {
+  return withUserRls(userId, async (tx) => {
+    await tx
+      .delete(financeGoalContributions)
+      .where(
+        and(eq(financeGoalContributions.goalId, goalId), eq(financeGoalContributions.userId, userId))
+      );
+    const [deleted] = await tx
+      .delete(financeGoals)
+      .where(and(eq(financeGoals.id, goalId), eq(financeGoals.userId, userId)))
+      .returning();
+    if (!deleted) throw new FinanceServiceError(404, "NOT_FOUND", "Goal not found");
+    return { deleted: true, id: goalId };
+  });
+}
+
+export async function deleteRecurringRule(userId: string, ruleId: string) {
+  return withUserRls(userId, async (tx) => {
+    const [deleted] = await tx
+      .delete(financeRecurringRules)
+      .where(and(eq(financeRecurringRules.id, ruleId), eq(financeRecurringRules.userId, userId)))
+      .returning();
+    if (!deleted) throw new FinanceServiceError(404, "NOT_FOUND", "Recurring rule not found");
+    return { deleted: true, id: ruleId };
   });
 }
 

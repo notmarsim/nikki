@@ -319,3 +319,22 @@ export async function deleteFlashcard(userId: string, cardId: string) {
       .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, userId)));
   });
 }
+
+export async function deleteDeck(userId: string, deckId: string) {
+  await withUserRls(userId, async (tx) => {
+    const existing = await tx
+      .select({ id: flashcardDecks.id })
+      .from(flashcardDecks)
+      .where(and(eq(flashcardDecks.id, deckId), eq(flashcardDecks.userId, userId)))
+      .limit(1);
+    if (!existing[0]) {
+      throw new FlashcardServiceError(404, "DECK_NOT_FOUND", "Deck not found");
+    }
+    await tx
+      .delete(flashcards)
+      .where(and(eq(flashcards.deckId, deckId), eq(flashcards.userId, userId)));
+    await tx
+      .delete(flashcardDecks)
+      .where(and(eq(flashcardDecks.id, deckId), eq(flashcardDecks.userId, userId)));
+  });
+}

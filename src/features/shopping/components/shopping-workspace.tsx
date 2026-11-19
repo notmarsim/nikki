@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/components/providers/i18n-provider";
-import { Copy, Plus, ShoppingBag, Sparkles, Wallet } from "lucide-react";
+import { Copy, Plus, ShoppingBag, Sparkles, Trash2, Wallet } from "lucide-react";
 import { formatCents, parseMoneyToCents } from "@/modules/finances/money";
 
 interface ShoppingList {
@@ -154,14 +154,29 @@ export function ShoppingWorkspace() {
                     {formatCents(l.totalActualCents, "BRL")}
                   </div>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => void postAction({ action: "duplicate_list", listId: l.id })}
-                  className="rounded p-1 text-xs"
-                  title={tr("Duplicate list", "Duplicar lista")}
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => void postAction({ action: "duplicate_list", listId: l.id })}
+                    className="rounded p-1 text-xs hover:bg-[var(--surface-muted)]"
+                    title={tr("Duplicate list", "Duplicar lista")}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!window.confirm(tr(`Delete list "${l.name}"?`, `Excluir a lista "${l.name}"?`))) return;
+                      await fetch(`/api/shopping?listId=${encodeURIComponent(l.id)}`, { method: "DELETE" });
+                      if (selectedListId === l.id) setSelectedListId("");
+                      await load();
+                    }}
+                    className="rounded p-1 text-xs text-red-500 hover:bg-[var(--surface-muted)]"
+                    title={tr("Delete list", "Excluir lista")}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -296,9 +311,23 @@ export function ShoppingWorkspace() {
                       />
                       <span className={it.isPurchased ? "line-through opacity-60" : ""}>{it.name}</span>
                     </span>
-                    <span className="text-xs text-[var(--muted-foreground)]">
-                      {formatCents(it.estimatedPriceCents, "BRL")}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[var(--muted-foreground)]">
+                        {formatCents(it.estimatedPriceCents, "BRL")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          await fetch(`/api/shopping?itemId=${encodeURIComponent(it.id)}`, { method: "DELETE" });
+                          await load();
+                        }}
+                        className="rounded p-0.5 text-[var(--muted-foreground)] hover:text-red-500"
+                        title={tr("Remove item", "Remover item")}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </label>
                 ))}
               </div>

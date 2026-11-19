@@ -5,6 +5,8 @@ import { getCurrentSession } from "@/modules/auth/session";
 import {
   addSmartShoppingItem,
   createSmartShoppingList,
+  deleteSmartShoppingItem,
+  deleteSmartShoppingList,
   duplicateSmartShoppingList,
   getSmartShoppingOverview,
   logShoppingListToFinances,
@@ -97,4 +99,21 @@ export async function PATCH(request: NextRequest) {
     parsed.data.actualPriceCents
   );
   return apiOk({ item });
+}
+
+export async function DELETE(request: NextRequest) {
+  const session = await getCurrentSession();
+  if (!session) return apiError(401, "UNAUTHORIZED", "Authentication required");
+
+  const { searchParams } = new URL(request.url);
+  const listId = searchParams.get("listId");
+  const itemId = searchParams.get("itemId");
+
+  if (itemId) {
+    return apiOk(await deleteSmartShoppingItem(session.user.id, itemId));
+  }
+  if (listId) {
+    return apiOk(await deleteSmartShoppingList(session.user.id, listId));
+  }
+  return apiError(400, "VALIDATION_ERROR", "listId or itemId required");
 }

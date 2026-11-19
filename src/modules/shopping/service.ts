@@ -23,7 +23,13 @@ export async function getSmartShoppingOverview(userId: string, workspaceId: stri
       tx
         .select({ id: financeAccounts.id, name: financeAccounts.name })
         .from(financeAccounts)
-        .where(and(eq(financeAccounts.userId, userId), eq(financeAccounts.workspaceId, workspaceId))),
+        .where(
+          and(
+            eq(financeAccounts.userId, userId),
+            eq(financeAccounts.workspaceId, workspaceId),
+            eq(financeAccounts.status, "active")
+          )
+        ),
     ]);
 
     // Local frequency-based smart item suggestions (zero AI)
@@ -240,5 +246,26 @@ export async function logShoppingListToFinances(
       .where(eq(smartShoppingLists.id, list.id));
 
     return { transactionId: createdTx!.id, amountCents: amount };
+  });
+}
+
+export async function deleteSmartShoppingList(userId: string, listId: string) {
+  return withUserRls(userId, async (tx) => {
+    await tx
+      .delete(smartShoppingItems)
+      .where(and(eq(smartShoppingItems.listId, listId), eq(smartShoppingItems.userId, userId)));
+    await tx
+      .delete(smartShoppingLists)
+      .where(and(eq(smartShoppingLists.id, listId), eq(smartShoppingLists.userId, userId)));
+    return { deleted: true };
+  });
+}
+
+export async function deleteSmartShoppingItem(userId: string, itemId: string) {
+  return withUserRls(userId, async (tx) => {
+    await tx
+      .delete(smartShoppingItems)
+      .where(and(eq(smartShoppingItems.id, itemId), eq(smartShoppingItems.userId, userId)));
+    return { deleted: true };
   });
 }

@@ -15,6 +15,7 @@ import {
   Plus,
   RefreshCw,
   Target,
+  Trash2,
   Upload,
   Wallet,
 } from "lucide-react";
@@ -812,6 +813,30 @@ export function FinancesWorkspace({
                     >
                       {fmt(t.amountCents, t.currency)}
                     </span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (
+                          !window.confirm(
+                            tr(
+                              `Delete transaction "${t.description}"?`,
+                              `Excluir a transação "${t.description}"?`
+                            )
+                          )
+                        ) {
+                          return;
+                        }
+                        const res = await fetch(`/api/finances/transactions/${t.id}`, {
+                          method: "DELETE",
+                        });
+                        if (res.ok) refresh();
+                      }}
+                      title={tr("Delete transaction", "Excluir transação")}
+                      aria-label={tr("Delete transaction", "Excluir transação")}
+                      className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
               ))
@@ -890,6 +915,30 @@ export function FinancesWorkspace({
                         className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
                       >
                         <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (
+                            !window.confirm(
+                              tr(
+                                `Remove account "${a.name}" from active accounts?`,
+                                `Remover a conta "${a.name}" das contas ativas?`
+                              )
+                            )
+                          ) {
+                            return;
+                          }
+                          const res = await fetch(`/api/finances/accounts?id=${a.id}`, {
+                            method: "DELETE",
+                          });
+                          if (res.ok) refresh();
+                        }}
+                        title={tr("Delete account", "Excluir conta")}
+                        aria-label={tr(`Delete account ${a.name}`, `Excluir conta ${a.name}`)}
+                        className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
@@ -996,36 +1045,56 @@ export function FinancesWorkspace({
                       refresh();
                     }
                   }}
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2"
                 >
-                  <Input
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    placeholder={tr("Card name", "Nome do cartão")}
-                    required
-                  />
-                  <Input
-                    value={cardLimit}
-                    onChange={(e) => setCardLimit(e.target.value)}
-                    placeholder={tr("Limit (e.g. 3000,00)", "Limite (ex: 3000,00)")}
-                  />
-                  <Input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={cardClosing}
-                    onChange={(e) => setCardClosing(e.target.value)}
-                    placeholder={tr("Closing day", "Dia de fechamento")}
-                  />
-                  <Input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={cardDue}
-                    onChange={(e) => setCardDue(e.target.value)}
-                    placeholder={tr("Due day", "Dia de vencimento")}
-                  />
-                  <Button type="submit" size="sm" className="col-span-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                      {tr("Card name", "Nome do cartão")}
+                    </label>
+                    <Input
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      placeholder={tr("e.g. Nubank", "Ex: Nubank")}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                      {tr("Credit limit", "Limite do cartão")}
+                    </label>
+                    <Input
+                      value={cardLimit}
+                      onChange={(e) => setCardLimit(e.target.value)}
+                      placeholder={tr("e.g. 3000,00", "Ex: 3000,00")}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                      {tr("Closing day", "Dia de fechamento")}
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={cardClosing}
+                      onChange={(e) => setCardClosing(e.target.value)}
+                      placeholder="10"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                      {tr("Due day", "Dia de vencimento")}
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={cardDue}
+                      onChange={(e) => setCardDue(e.target.value)}
+                      placeholder="17"
+                    />
+                  </div>
+                  <Button type="submit" size="sm" className="sm:col-span-2">
                     <CreditCard className="h-4 w-4" /> {tr("Add Card", "Adicionar Cartão")}
                   </Button>
                 </form>
@@ -1062,40 +1131,60 @@ export function FinancesWorkspace({
                       refresh();
                     }
                   }}
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2"
                 >
-                  <select
-                    value={purchCard || data.creditCards[0]?.id || ""}
-                    onChange={(e) => setPurchCard(e.target.value)}
-                    className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
-                  >
-                    {data.creditCards.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    value={purchDesc}
-                    onChange={(e) => setPurchDesc(e.target.value)}
-                    placeholder={tr("Purchase description", "Descrição da compra")}
-                    required
-                  />
-                  <Input
-                    value={purchAmount}
-                    onChange={(e) => setPurchAmount(e.target.value)}
-                    placeholder={tr("Total (e.g. 1200,00)", "Total (ex: 1200,00)")}
-                    required
-                  />
-                  <Input
-                    type="number"
-                    min={1}
-                    max={48}
-                    value={purchInstallments}
-                    onChange={(e) => setPurchInstallments(e.target.value)}
-                    placeholder={tr("Installments", "Parcelas")}
-                  />
-                  <Button type="submit" size="sm" className="col-span-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                      {tr("Card", "Cartão")}
+                    </label>
+                    <select
+                      value={purchCard || data.creditCards[0]?.id || ""}
+                      onChange={(e) => setPurchCard(e.target.value)}
+                      className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
+                    >
+                      {data.creditCards.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                      {tr("Description", "Descrição")}
+                    </label>
+                    <Input
+                      value={purchDesc}
+                      onChange={(e) => setPurchDesc(e.target.value)}
+                      placeholder={tr("Purchase description", "Descrição da compra")}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                      {tr("Total amount", "Valor total")}
+                    </label>
+                    <Input
+                      value={purchAmount}
+                      onChange={(e) => setPurchAmount(e.target.value)}
+                      placeholder={tr("e.g. 1200,00", "Ex: 1200,00")}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                      {tr("Installments", "Parcelas")}
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={48}
+                      value={purchInstallments}
+                      onChange={(e) => setPurchInstallments(e.target.value)}
+                      placeholder="1"
+                    />
+                  </div>
+                  <Button type="submit" size="sm" className="sm:col-span-2">
                     {tr("Record Purchase", "Registrar Compra")}
                   </Button>
                 </form>
@@ -1106,14 +1195,53 @@ export function FinancesWorkspace({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {data.creditCards.map((c) => (
               <Card key={c.id}>
-                <CardHeader className="pb-2">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-base">{c.name}</CardTitle>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (
+                        !window.confirm(
+                          tr(
+                            `Delete credit card "${c.name}" and its statements?`,
+                            `Excluir o cartão "${c.name}" e suas faturas?`
+                          )
+                        )
+                      ) {
+                        return;
+                      }
+                      const res = await fetch(`/api/finances/cards?id=${c.id}`, {
+                        method: "DELETE",
+                      });
+                      if (res.ok) refresh();
+                    }}
+                    title={tr("Delete card", "Excluir cartão")}
+                    aria-label={tr("Delete card", "Excluir cartão")}
+                    className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span>{tr("Limit:", "Limite:")} {fmt(c.creditLimitCents, c.currency)}</span>
-                    <span>{tr("Used:", "Usado:")} {fmt(c.usedLimitCents, c.currency)}</span>
-                    <span>{tr("Available:", "Disponível:")} {fmt(c.availableLimitCents, c.currency)}</span>
+                  <div className="grid grid-cols-3 gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/30 p-2.5">
+                    <div>
+                      <div className="text-[11px] text-[var(--muted-foreground)]">
+                        {tr("Limit", "Limite")}
+                      </div>
+                      <div className="font-semibold">{fmt(c.creditLimitCents, c.currency)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-[var(--muted-foreground)]">
+                        {tr("Used", "Usado")}
+                      </div>
+                      <div className="font-semibold text-red-500">{fmt(c.usedLimitCents, c.currency)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-[var(--muted-foreground)]">
+                        {tr("Available", "Disponível")}
+                      </div>
+                      <div className="font-semibold text-emerald-500">{fmt(c.availableLimitCents, c.currency)}</div>
+                    </div>
                   </div>
                   <div className="space-y-1.5 pt-2">
                     {data.statements
@@ -1236,11 +1364,26 @@ export function FinancesWorkspace({
             {data.budgets.map((b) => (
               <Card key={b.id}>
                 <CardContent className="pt-4 space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold text-sm">{b.name}</span>
-                    <Badge variant={b.percent >= 100 ? "warning" : "outline"}>
-                      {b.percent}%
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant={b.percent >= 100 ? "warning" : "outline"}>
+                        {b.percent}%
+                      </Badge>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!window.confirm(tr(`Delete budget "${b.name}"?`, `Excluir o orçamento "${b.name}"?`))) return;
+                          const res = await fetch(`/api/finances/budgets?id=${b.id}`, { method: "DELETE" });
+                          if (res.ok) refresh();
+                        }}
+                        title={tr("Delete budget", "Excluir orçamento")}
+                        aria-label={tr("Delete budget", "Excluir orçamento")}
+                        className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <div className="h-2 w-full rounded-full bg-[var(--surface-muted)] overflow-hidden">
                     <div
@@ -1350,7 +1493,22 @@ export function FinancesWorkspace({
                     {frequencyLabel(r.frequency)} · {tr("Next:", "Próxima:")} {r.nextOccurrence}
                   </div>
                 </div>
-                <span className="font-semibold">{fmt(r.amountCents, r.currency)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{fmt(r.amountCents, r.currency)}</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!window.confirm(tr(`Delete recurring rule "${r.name}"?`, `Excluir a regra "${r.name}"?`))) return;
+                      const res = await fetch(`/api/finances/recurring?id=${r.id}`, { method: "DELETE" });
+                      if (res.ok) refresh();
+                    }}
+                    title={tr("Delete rule", "Excluir regra")}
+                    aria-label={tr("Delete rule", "Excluir regra")}
+                    className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -1412,9 +1570,24 @@ export function FinancesWorkspace({
               return (
                 <Card key={g.id}>
                   <CardContent className="pt-4 space-y-2.5 text-xs">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-sm">{g.name}</span>
-                      <Badge variant="outline">{pct}%</Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline">{pct}%</Badge>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm(tr(`Delete goal "${g.name}"?`, `Excluir a meta "${g.name}"?`))) return;
+                            const res = await fetch(`/api/finances/goals?id=${g.id}`, { method: "DELETE" });
+                            if (res.ok) refresh();
+                          }}
+                          title={tr("Delete goal", "Excluir meta")}
+                          aria-label={tr("Delete goal", "Excluir meta")}
+                          className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <div className="h-2 w-full rounded-full bg-[var(--surface-muted)] overflow-hidden">
                       <div
