@@ -109,7 +109,7 @@ export function FocusRoomsWorkspace() {
             Focus Rooms
           </h1>
           <p className="text-sm text-[var(--muted)]">
-            Shared study and co-working rooms with synchronized server-timestamped Pomodoro cycles.
+            Shared study and co-working rooms with synchronized Pomodoro timers.
           </p>
         </div>
         {msg && <span className="rounded border border-[var(--border)] px-3 py-1 text-xs">{msg}</span>}

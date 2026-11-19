@@ -135,9 +135,9 @@ export function FlashcardsWorkspace({
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Flashcards (FSRS)</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Flashcards</h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Spaced repetition powered by Free Spaced Repetition Scheduler (ts-fsrs).
+            Smart spaced repetition that schedules reviews right before you forget.
           </p>
         </div>
       </div>

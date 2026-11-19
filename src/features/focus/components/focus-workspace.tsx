@@ -178,7 +178,7 @@ export function FocusWorkspace({
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Focus &amp; Time Tracking</h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Server-timestamped Pomodoro and Stopwatch sessions linked to Tasks, Projects, and Courses.
+          Pomodoro and Stopwatch sessions linked to your Tasks, Projects, and Courses.
         </p>
       </div>
 

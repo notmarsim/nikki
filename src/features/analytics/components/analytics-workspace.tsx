@@ -151,7 +151,7 @@ export function AnalyticsWorkspace({
             Advanced Analytics
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Cross-module metrics, period comparisons, FSRS retention, and custom reports ({data.range.start} → {data.range.end}).
+            Cross-module metrics, period comparisons, memory retention, and custom reports ({data.range.start} → {data.range.end}).
           </p>
         </div>
 
@@ -385,7 +385,7 @@ export function AnalyticsWorkspace({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">FSRS Card States &amp; Ratings</CardTitle>
+              <CardTitle className="text-base">Flashcard States &amp; Ratings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-xs">
               <div className="grid grid-cols-4 gap-2 text-center">

@@ -48,7 +48,7 @@ export function TemplatesWorkspace() {
           Nikki Templates
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          Install multi-module packs (Projects, Notes, and Tasks) with fresh workspace-scoped IDs.
+          Start faster with ready-to-use packs of Projects, Notes, and starter Tasks.
         </p>
       </header>
 

@@ -130,7 +130,7 @@ export function SpacesWorkspace() {
             Nikki Spaces
           </h1>
           <p className="text-sm text-[var(--muted)]">
-            Personal and shared workspaces with role-based permissions and token invitations.
+            Personal and shared workspaces to collaborate with family, friends, or teammates.
           </p>
         </div>
         {statusMsg && (

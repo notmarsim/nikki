@@ -480,10 +480,10 @@ export function NotesWorkspace({
                       setSaveState("error");
                     }
                   }}
-                  title="Save CRDT collaboration checkpoint"
+                  title="Save collaboration checkpoint"
                   className="h-8 px-2 text-xs"
                 >
-                  CRDT Sync
+                  Sync Checkpoint
                 </Button>
 
                 <select

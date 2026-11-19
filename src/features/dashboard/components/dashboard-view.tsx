@@ -326,7 +326,7 @@ export function DashboardView({
             <CardContent>
               <div className="text-2xl font-bold">{data.overview.flashcardsDue ?? 0}</div>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Ready for FSRS review
+                Ready for review
               </p>
             </CardContent>
           </Card>

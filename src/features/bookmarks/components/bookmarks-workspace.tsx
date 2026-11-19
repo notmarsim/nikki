@@ -253,7 +253,7 @@ export function BookmarksWorkspace({
             Bookmarks &amp; Digital Library
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Save articles, docs, repositories, and videos with SSRF-safe metadata extraction.
+            Save articles, docs, repositories, and videos with automatic previews and collections.
           </p>
         </div>
 

@@ -888,7 +888,7 @@ export function SettingsWorkspace({
               <CardHeader>
                 <CardTitle>Help &amp; Diagnostics</CardTitle>
                 <CardDescription>
-                  Inspect your device &amp; PWA health locally and optionally send a sanitized snapshot (no tokens, cookies, or private content) to support.
+                  Check your app and connection status, or share a technical summary with support if you run into an issue.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -965,7 +965,7 @@ export function SettingsWorkspace({
                               }),
                             });
                             if (res.ok) {
-                              alert("Sanitized diagnostic report sent to Nikki Ops.");
+                              alert("Diagnostic report sent successfully.");
                             } else {
                               alert("Failed to submit diagnostic report.");
                             }

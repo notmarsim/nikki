@@ -74,7 +74,7 @@ export function VaultWorkspace() {
           Document Vault
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          Private document registry with strict MIME & 20 MB size validation and expiration tracking.
+          Keep important personal documents organized with categories and expiration reminders.
         </p>
       </header>
 

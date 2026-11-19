@@ -335,7 +335,7 @@ export function FinancesWorkspace({
             Personal Finances
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Integer-cent accounts, credit card installments, budgets, goals, and cash flow.
+            Manage accounts, credit card installments, budgets, goals, and monthly cash flow.
           </p>
         </div>
 

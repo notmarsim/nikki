@@ -95,7 +95,7 @@ export function FeedWorkspace() {
           Nikki Feed
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          RSS & Atom reader with SSRF/XXE protection, XSS sanitization, and one-click Bookmarks.
+          Follow your favorite blogs and RSS/Atom feeds and save articles straight to Bookmarks.
         </p>
       </header>
 
