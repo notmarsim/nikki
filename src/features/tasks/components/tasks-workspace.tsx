@@ -173,6 +173,8 @@ export function TasksWorkspace({
   const [newPriority, setNewPriority] = useState<TaskPriority>("medium");
   const [newProjectId, setNewProjectId] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
+  const [newDueTime, setNewDueTime] = useState("");
+  const [statusMenuTaskId, setStatusMenuTaskId] = useState<string | null>(null);
   const [newRecurrence, setNewRecurrence] = useState<"" | "daily" | "weekly" | "monthly">("");
   const [creating, setCreating] = useState(false);
 
@@ -224,13 +226,16 @@ export function TasksWorkspace({
           title: newTitle.trim(),
           priority: newPriority,
           projectId: newProjectId || null,
-          dueAt: newDueDate ? new Date(newDueDate).toISOString() : null,
+          dueAt: newDueDate
+            ? new Date(`${newDueDate}T${newDueTime || "23:59"}:00`).toISOString()
+            : null,
           recurrence: newRecurrence ? { frequency: newRecurrence, interval: 1 } : null,
         }),
       });
       if (res.ok) {
         setNewTitle("");
         setNewDueDate("");
+        setNewDueTime("");
         setNewRecurrence("");
         await invalidateAll();
       }
@@ -361,7 +366,11 @@ export function TasksWorkspace({
       {/* Quick Add Form */}
       <Card>
         <CardContent className="p-4">
-          <form onSubmit={handleCreateTask} className="flex flex-wrap items-center gap-2">
+          <form
+            data-tour="tasks-quick-add"
+            onSubmit={handleCreateTask}
+            className="flex flex-wrap items-center gap-2"
+          >
             <Input
               className="flex-1 min-w-[200px]"
               placeholder="Add a task..."
@@ -381,11 +390,19 @@ export function TasksWorkspace({
               <option value="none">None</option>
             </select>
             <Input
-              type="datetime-local"
+              type="date"
               value={newDueDate}
               onChange={(e) => setNewDueDate(e.target.value)}
-              className="w-48 text-xs"
-              aria-label="Due date and time"
+              className="w-36 text-xs"
+              aria-label="Due date"
+            />
+            <Input
+              type="time"
+              value={newDueTime}
+              onChange={(e) => setNewDueTime(e.target.value)}
+              className="w-28 text-xs"
+              aria-label="Due time (optional, defaults to 23:59)"
+              title="Optional time (defaults to 23:59)"
             />
             <select
               value={newProjectId}
@@ -542,24 +559,53 @@ export function TasksWorkspace({
                 className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 hover:border-[var(--accent)] transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleUpdateTask(task.id, {
-                        status: task.status === "done" ? "todo" : "done",
-                      })
-                    }
-                    className="shrink-0 text-[var(--muted-foreground)] hover:text-[var(--accent)]"
-                    aria-label={
-                      task.status === "done" ? "Reopen task" : "Complete task"
-                    }
-                  >
-                    {task.status === "done" ? (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    ) : (
-                      <Circle className="h-5 w-5" />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setStatusMenuTaskId((prev) => (prev === task.id ? null : task.id))
+                      }
+                      className="shrink-0 text-[var(--muted-foreground)] hover:text-[var(--accent)]"
+                      aria-label="Choose task status"
+                      title="Change status"
+                    >
+                      {task.status === "done" ? (
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                      ) : (
+                        <Circle className="h-5 w-5" />
+                      )}
+                    </button>
+                    {statusMenuTaskId === task.id && (
+                      <div className="absolute left-0 top-7 z-30 w-36 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg">
+                        {(
+                          [
+                            ["todo", "To Do"],
+                            ["in_progress", "In Progress"],
+                            ["blocked", "Blocked"],
+                            ["done", "Done"],
+                            ["cancelled", "Cancelled"],
+                          ] as const
+                        ).map(([st, label]) => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => {
+                              setStatusMenuTaskId(null);
+                              if (st !== task.status) {
+                                void handleUpdateTask(task.id, { status: st });
+                              }
+                            }}
+                            className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-xs hover:bg-[var(--surface-muted)] ${
+                              task.status === st ? "font-semibold text-[var(--accent)]" : ""
+                            }`}
+                          >
+                            <span>{label}</span>
+                            {task.status === st && <span>✓</span>}
+                          </button>
+                        ))}
+                      </div>
                     )}
-                  </button>
+                  </div>
 
                   <button
                     type="button"
@@ -752,21 +798,48 @@ export function TasksWorkspace({
                   <label className="text-xs font-medium text-[var(--muted-foreground)]">
                     Due Date
                   </label>
-                  <Input
-                    type="datetime-local"
-                    value={
-                      selectedTask.dueAt
-                        ? toLocalDatetimeInputValue(selectedTask.dueAt)
-                        : ""
-                    }
-                    onChange={(e) =>
-                      handleUpdateTask(selectedTask.id, {
-                        dueAt: e.target.value
-                          ? new Date(e.target.value).toISOString()
-                          : null,
-                      })
-                    }
-                  />
+                  <div className="flex gap-1.5">
+                    <Input
+                      type="date"
+                      value={
+                        selectedTask.dueAt
+                          ? toLocalDatetimeInputValue(selectedTask.dueAt).slice(0, 10)
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const datePart = e.target.value;
+                        if (!datePart) {
+                          void handleUpdateTask(selectedTask.id, { dueAt: null });
+                          return;
+                        }
+                        const timePart = selectedTask.dueAt
+                          ? toLocalDatetimeInputValue(selectedTask.dueAt).slice(11, 16)
+                          : "23:59";
+                        void handleUpdateTask(selectedTask.id, {
+                          dueAt: new Date(`${datePart}T${timePart || "23:59"}:00`).toISOString(),
+                        });
+                      }}
+                    />
+                    <Input
+                      type="time"
+                      className="w-28 shrink-0"
+                      value={
+                        selectedTask.dueAt
+                          ? toLocalDatetimeInputValue(selectedTask.dueAt).slice(11, 16)
+                          : ""
+                      }
+                      disabled={!selectedTask.dueAt}
+                      onChange={(e) => {
+                        if (!selectedTask.dueAt) return;
+                        const datePart = toLocalDatetimeInputValue(selectedTask.dueAt).slice(0, 10);
+                        const timePart = e.target.value || "23:59";
+                        void handleUpdateTask(selectedTask.id, {
+                          dueAt: new Date(`${datePart}T${timePart}:00`).toISOString(),
+                        });
+                      }}
+                      title="Optional time (defaults to 23:59)"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -843,6 +916,12 @@ export function TasksWorkspace({
                   Open linked note →
                 </Link>
               )}
+
+              <TaskDependenciesPanel
+                taskId={selectedTask.id}
+                allTasks={tasks.filter((t) => t.id !== selectedTask.id)}
+                onJumpToTask={(id) => setSelectedTaskId(id)}
+              />
 
               {/* Tags */}
               <div>
@@ -1046,6 +1125,125 @@ export function TasksWorkspace({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function TaskDependenciesPanel({
+  taskId,
+  allTasks,
+  onJumpToTask,
+}: {
+  taskId: string;
+  allTasks: TaskWithRelations[];
+  onJumpToTask: (id: string) => void;
+}) {
+  const [predecessors, setPredecessors] = useState<
+    Array<{ id: string; title: string; status: string }>
+  >([]);
+  const [blockingReason, setBlockingReason] = useState<string | null>(null);
+  const [selectedDepId, setSelectedDepId] = useState("");
+  const [depError, setDepError] = useState<string | null>(null);
+
+  const loadDeps = React.useCallback(async () => {
+    const res = await fetch(`/api/tasks/${taskId}/dependencies`);
+    if (!res.ok) return;
+    const json = (await res.json()) as {
+      data?: {
+        predecessors: Array<{ id: string; title: string; status: string }>;
+        blockingReason: string | null;
+      };
+    };
+    setPredecessors(json.data?.predecessors ?? []);
+    setBlockingReason(json.data?.blockingReason ?? null);
+  }, [taskId]);
+
+  React.useEffect(() => {
+    void loadDeps();
+  }, [loadDeps]);
+
+  return (
+    <div className="space-y-2 border-t border-[var(--border)] pt-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-[var(--muted-foreground)]">
+          Dependencies (Predecessors)
+        </span>
+        {blockingReason && (
+          <Badge variant="warning" className="text-[10px]">
+            Blocked
+          </Badge>
+        )}
+      </div>
+      {blockingReason && (
+        <p className="text-xs text-amber-500">{blockingReason}</p>
+      )}
+      <div className="space-y-1">
+        {predecessors.map((p) => (
+          <div
+            key={p.id}
+            className="flex items-center justify-between rounded border border-[var(--border)] px-2 py-1 text-xs"
+          >
+            <button
+              type="button"
+              onClick={() => onJumpToTask(p.id)}
+              className="truncate text-left hover:underline"
+            >
+              {p.title} ({p.status})
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await fetch(
+                  `/api/tasks/${taskId}/dependencies?dependsOnTaskId=${encodeURIComponent(p.id)}`,
+                  { method: "DELETE" }
+                );
+                await loadDeps();
+              }}
+              className="text-red-500 ml-2"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <select
+          value={selectedDepId}
+          onChange={(e) => setSelectedDepId(e.target.value)}
+          className="h-8 flex-1 rounded border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
+        >
+          <option value="">Add predecessor task...</option>
+          {allTasks.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.title}
+            </option>
+          ))}
+        </select>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={!selectedDepId}
+          onClick={async () => {
+            setDepError(null);
+            const res = await fetch(`/api/tasks/${taskId}/dependencies`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ dependsOnTaskId: selectedDepId }),
+            });
+            const json = (await res.json()) as { error?: { message?: string } };
+            if (!res.ok) {
+              setDepError(json.error?.message ?? "Failed to add dependency");
+              return;
+            }
+            setSelectedDepId("");
+            await loadDeps();
+          }}
+        >
+          Add
+        </Button>
+      </div>
+      {depError && <p className="text-xs text-red-500">{depError}</p>}
     </div>
   );
 }

@@ -38,9 +38,13 @@ export const userPreferencesSchema = z.object({
 
   // Personalization & Navigation
   defaultHomePath: z.string().min(1).max(64).default("/dashboard"),
+  interfaceMode: z.enum(["simple", "advanced"]).default("advanced"),
+  moduleOrder: z.array(z.string()).default([]),
   hiddenModuleIds: z.array(z.string()).default([]),
   hiddenDashboardWidgets: z.array(z.string()).default([]),
   showFinancialWidgetsOnDashboard: z.boolean().default(true),
+  recoveryEnabled: z.boolean().default(true),
+  recoveryInactivityDays: z.number().int().min(1).max(30).default(3),
 
   // Finances, Analytics & Notifications
   hideFinancialValues: z.boolean().default(false),
@@ -48,6 +52,9 @@ export const userPreferencesSchema = z.object({
   budgetAlertsEnabled: z.boolean().default(true),
   analyticsDefaultPeriod: z.enum(["today", "7d", "30d", "month", "year"]).default("30d"),
   notificationsEnabled: z.boolean().default(true),
+  notificationMode: z.enum(["individual", "bundled", "daily_digest", "weekly_digest"]).default("bundled"),
+  notificationLeadMinutes: z.number().int().min(5).max(1440).default(30),
+  notificationMinPriority: z.enum(["all", "medium", "high", "urgent"]).default("all"),
   quietHoursEnabled: z.boolean().default(false),
   quietHoursStart: z.string().regex(/^\d{2}:\d{2}$/).default("22:00"),
   quietHoursEnd: z.string().regex(/^\d{2}:\d{2}$/).default("07:00"),
@@ -91,5 +98,6 @@ export const SETTINGS_CATEGORIES = [
   { id: "notifications", label: "Notifications", keywords: "quiet hours alerts reminders" },
   { id: "devices", label: "Aplicativo e Dispositivos", keywords: "pwa android ios capacitor offline cache push" },
   { id: "data", label: "Dados e Armazenamento", keywords: "export backup json csv reset archive retention trash lixeira historico" },
+  { id: "tutorials", label: "Help & Tutorials", keywords: "onboarding tour guide help tutorial walkthrough" },
   { id: "diagnostics", label: "Help & Diagnostics", keywords: "diagnostics health support bug report logs" },
 ] as const;

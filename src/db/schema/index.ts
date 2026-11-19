@@ -8,3 +8,4 @@ export * from "./phase4";
 export * from "./phase5";
 export * from "./phase6";
 export * from "./notifications";
+export * from "./expansion";

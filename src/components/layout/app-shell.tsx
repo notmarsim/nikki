@@ -10,6 +10,7 @@ import { MobileBottomNav } from "./mobile-bottom-nav";
 import { QuickCaptureModal } from "./quick-capture-modal";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { OnboardingTourOverlay } from "@/components/onboarding/onboarding-tour";
 
 interface AppShellProps {
   user: {
@@ -29,12 +30,14 @@ export function AppShell({
 }: AppShellProps) {
   const mobileSidebarOpen = useUiStore((s) => s.mobileSidebarOpen);
   const setHiddenModuleIds = useUiStore((s) => s.setHiddenModuleIds);
+  const setInterfaceMode = useUiStore((s) => s.setInterfaceMode);
 
   useEffect(() => {
     if (!initialPreferences) return;
     applyUserPreferences(initialPreferences);
     setHiddenModuleIds(initialPreferences.hiddenModuleIds);
-  }, [initialPreferences, setHiddenModuleIds]);
+    setInterfaceMode(initialPreferences.interfaceMode);
+  }, [initialPreferences, setHiddenModuleIds, setInterfaceMode]);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
@@ -55,6 +58,7 @@ export function AppShell({
       <MobileBottomNav />
       <CommandPalette />
       <QuickCaptureModal />
+      <OnboardingTourOverlay />
     </div>
   );
 }

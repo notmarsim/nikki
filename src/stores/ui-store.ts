@@ -15,6 +15,7 @@ interface UiState {
   keybindings: KeybindingsConfig;
   pinnedModuleIds: string[];
   hiddenModuleIds: string[];
+  interfaceMode: "simple" | "advanced";
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebar: () => void;
   setMobileSidebarOpen: (open: boolean) => void;
@@ -25,6 +26,7 @@ interface UiState {
   resetKeybindings: () => void;
   togglePinnedModule: (moduleId: string) => void;
   setHiddenModuleIds: (ids: string[]) => void;
+  setInterfaceMode: (mode: "simple" | "advanced") => void;
 }
 
 const getInitialSpellcheck = (): boolean => {
@@ -63,6 +65,7 @@ export const useUiStore = create<UiState>((set) => ({
   keybindings: getInitialKeybindings(),
   pinnedModuleIds: ["dashboard", "inbox", "notes", "tasks", "projects"],
   hiddenModuleIds: getInitialHiddenModules(),
+  interfaceMode: "advanced",
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
@@ -100,4 +103,5 @@ export const useUiStore = create<UiState>((set) => ({
     }
     set({ hiddenModuleIds: ids });
   },
+  setInterfaceMode: (mode) => set({ interfaceMode: mode }),
 }));

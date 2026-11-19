@@ -152,6 +152,24 @@ export function DashboardView({
   const [quickText, setQuickText] = useState("");
   const [capturing, setCapturing] = useState(false);
 
+  const { data: onboardingData, refetch: refetchOnboarding } = useQuery<{
+    suggestions: Array<{
+      id: string;
+      title: string;
+      description: string;
+      actionLabel: string;
+      href: string;
+    }>;
+  }>({
+    queryKey: ["onboarding-suggestions"],
+    queryFn: async () => {
+      const res = await fetch("/api/onboarding");
+      if (!res.ok) return { suggestions: [] };
+      const json = await res.json();
+      return { suggestions: json.data?.suggestions ?? [] };
+    },
+  });
+
   const { data } = useQuery<DashboardPayload>({
     queryKey: ["dashboard"],
     queryFn: async () => {
@@ -196,7 +214,10 @@ export function DashboardView({
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       {/* Greeting */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        data-tour="dashboard-header"
+        className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+      >
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Welcome back, {userName}
@@ -221,6 +242,42 @@ export function DashboardView({
           </Link>
         </div>
       </div>
+
+      {/* Contextual Dashboard Suggestions */}
+      {(onboardingData?.suggestions ?? []).length > 0 && (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {(onboardingData?.suggestions ?? []).map((sug) => (
+            <div
+              key={sug.id}
+              className="flex flex-col justify-between gap-2 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/5 p-3.5 text-xs"
+            >
+              <div>
+                <div className="font-semibold text-[var(--foreground)]">{sug.title}</div>
+                <p className="mt-0.5 text-[var(--muted-foreground)]">{sug.description}</p>
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <Link href={sug.href} className="font-medium text-[var(--accent)] hover:underline">
+                  {sug.actionLabel} →
+                </Link>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await fetch("/api/onboarding", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ dismissSuggestionId: sug.id }),
+                    });
+                    void refetchOnboarding();
+                  }}
+                  className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                >
+                  Dispensar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Overview Stats */}
       {showWidget("overview") && (
@@ -753,8 +810,8 @@ export function DashboardView({
       {/* Phase 5: Finance & Analytics Snapshot */}
       {showWidget("finances") && data.financeWidget && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle className="text-base">
                 Financial Snapshot ({data.financeWidget.month})
               </CardTitle>
@@ -764,7 +821,7 @@ export function DashboardView({
                   : "Real-time account balance and monthly cash flow."}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-3 text-xs font-medium">
+            <div className="flex shrink-0 items-center gap-3 text-xs font-medium whitespace-nowrap">
               <Link href="/analytics" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
                 Analytics
               </Link>

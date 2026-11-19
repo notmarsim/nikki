@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Download, RotateCcw, Search, Settings as SettingsIcon, Smartphone, Trash2 } from "lucide-react";
 import { detectNikkiPlatform, isIosSafariBrowser, type NikkiPlatform } from "@/lib/platform";
 import { applyUserPreferences } from "@/lib/apply-preferences";
+import { ALL_TOURS, INITIAL_TOUR_ID } from "@/modules/onboarding/tours";
 import { APP_MODULES } from "@/config/modules";
 import {
   DEFAULT_KEYBINDINGS,
@@ -44,6 +45,7 @@ export function SettingsWorkspace({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { setTheme } = useTheme();
+  const setInterfaceMode = useUiStore((s) => s.setInterfaceMode);
   const [platform, setPlatform] = useState<NikkiPlatform>("desktop-web");
   const [iosSafariPrompt, setIosSafariPrompt] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
@@ -150,6 +152,7 @@ export function SettingsWorkspace({
       }
       setTheme(themeChoice);
       setHiddenModuleIds(prefs.hiddenModuleIds);
+      setInterfaceMode(prefs.interfaceMode);
       setMessage("Settings saved.");
       router.refresh();
     } finally {
@@ -558,6 +561,45 @@ export function SettingsWorkspace({
             <div className="space-y-6">
               <Card>
                 <CardHeader>
+                  <CardTitle>Modo de Interface (Adaptive Interface)</CardTitle>
+                  <CardDescription>
+                    Alterne entre o Modo Simples (navegação enxuta) e o Modo Avançado (todos os módulos).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => updatePref("interfaceMode", "simple")}
+                    className={`rounded-xl border p-3 text-left ${
+                      prefs.interfaceMode === "simple"
+                        ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                        : "border-[var(--border)]"
+                    }`}
+                  >
+                    <div className="font-semibold">Simple Mode</div>
+                    <div className="mt-0.5 text-[var(--muted-foreground)]">
+                      Foco nos módulos essenciais: Dashboard, Tasks, Calendar, Notes, Finances, Day Planner, Routines e Compras.
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updatePref("interfaceMode", "advanced")}
+                    className={`rounded-xl border p-3 text-left ${
+                      prefs.interfaceMode === "advanced"
+                        ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                        : "border-[var(--border)]"
+                    }`}
+                  >
+                    <div className="font-semibold">Advanced Mode</div>
+                    <div className="mt-0.5 text-[var(--muted-foreground)]">
+                      Exibe todos os módulos habilitados, analytics detalhado e ferramentas avançadas.
+                    </div>
+                  </button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
                   <CardTitle>Module Visibility (Sidebar)</CardTitle>
                   <CardDescription>
                     Hide unused modules from the sidebar without deleting any data.
@@ -733,6 +775,52 @@ export function SettingsWorkspace({
                   />
                   Enable Quiet Hours
                 </label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-2">
+                  <div>
+                    <label className="block mb-1 font-medium">Modo de Notificação</label>
+                    <select
+                      value={prefs.notificationMode}
+                      onChange={(e) =>
+                        updatePref(
+                          "notificationMode",
+                          e.target.value as "individual" | "bundled" | "daily_digest" | "weekly_digest"
+                        )
+                      }
+                      className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
+                    >
+                      <option value="bundled">Resumos Agrupados (Smart Bundles)</option>
+                      <option value="individual">Notificações Individuais</option>
+                      <option value="daily_digest">Resumo Diário</option>
+                      <option value="weekly_digest">Resumo Semanal</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium">Antecedência dos Lembretes (min)</label>
+                    <Input
+                      type="number"
+                      min={5}
+                      max={1440}
+                      value={prefs.notificationLeadMinutes}
+                      onChange={(e) =>
+                        updatePref("notificationLeadMinutes", Number(e.target.value) || 30)
+                      }
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const res = await fetch("/api/notifications/bundles");
+                    if (res.ok) {
+                      const json = (await res.json()) as { data?: { bundles?: unknown[] } };
+                      alert(`${json.data?.bundles?.length ?? 0} resumo(s) inteligente(s) atualizado(s) na Central de Notificações.`);
+                    }
+                  }}
+                >
+                  Gerar Resumos Agrupados Agora
+                </Button>
                 {prefs.quietHoursEnabled && (
                   <div className="flex gap-3 pt-1">
                     <div>
@@ -1057,6 +1145,50 @@ export function SettingsWorkspace({
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {activeCat === "tutorials" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Help &amp; Tutorials</CardTitle>
+                <CardDescription>
+                  Inicie ou reinicie o tour guiado inicial e explore guias específicos por módulo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                {ALL_TOURS.map((tour) => (
+                  <div
+                    key={tour.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-3"
+                  >
+                    <div>
+                      <div className="font-semibold text-sm">{tour.title}</div>
+                      <p className="text-[var(--muted-foreground)]">{tour.description}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={tour.id === INITIAL_TOUR_ID ? "default" : "outline"}
+                      onClick={async () => {
+                        await fetch("/api/onboarding", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            welcomeCompleted: true,
+                            tourStatus: "in_progress",
+                            currentTourId: tour.id,
+                            currentStepIndex: 0,
+                          }),
+                        });
+                        window.dispatchEvent(new Event("nikki:onboarding-updated"));
+                      }}
+                    >
+                      Iniciar Tour
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           )}
 
           {activeCat === "diagnostics" && (

@@ -42,7 +42,20 @@ export function Sidebar({ workspaceName }: SidebarProps) {
     pinnedModuleIds,
     togglePinnedModule,
     hiddenModuleIds,
+    interfaceMode,
   } = useUiStore();
+
+  const SIMPLE_MODE_SET = new Set([
+    "dashboard",
+    "tasks",
+    "calendar",
+    "notes",
+    "finances",
+    "day-planner",
+    "routines",
+    "shopping",
+    "settings",
+  ]);
 
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
@@ -172,6 +185,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
 
         {/* Navigation Links */}
         <nav
+          data-tour="sidebar-nav"
           className="flex-1 overflow-y-auto overscroll-contain px-2 py-3 space-y-4"
           aria-label="Main Navigation"
         >
@@ -212,8 +226,10 @@ export function Sidebar({ workspaceName }: SidebarProps) {
             const sectionModules = APP_MODULES.filter(
               (m) =>
                 m.section === sectionKey &&
-                (m.id === "settings" || !hiddenModuleIds.includes(m.id))
+                (m.id === "settings" || !hiddenModuleIds.includes(m.id)) &&
+                (interfaceMode !== "simple" || SIMPLE_MODE_SET.has(m.id))
             );
+            if (sectionModules.length === 0) return null;
             const isSectionCollapsed = collapsedSections[sectionKey] ?? false;
 
             return (
@@ -244,6 +260,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
                         <div key={mod.id} className="group relative flex items-center">
                           <Link
                             href={mod.href}
+                            data-tour={`nav-${mod.id}`}
                             onClick={() => isMobile && setMobileSidebarOpen(false)}
                             title={collapsed ? mod.name : undefined}
                             className={cn(
