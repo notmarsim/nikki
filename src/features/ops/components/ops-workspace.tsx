@@ -6,8 +6,14 @@ import { Activity, AlertCircle, ShieldAlert } from "lucide-react";
 interface OpsData {
   totalUsers: number;
   errors: Array<{ id: string; source: string; severity: string; message: string; createdAt: string }>;
-  reports: Array<{ id: string; platform: string; appVersion: string; createdAt: string }>;
-  audits: Array<{ id: string; action: string; targetType: string; createdAt: string }>;
+  diagnosticReports: Array<{
+    id: string;
+    platform: string;
+    appVersion: string;
+    summary?: Record<string, unknown>;
+    createdAt: string;
+  }>;
+  auditEvents: Array<{ id: string; action: string; targetType: string | null; createdAt: string }>;
 }
 
 export function OpsWorkspace() {
@@ -52,15 +58,15 @@ export function OpsWorkspace() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
             <div className="text-xs text-[var(--muted)]">Total Accounts</div>
-            <div className="mt-1 text-2xl font-bold">{data.totalUsers}</div>
+            <div className="mt-1 text-2xl font-bold">{data.totalUsers ?? 0}</div>
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
             <div className="text-xs text-[var(--muted)]">Recent Error Events</div>
-            <div className="mt-1 text-2xl font-bold">{data.errors.length}</div>
+            <div className="mt-1 text-2xl font-bold">{(data.errors ?? []).length}</div>
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
             <div className="text-xs text-[var(--muted)]">Diagnostic Reports</div>
-            <div className="mt-1 text-2xl font-bold">{data.reports.length}</div>
+            <div className="mt-1 text-2xl font-bold">{(data.diagnosticReports ?? []).length}</div>
           </div>
         </div>
       )}
@@ -71,10 +77,10 @@ export function OpsWorkspace() {
             <h2 className="flex items-center gap-1.5 text-sm font-semibold">
               <AlertCircle className="h-4 w-4 text-amber-400" /> Error Events
             </h2>
-            {data.errors.length === 0 ? (
+            {(data.errors ?? []).length === 0 ? (
               <p className="text-xs text-[var(--muted)]">No recent application errors.</p>
             ) : (
-              data.errors.map((err) => (
+              (data.errors ?? []).map((err) => (
                 <div key={err.id} className="rounded-lg border border-[var(--border)] p-2.5 text-xs">
                   <div className="font-medium">
                     [{err.severity}] {err.source}
@@ -89,17 +95,38 @@ export function OpsWorkspace() {
             <h2 className="flex items-center gap-1.5 text-sm font-semibold">
               <Activity className="h-4 w-4 text-[var(--accent)]" /> Diagnostic Reports
             </h2>
-            {data.reports.length === 0 ? (
+            {(data.diagnosticReports ?? []).length === 0 ? (
               <p className="text-xs text-[var(--muted)]">No user diagnostic reports submitted.</p>
             ) : (
-              data.reports.map((rep) => (
-                <div key={rep.id} className="rounded-lg border border-[var(--border)] p-2.5 text-xs">
+              (data.diagnosticReports ?? []).map((rep) => (
+                <div key={rep.id} className="rounded-lg border border-[var(--border)] p-2.5 text-xs space-y-1">
                   <div className="font-medium">
                     {rep.platform} · v{rep.appVersion}
                   </div>
                   <div className="text-[var(--muted)]">{rep.createdAt}</div>
+                  {rep.summary && (
+                    <pre className="overflow-x-auto rounded bg-black/20 p-1.5 text-[11px]">
+                      {JSON.stringify(rep.summary, null, 2)}
+                    </pre>
+                  )}
                 </div>
               ))
+            )}
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 lg:col-span-2">
+            <h2 className="text-sm font-semibold">Administrative Audit Log</h2>
+            {(data.auditEvents ?? []).length === 0 ? (
+              <p className="text-xs text-[var(--muted)]">No audit events recorded yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {(data.auditEvents ?? []).map((ev) => (
+                  <div key={ev.id} className="rounded-lg border border-[var(--border)] p-2.5 text-xs">
+                    <div className="font-medium">{ev.action}</div>
+                    <div className="text-[var(--muted)]">{ev.createdAt}</div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

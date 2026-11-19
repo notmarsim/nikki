@@ -888,41 +888,95 @@ export function SettingsWorkspace({
               <CardHeader>
                 <CardTitle>Help &amp; Diagnostics</CardTitle>
                 <CardDescription>
-                  Generate a sanitized diagnostic snapshot (no tokens, cookies, or private note/finance content).
+                  Inspect your device &amp; PWA health locally and optionally send a sanitized snapshot (no tokens, cookies, or private content) to support.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="text-xs text-[var(--muted-foreground)]">
-                  Platform: {typeof navigator !== "undefined" ? detectNikkiPlatform() : "web"} · App Version: 2.0.0
-                </div>
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    const res = await fetch("/api/diagnostics", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        platform: typeof navigator !== "undefined" ? detectNikkiPlatform() : "web",
-                        appVersion: "2.0.0",
-                        summary: {
-                          online: typeof navigator !== "undefined" ? navigator.onLine : true,
-                          swSupported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
-                          viewport:
-                            typeof window !== "undefined"
-                              ? `${window.innerWidth}x${window.innerHeight}`
-                              : "unknown",
-                        },
-                      }),
-                    });
-                    if (res.ok) {
-                      alert("Sanitized diagnostic report submitted.");
-                    } else {
-                      alert("Failed to submit diagnostic report.");
-                    }
-                  }}
-                >
-                  Send Diagnostic Report
-                </Button>
+              <CardContent className="space-y-4">
+                {(() => {
+                  const snapshot = {
+                    platform: typeof navigator !== "undefined" ? detectNikkiPlatform() : "web",
+                    appVersion: "2.0.0",
+                    online: typeof navigator !== "undefined" ? navigator.onLine : true,
+                    serviceWorkerSupported:
+                      typeof navigator !== "undefined" && "serviceWorker" in navigator,
+                    notificationPermission:
+                      typeof Notification !== "undefined" ? Notification.permission : "unsupported",
+                    viewport:
+                      typeof window !== "undefined"
+                        ? `${window.innerWidth}x${window.innerHeight}`
+                        : "unknown",
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                  };
+                  return (
+                    <>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-xs">
+                        <div className="rounded-lg border border-[var(--border)] p-3">
+                          <div className="text-[var(--muted-foreground)]">Platform &amp; Version</div>
+                          <div className="mt-0.5 font-medium">
+                            {snapshot.platform} · v{snapshot.appVersion}
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-[var(--border)] p-3">
+                          <div className="text-[var(--muted-foreground)]">Connectivity</div>
+                          <div className="mt-0.5 font-medium">
+                            {snapshot.online ? "Online" : "Offline"}
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-[var(--border)] p-3">
+                          <div className="text-[var(--muted-foreground)]">Service Worker / Push</div>
+                          <div className="mt-0.5 font-medium">
+                            SW: {snapshot.serviceWorkerSupported ? "Supported" : "No"} · Push:{" "}
+                            {snapshot.notificationPermission}
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-[var(--border)] p-3">
+                          <div className="text-[var(--muted-foreground)]">Viewport &amp; Timezone</div>
+                          <div className="mt-0.5 font-medium">
+                            {snapshot.viewport} · {snapshot.timezone}
+                          </div>
+                        </div>
+                      </div>
+
+                      <pre className="overflow-x-auto rounded-lg border border-[var(--border)] bg-black/10 p-3 text-[11px]">
+                        {JSON.stringify(snapshot, null, 2)}
+                      </pre>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            void navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
+                            alert("Diagnostic JSON copied to clipboard.");
+                          }}
+                        >
+                          Copy Diagnostic JSON
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={async () => {
+                            const res = await fetch("/api/diagnostics", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                platform: snapshot.platform,
+                                appVersion: snapshot.appVersion,
+                                summary: snapshot,
+                              }),
+                            });
+                            if (res.ok) {
+                              alert("Sanitized diagnostic report sent to Nikki Ops.");
+                            } else {
+                              alert("Failed to submit diagnostic report.");
+                            }
+                          }}
+                        >
+                          Send Diagnostic Report
+                        </Button>
+                      </div>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           )}
