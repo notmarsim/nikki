@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentSession } from "@/modules/auth/session";
-import { getUserWorkspaces } from "@/modules/users/service";
+import { mergeUserPreferences } from "@/modules/settings/registry";
+import { getUserSettings, getUserWorkspaces } from "@/modules/users/service";
 
 export default async function ProtectedAppLayout({
   children,
@@ -13,13 +14,18 @@ export default async function ProtectedAppLayout({
     redirect("/login");
   }
 
-  const workspaces = await getUserWorkspaces(session.user.id);
+  const [workspaces, settings] = await Promise.all([
+    getUserWorkspaces(session.user.id),
+    getUserSettings(session.user.id),
+  ]);
   const activeWorkspace = workspaces[0];
+  const initialPreferences = mergeUserPreferences(settings?.preferences);
 
   return (
     <AppShell
       user={{ name: session.user.name, email: session.user.email }}
       workspaceName={activeWorkspace?.name ?? "Personal"}
+      initialPreferences={initialPreferences}
     >
       {children}
     </AppShell>

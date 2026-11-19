@@ -52,6 +52,19 @@ const PRIORITY_BADGE: Record<TaskPriority, "default" | "outline" | "accent" | "w
   urgent: "warning",
 };
 
+function toLocalDatetimeInputValue(iso: string | Date): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatDueAt(iso: string | Date): string {
+  return new Date(iso).toLocaleString([], {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
 function KanbanCard({
   task,
   onSelect,
@@ -88,7 +101,7 @@ function KanbanCard({
         )}
         {task.dueAt && (
           <span className="text-[11px] text-[var(--muted-foreground)]">
-            {new Date(task.dueAt).toLocaleDateString()}
+            {formatDueAt(task.dueAt)}
           </span>
         )}
       </div>
@@ -150,6 +163,7 @@ export function TasksWorkspace({
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [sortBy, setSortBy] = useState<"default" | "due_soonest">("default");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(
     searchParams.get("taskId")
   );
@@ -210,7 +224,7 @@ export function TasksWorkspace({
           title: newTitle.trim(),
           priority: newPriority,
           projectId: newProjectId || null,
-          dueAt: newDueDate ? new Date(`${newDueDate}T12:00:00.000Z`).toISOString() : null,
+          dueAt: newDueDate ? new Date(newDueDate).toISOString() : null,
           recurrence: newRecurrence ? { frequency: newRecurrence, interval: 1 } : null,
         }),
       });
@@ -275,7 +289,7 @@ export function TasksWorkspace({
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     const q = search.trim().toLowerCase();
 
-    return topLevelTasks.filter((t) => {
+    const list = topLevelTasks.filter((t) => {
       if (q && !t.title.toLowerCase().includes(q) && !(t.description ?? "").toLowerCase().includes(q)) {
         return false;
       }
@@ -297,7 +311,17 @@ export function TasksWorkspace({
       }
       return true;
     });
-  }, [topLevelTasks, search, projectFilter, priorityFilter, view]);
+
+    if (sortBy === "due_soonest") {
+      return [...list].sort((a, b) => {
+        if (!a.dueAt && !b.dueAt) return 0;
+        if (!a.dueAt) return 1;
+        if (!b.dueAt) return -1;
+        return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+      });
+    }
+    return list;
+  }, [topLevelTasks, search, projectFilter, priorityFilter, view, sortBy]);
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
   const subtasksOfSelected = selectedTask
@@ -357,11 +381,11 @@ export function TasksWorkspace({
               <option value="none">None</option>
             </select>
             <Input
-              type="date"
+              type="datetime-local"
               value={newDueDate}
               onChange={(e) => setNewDueDate(e.target.value)}
-              className="w-36 text-xs"
-              aria-label="Due date"
+              className="w-48 text-xs"
+              aria-label="Due date and time"
             />
             <select
               value={newProjectId}
@@ -460,6 +484,15 @@ export function TasksWorkspace({
             <option value="low">Low</option>
             <option value="none">None</option>
           </select>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "default" | "due_soonest")}
+            className="h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
+            aria-label="Sort tasks"
+          >
+            <option value="default">Sort: Default</option>
+            <option value="due_soonest">Closest due date</option>
+          </select>
         </div>
       </div>
 
@@ -551,7 +584,7 @@ export function TasksWorkspace({
                           }`}
                         >
                           <Calendar className="h-3 w-3" />
-                          {new Date(task.dueAt).toLocaleDateString()}
+                          {formatDueAt(task.dueAt)}
                         </span>
                       )}
                       {task.recurrence && (
@@ -709,16 +742,16 @@ export function TasksWorkspace({
                     Due Date
                   </label>
                   <Input
-                    type="date"
+                    type="datetime-local"
                     value={
                       selectedTask.dueAt
-                        ? new Date(selectedTask.dueAt).toISOString().slice(0, 10)
+                        ? toLocalDatetimeInputValue(selectedTask.dueAt)
                         : ""
                     }
                     onChange={(e) =>
                       handleUpdateTask(selectedTask.id, {
                         dueAt: e.target.value
-                          ? new Date(`${e.target.value}T12:00:00.000Z`).toISOString()
+                          ? new Date(e.target.value).toISOString()
                           : null,
                       })
                     }

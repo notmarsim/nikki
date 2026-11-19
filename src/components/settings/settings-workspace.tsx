@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Download, RotateCcw, Search, Settings as SettingsIcon, Smartphone, Trash2 } from "lucide-react";
 import { detectNikkiPlatform, isIosSafariBrowser, type NikkiPlatform } from "@/lib/platform";
+import { applyUserPreferences } from "@/lib/apply-preferences";
 import { APP_MODULES } from "@/config/modules";
 import {
   DEFAULT_KEYBINDINGS,
@@ -13,6 +14,7 @@ import {
   type KeybindingsConfig,
 } from "@/lib/keybindings";
 import {
+  DASHBOARD_WIDGETS,
   SETTINGS_CATEGORIES,
   type UserPreferences,
 } from "@/modules/settings/registry";
@@ -106,7 +108,25 @@ export function SettingsWorkspace({
   }, [search]);
 
   const updatePref = <K extends keyof UserPreferences>(key: K, val: UserPreferences[K]) => {
-    setPrefs((prev) => ({ ...prev, [key]: val }));
+    setPrefs((prev) => {
+      const next = { ...prev, [key]: val };
+      applyUserPreferences(next);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    applyUserPreferences(prefs);
+  }, [prefs]);
+
+  const toggleDashboardWidget = (widgetId: string) => {
+    const exists = prefs.hiddenDashboardWidgets.includes(widgetId);
+    updatePref(
+      "hiddenDashboardWidgets",
+      exists
+        ? prefs.hiddenDashboardWidgets.filter((id) => id !== widgetId)
+        : [...prefs.hiddenDashboardWidgets, widgetId]
+    );
   };
 
   const handleSave = async () => {
@@ -564,6 +584,33 @@ export function SettingsWorkspace({
               </Card>
 
               <Card>
+                <CardHeader>
+                  <CardTitle>Dashboard Widgets</CardTitle>
+                  <CardDescription>
+                    Choose which sections appear on your Dashboard.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-xs">
+                  {DASHBOARD_WIDGETS.map((widget) => {
+                    const visible = !prefs.hiddenDashboardWidgets.includes(widget.id);
+                    return (
+                      <label
+                        key={widget.id}
+                        className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={visible}
+                          onChange={() => toggleDashboardWidget(widget.id)}
+                        />
+                        <span>{widget.label}</span>
+                      </label>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle>Keyboard Shortcuts</CardTitle>
@@ -734,7 +781,7 @@ export function SettingsWorkspace({
                   <div className="rounded-lg border border-[var(--border)] p-3">
                     <div className="text-[var(--muted-foreground)]">Conexão</div>
                     <div className={`mt-0.5 font-semibold ${isOnline ? "text-emerald-500" : "text-amber-500"}`}>
-                      {isOnline ? "Online (Supabase)" : "Offline"}
+                      {isOnline ? "Online" : "Offline"}
                     </div>
                   </div>
                 </CardContent>
@@ -799,7 +846,7 @@ export function SettingsWorkspace({
                           setDeviceMsg(
                             vapid
                               ? "Notificação de teste registrada e enviada."
-                              : "Notificação in-app criada no Supabase (VAPID/FCM remoto requer chaves configuradas no servidor)."
+                              : "Notificação in-app criada com sucesso."
                           );
                           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
                             new Notification("Nikki Test", { body: "Notificação local funcionando!" });

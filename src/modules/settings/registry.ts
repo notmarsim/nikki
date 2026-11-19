@@ -39,6 +39,7 @@ export const userPreferencesSchema = z.object({
   // Personalization & Navigation
   defaultHomePath: z.string().min(1).max(64).default("/dashboard"),
   hiddenModuleIds: z.array(z.string()).default([]),
+  hiddenDashboardWidgets: z.array(z.string()).default([]),
   showFinancialWidgetsOnDashboard: z.boolean().default(true),
 
   // Finances, Analytics & Notifications
@@ -62,6 +63,20 @@ export function mergeUserPreferences(raw: unknown): UserPreferences {
   if (parsed.success) return parsed.data;
   return { ...DEFAULT_USER_PREFERENCES };
 }
+
+export const DASHBOARD_WIDGETS = [
+  { id: "overview", label: "Overview Summary Cards" },
+  { id: "quick_capture", label: "Quick Capture" },
+  { id: "learning_overview", label: "Learning, Focus & Habits Summary" },
+  { id: "tasks_today", label: "Tasks Today" },
+  { id: "active_projects", label: "Active Projects" },
+  { id: "recent_notes", label: "Recent Notes" },
+  { id: "recent_activity", label: "Recent Activity" },
+  { id: "upcoming_events", label: "Upcoming Events" },
+  { id: "recent_bookmarks", label: "Recent Bookmarks" },
+  { id: "developer_snippets", label: "Developer Hub Snippets" },
+  { id: "finances", label: "Personal Finances" },
+] as const;
 
 export const SETTINGS_CATEGORIES = [
   { id: "general", label: "General & Profile", keywords: "name bio language timezone currency date" },

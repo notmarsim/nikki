@@ -140,11 +140,14 @@ export function DashboardView({
   userName,
   timezone,
   initialData,
+  hiddenWidgets = [],
 }: {
   userName: string;
   timezone: string;
   initialData: DashboardPayload;
+  hiddenWidgets?: string[];
 }) {
+  const showWidget = (id: string) => !hiddenWidgets.includes(id);
   const queryClient = useQueryClient();
   const [quickText, setQuickText] = useState("");
   const [capturing, setCapturing] = useState(false);
@@ -220,6 +223,7 @@ export function DashboardView({
       </div>
 
       {/* Overview Stats */}
+      {showWidget("overview") && (
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Link href="/tasks">
           <Card className="hover:border-[var(--accent)] transition-colors">
@@ -289,8 +293,10 @@ export function DashboardView({
           </Card>
         </Link>
       </div>
+      )}
 
       {/* Quick Capture Widget */}
+      {showWidget("quick_capture") && (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Quick Capture</CardTitle>
@@ -312,8 +318,10 @@ export function DashboardView({
           </form>
         </CardContent>
       </Card>
+      )}
 
       {/* Phase 3 Productivity Strip */}
+      {showWidget("learning_overview") && (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/flashcards">
           <Card className="hover:border-[var(--accent)] transition-colors">
@@ -387,10 +395,13 @@ export function DashboardView({
           </Card>
         </Link>
       </div>
+      )}
 
       {/* Main Grid: Tasks Today + Active Projects */}
+      {(showWidget("tasks_today") || showWidget("active_projects")) && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Tasks Today */}
+        {showWidget("tasks_today") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -449,8 +460,10 @@ export function DashboardView({
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Active Projects */}
+        {showWidget("active_projects") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -504,10 +517,14 @@ export function DashboardView({
             )}
           </CardContent>
         </Card>
+        )}
       </div>
+      )}
 
       {/* Bottom Grid: Recent Notes + Recent Activity */}
+      {(showWidget("recent_notes") || showWidget("recent_activity")) && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {showWidget("recent_notes") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Recent Notes</CardTitle>
@@ -544,7 +561,9 @@ export function DashboardView({
             )}
           </CardContent>
         </Card>
+        )}
 
+        {showWidget("recent_activity") && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Recent Activity</CardTitle>
@@ -585,9 +604,12 @@ export function DashboardView({
             )}
           </CardContent>
         </Card>
+        )}
       </div>
+      )}
 
       {/* Upcoming Calendar Events */}
+      {showWidget("upcoming_events") && (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -639,9 +661,12 @@ export function DashboardView({
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Phase 4: Library & Developer Hub Widgets */}
+      {(showWidget("recent_bookmarks") || showWidget("developer_snippets")) && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {showWidget("recent_bookmarks") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -680,7 +705,9 @@ export function DashboardView({
             )}
           </CardContent>
         </Card>
+        )}
 
+        {showWidget("developer_snippets") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -719,10 +746,12 @@ export function DashboardView({
             )}
           </CardContent>
         </Card>
+        )}
       </div>
+      )}
 
       {/* Phase 5: Finance & Analytics Snapshot */}
-      {data.financeWidget && (
+      {showWidget("finances") && data.financeWidget && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>

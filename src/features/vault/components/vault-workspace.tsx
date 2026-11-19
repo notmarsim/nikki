@@ -20,7 +20,7 @@ export function VaultWorkspace() {
   const [category, setCategory] = useState("identity");
   const [storagePath, setStoragePath] = useState("");
   const [mimeType, setMimeType] = useState("application/pdf");
-  const [sizeBytes, setSizeBytes] = useState("102400");
+  const [sizeKb, setSizeKb] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -46,7 +46,7 @@ export function VaultWorkspace() {
         category,
         storagePath: storagePath.trim() || `vault/${Date.now()}-${name.trim()}`,
         mimeType,
-        sizeBytes: Math.max(1, Number(sizeBytes) || 1024),
+        sizeBytes: Math.max(1, Math.round((Number(sizeKb) || 100) * 1024)),
         expiresAt: expiresAt || null,
       }),
     });
@@ -83,55 +83,73 @@ export function VaultWorkspace() {
         className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Document name (e.g. Passport Scan)"
-            className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
-            required
-          />
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
-          >
-            <option value="identity">Identity</option>
-            <option value="contract">Contract</option>
-            <option value="medical">Medical</option>
-            <option value="tax">Tax & Finance</option>
-            <option value="other">Other</option>
-          </select>
-          <select
-            value={mimeType}
-            onChange={(e) => setMimeType(e.target.value)}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
-          >
-            <option value="application/pdf">PDF (application/pdf)</option>
-            <option value="image/png">PNG Image</option>
-            <option value="image/jpeg">JPEG Image</option>
-            <option value="text/plain">Plain Text</option>
-          </select>
-          <input
-            value={storagePath}
-            onChange={(e) => setStoragePath(e.target.value)}
-            placeholder="Storage path (optional)"
-            className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
-          />
-          <input
-            type="number"
-            min={1}
-            max={20 * 1024 * 1024}
-            value={sizeBytes}
-            onChange={(e) => setSizeBytes(e.target.value)}
-            placeholder="Size (bytes)"
-            className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
-          />
-          <input
-            type="date"
-            value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
-            className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
-          />
+          <div className="space-y-1">
+            <label className="text-xs text-[var(--muted)]">Document Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Passport Scan"
+              className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-[var(--muted)]">Category</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+            >
+              <option value="identity">Identity</option>
+              <option value="contract">Contract</option>
+              <option value="medical">Medical</option>
+              <option value="tax">Tax & Finance</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-[var(--muted)]">Document Type</label>
+            <select
+              value={mimeType}
+              onChange={(e) => setMimeType(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+            >
+              <option value="application/pdf">PDF Document</option>
+              <option value="image/png">PNG Image</option>
+              <option value="image/jpeg">JPEG Image</option>
+              <option value="text/plain">Text Document</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-[var(--muted)]">Notes / Reference (optional)</label>
+            <input
+              value={storagePath}
+              onChange={(e) => setStoragePath(e.target.value)}
+              placeholder="e.g. Home safe, folder A"
+              className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-[var(--muted)]">Approximate Size (KB, optional)</label>
+            <input
+              type="number"
+              min={1}
+              max={20 * 1024}
+              value={sizeKb}
+              onChange={(e) => setSizeKb(e.target.value)}
+              placeholder="e.g. 250 KB"
+              className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-[var(--muted)]">Expiration Date (optional)</label>
+            <input
+              type="date"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+            />
+          </div>
         </div>
         {errorMsg && <p className="text-xs text-red-500">{errorMsg}</p>}
         <button

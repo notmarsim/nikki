@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
+import { applyUserPreferences } from "@/lib/apply-preferences";
 import { cn } from "@/lib/utils";
+import type { UserPreferences } from "@/modules/settings/registry";
 import { useUiStore } from "@/stores/ui-store";
 import { CommandPalette } from "./command-palette";
 import { MobileBottomNav } from "./mobile-bottom-nav";
@@ -15,11 +17,24 @@ interface AppShellProps {
     email: string;
   };
   workspaceName: string;
+  initialPreferences?: UserPreferences;
   children: React.ReactNode;
 }
 
-export function AppShell({ user, workspaceName, children }: AppShellProps) {
+export function AppShell({
+  user,
+  workspaceName,
+  initialPreferences,
+  children,
+}: AppShellProps) {
   const mobileSidebarOpen = useUiStore((s) => s.mobileSidebarOpen);
+  const setHiddenModuleIds = useUiStore((s) => s.setHiddenModuleIds);
+
+  useEffect(() => {
+    if (!initialPreferences) return;
+    applyUserPreferences(initialPreferences);
+    setHiddenModuleIds(initialPreferences.hiddenModuleIds);
+  }, [initialPreferences, setHiddenModuleIds]);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[var(--background)] text-[var(--foreground)]">

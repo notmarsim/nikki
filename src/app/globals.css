@@ -43,6 +43,55 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* User Appearance & Accessibility Preferences */
+html[data-font-size="small"] {
+  font-size: 14px;
+}
+
+html[data-font-size="large"] {
+  font-size: 18px;
+}
+
+html[data-density="compact"] main {
+  font-size: 0.9375rem;
+}
+
+html[data-density="compact"] .p-6 {
+  padding: 1rem;
+}
+
+html[data-density="compact"] .space-y-6 > :not(:first-child) {
+  margin-top: 1rem;
+}
+
+html[data-animations="disabled"] *,
+html[data-animations="disabled"] *::before,
+html[data-animations="disabled"] *::after {
+  transition-duration: 0.001ms !important;
+  animation-duration: 0.001ms !important;
+}
+
+html[data-animations="reduced"] *,
+html[data-animations="reduced"] *::before,
+html[data-animations="reduced"] *::after {
+  transition-duration: 80ms !important;
+  animation-duration: 80ms !important;
+}
+
+html[data-high-contrast="true"] {
+  --border: #52525b;
+  --muted-foreground: #d4d4d8;
+}
+
+html:not(.dark)[data-high-contrast="true"] {
+  --border: #3f3f46;
+  --muted-foreground: #27272a;
+}
+
+html[data-focus-indicators="false"] *:focus-visible {
+  outline: none !important;
+}
+
 /* Minimalist custom scrollbars */
 * {
   scrollbar-width: thin;
