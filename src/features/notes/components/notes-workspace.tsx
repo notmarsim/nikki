@@ -24,6 +24,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { HeadingToc, type HeadingTocItem } from "./heading-toc";
 import { LocalGraphPanel } from "./local-graph-panel";
 import { TiptapEditor } from "./tiptap-editor";
@@ -49,8 +50,79 @@ export function NotesWorkspace({
   initialNotes: NoteRecord[];
   projects: ProjectRecord[];
 }) {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+
+  const taskStatusLabel = (status: string) => {
+    switch (status) {
+      case "todo":
+        return tr("To Do", "A Fazer");
+      case "in_progress":
+        return tr("In Progress", "Em Progresso");
+      case "done":
+        return tr("Done", "Concluída");
+      case "blocked":
+        return tr("Blocked", "Bloqueada");
+      case "cancelled":
+        return tr("Cancelled", "Cancelada");
+      default:
+        return status;
+    }
+  };
+
+  const templateMeta = (tpl: (typeof NOTE_TEMPLATES)[number]) => {
+    switch (tpl.id) {
+      case "blank":
+        return {
+          name: tr("Blank Page", "Página em Branco"),
+          description: tr("Start with a clean slate.", "Comece com uma página limpa."),
+        };
+      case "study":
+        return {
+          name: tr("Study Note", "Nota de Estudo"),
+          description: tr(
+            "Structured concepts, key takeaways, and review questions.",
+            "Conceitos estruturados, pontos-chave e perguntas de revisão."
+          ),
+        };
+      case "tech_doc":
+        return {
+          name: tr("Technical Spec", "Especificação Técnica"),
+          description: tr(
+            "Architecture, API contracts, and implementation notes.",
+            "Arquitetura, contratos de API e notas de implementação."
+          ),
+        };
+      case "meeting":
+        return {
+          name: tr("Meeting Notes", "Ata de Reunião"),
+          description: tr(
+            "Agenda, discussion points, decisions, and next steps.",
+            "Pauta, tópicos discutidos, decisões e próximos passos."
+          ),
+        };
+      case "journal":
+        return {
+          name: tr("Daily Journal", "Diário"),
+          description: tr(
+            "Intentions, reflections, and highlights of the day.",
+            "Intenções, reflexões e destaques do dia."
+          ),
+        };
+      case "project_plan":
+        return {
+          name: tr("Project Plan", "Plano de Projeto"),
+          description: tr(
+            "Objectives, milestones, risks, and deliverables.",
+            "Objetivos, marcos, riscos e entregas."
+          ),
+        };
+      default:
+        return { name: tpl.name, description: tpl.description };
+    }
+  };
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(
     searchParams.get("id") ?? initialNotes[0]?.id ?? null
@@ -303,7 +375,11 @@ export function NotesWorkspace({
                     }))
                   }
                   className="rounded p-0.5 hover:bg-[var(--surface)]"
-                  aria-label={isExpanded ? "Collapse subpages" : "Expand subpages"}
+                  aria-label={
+                    isExpanded
+                      ? tr("Collapse subpages", "Recolher subpáginas")
+                      : tr("Expand subpages", "Expandir subpáginas")
+                  }
                 >
                   {isExpanded ? (
                     <ChevronDown className="h-3.5 w-3.5" />
@@ -332,8 +408,8 @@ export function NotesWorkspace({
                 setShowTemplateModal(true);
               }}
               className="rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-[var(--surface)]"
-              title="Add subpage"
-              aria-label={`Add subpage under ${note.title}`}
+              title={tr("Add subpage", "Adicionar subpágina")}
+              aria-label={tr(`Add subpage under ${note.title}`, `Adicionar subpágina em ${note.title}`)}
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
@@ -350,7 +426,7 @@ export function NotesWorkspace({
       {/* Left Page Tree Sidebar */}
       <aside className="flex max-h-56 w-full shrink-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 lg:max-h-none lg:w-64">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold">Pages</span>
+          <span className="text-sm font-semibold">{tr("Pages", "Páginas")}</span>
           <Button
             size="sm"
             onClick={() => {
@@ -358,7 +434,7 @@ export function NotesWorkspace({
               setShowTemplateModal(true);
             }}
           >
-            <Plus className="h-3.5 w-3.5" /> New
+            <Plus className="h-3.5 w-3.5" /> {tr("New", "Nova")}
           </Button>
         </div>
 
@@ -367,7 +443,7 @@ export function NotesWorkspace({
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter pages..."
+            placeholder={tr("Filter pages...", "Filtrar páginas...")}
             className="h-8 pl-8 text-xs"
           />
         </div>
@@ -376,7 +452,7 @@ export function NotesWorkspace({
           {favoriteNotes.length > 0 && !search.trim() && (
             <div>
               <div className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                Favorites
+                {tr("Favorites", "Favoritas")}
               </div>
               {favoriteNotes.map((fav) => (
                 <button
@@ -398,11 +474,14 @@ export function NotesWorkspace({
 
           <div>
             <div className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-              Workspace Notes
+              {tr("Workspace Notes", "Notas do Espaço")}
             </div>
             {notesList.length === 0 ? (
               <p className="px-2 py-4 text-xs text-[var(--muted-foreground)]">
-                No notes yet. Click &ldquo;New&rdquo; to create your first page.
+                {tr(
+                  'No notes yet. Click "New" to create your first page.',
+                  'Nenhuma nota ainda. Clique em "Nova" para criar sua primeira página.'
+                )}
               </p>
             ) : (
               renderTree(null, 0)
@@ -417,16 +496,22 @@ export function NotesWorkspace({
           <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-sm text-[var(--muted-foreground)]">
             <FileText className="mb-2 h-8 w-8 opacity-60" />
             {loadingDetail ? (
-              "Loading page..."
+              tr("Loading page...", "Carregando página...")
             ) : (
               <>
-                <p>Select a page or create a new note to start writing.</p>
+                <p>
+                  {tr(
+                    "Select a page or create a new note to start writing.",
+                    "Selecione uma página ou crie uma nova nota para começar a escrever."
+                  )}
+                </p>
                 <Button
                   className="mt-3"
                   size="sm"
                   onClick={() => handleCreateNote("blank", null)}
                 >
-                  <Plus className="h-4 w-4" /> Create your first note
+                  <Plus className="h-4 w-4" />{" "}
+                  {tr("Create your first note", "Criar sua primeira nota")}
                 </Button>
               </>
             )}
@@ -456,10 +541,11 @@ export function NotesWorkspace({
 
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] text-[var(--muted-foreground)] mr-1">
-                  {saveState === "saving" && "Saving..."}
-                  {saveState === "saved" && "Saved"}
-                  {saveState === "error" && "Save failed"}
-                  {saveState === "conflict" && "Reloaded newer version"}
+                  {saveState === "saving" && tr("Saving...", "Salvando...")}
+                  {saveState === "saved" && tr("Saved", "Salvo")}
+                  {saveState === "error" && tr("Save failed", "Falha ao salvar")}
+                  {saveState === "conflict" &&
+                    tr("Reloaded newer version", "Versão mais recente recarregada")}
                 </span>
 
                 <Button
@@ -471,7 +557,7 @@ export function NotesWorkspace({
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         action: "checkpoint",
-                        label: `Checkpoint ${new Date().toLocaleTimeString()}`,
+                        label: `Checkpoint ${new Date().toLocaleTimeString(locale)}`,
                       }),
                     });
                     if (res.ok) {
@@ -480,10 +566,13 @@ export function NotesWorkspace({
                       setSaveState("error");
                     }
                   }}
-                  title="Save collaboration checkpoint"
+                  title={tr(
+                    "Save collaboration checkpoint",
+                    "Salvar ponto de verificação de colaboração"
+                  )}
                   className="h-8 px-2 text-xs"
                 >
-                  Sync Checkpoint
+                  {tr("Sync Checkpoint", "Ponto de Verificação")}
                 </Button>
 
                 <select
@@ -492,9 +581,9 @@ export function NotesWorkspace({
                     patchNote(detail.note.id, { projectId: e.target.value || null })
                   }
                   className="h-8 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-                  aria-label="Link note to project"
+                  aria-label={tr("Link note to project", "Vincular nota ao projeto")}
                 >
-                  <option value="">No project</option>
+                  <option value="">{tr("No project", "Sem projeto")}</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -508,7 +597,7 @@ export function NotesWorkspace({
                   onClick={() =>
                     patchNote(detail.note.id, { isFavorite: !detail.note.isFavorite })
                   }
-                  title="Toggle favorite"
+                  title={tr("Toggle favorite", "Alternar favorito")}
                 >
                   <Star
                     className={`h-4 w-4 ${
@@ -521,7 +610,7 @@ export function NotesWorkspace({
                   size="icon"
                   variant="ghost"
                   onClick={() => handleDuplicate(detail.note.id)}
-                  title="Duplicate page"
+                  title={tr("Duplicate page", "Duplicar página")}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -532,7 +621,7 @@ export function NotesWorkspace({
                   onClick={() =>
                     patchNote(detail.note.id, { isArchived: !detail.note.isArchived })
                   }
-                  title="Archive page"
+                  title={tr("Archive page", "Arquivar página")}
                 >
                   <Archive className="h-4 w-4" />
                 </Button>
@@ -541,7 +630,7 @@ export function NotesWorkspace({
                   size="icon"
                   variant="ghost"
                   onClick={() => handleDelete(detail.note.id)}
-                  title="Delete page"
+                  title={tr("Delete page", "Excluir página")}
                 >
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
@@ -558,12 +647,12 @@ export function NotesWorkspace({
                     value={titleDraft}
                     onChange={(e) => setTitleDraft(e.target.value)}
                     onBlur={() => {
-                      const clean = titleDraft.trim() || "Untitled";
+                      const clean = titleDraft.trim() || tr("Untitled", "Sem título");
                       if (clean !== detail.note.title) {
                         patchNote(detail.note.id, { title: clean });
                       }
                     }}
-                    placeholder="Untitled"
+                    placeholder={tr("Untitled", "Sem título")}
                     className="mb-4 w-full bg-transparent text-3xl font-bold tracking-tight focus:outline-none"
                   />
 
@@ -628,7 +717,7 @@ export function NotesWorkspace({
                 {detail.project && (
                   <div>
                     <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                      Project
+                      {tr("Project", "Projeto")}
                     </div>
                     <Link
                       href={`/projects?id=${detail.project.id}`}
@@ -642,11 +731,15 @@ export function NotesWorkspace({
 
                 <div>
                   <div className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                    <Link2 className="h-3 w-3" /> Backlinks ({detail.backlinks.length})
+                    <Link2 className="h-3 w-3" /> {tr("Backlinks", "Backlinks")} (
+                    {detail.backlinks.length})
                   </div>
                   {detail.backlinks.length === 0 ? (
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      No notes link here yet. Use <code>[[Title]]</code> in another note.
+                      {tr(
+                        "No notes link here yet. Link this note from another page to see backlinks.",
+                        "Nenhuma nota aponta para cá ainda. Vincule esta nota em outra página para ver os backlinks."
+                      )}
                     </p>
                   ) : (
                     <div className="space-y-1">
@@ -667,11 +760,15 @@ export function NotesWorkspace({
 
                 <div>
                   <div className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                    <CheckSquare className="h-3 w-3" /> Linked Tasks ({detail.linkedTasks.length})
+                    <CheckSquare className="h-3 w-3" /> {tr("Linked Tasks", "Tarefas Vinculadas")} (
+                    {detail.linkedTasks.length})
                   </div>
                   {detail.linkedTasks.length === 0 ? (
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      Select text and click &ldquo;To Task&rdquo; in the toolbar.
+                      {tr(
+                        'Select text and click "To Task" in the toolbar.',
+                        'Selecione um texto e clique em "Tarefa" na barra de ferramentas.'
+                      )}
                     </p>
                   ) : (
                     <div className="space-y-1.5">
@@ -683,7 +780,7 @@ export function NotesWorkspace({
                         >
                           <div className="font-medium truncate">{t.title}</div>
                           <Badge variant="outline" className="mt-1">
-                            {t.status}
+                            {taskStatusLabel(t.status)}
                           </Badge>
                         </Link>
                       ))}
@@ -711,28 +808,41 @@ export function NotesWorkspace({
             className="w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-base font-semibold">Choose a Template</h2>
+            <h2 className="text-base font-semibold">
+              {tr("Choose a Template", "Escolher um Modelo")}
+            </h2>
             <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
-              Create a new {templateParentId ? "subpage" : "page"} from a template.
+              {templateParentId
+                ? tr(
+                    "Create a new subpage from a template.",
+                    "Criar uma nova subpágina a partir de um modelo."
+                  )
+                : tr(
+                    "Create a new page from a template.",
+                    "Criar uma nova página a partir de um modelo."
+                  )}
             </p>
             <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {NOTE_TEMPLATES.map((tpl) => (
-                <button
-                  key={tpl.id}
-                  type="button"
-                  onClick={() => handleCreateNote(tpl.id, templateParentId)}
-                  className="rounded-lg border border-[var(--border)] p-3 text-left transition-colors hover:border-[var(--accent)] hover:bg-[var(--surface-muted)]"
-                >
-                  <div className="text-sm font-medium">{tpl.name}</div>
-                  <div className="mt-0.5 text-xs text-[var(--muted-foreground)]">
-                    {tpl.description}
-                  </div>
-                </button>
-              ))}
+              {NOTE_TEMPLATES.map((tpl) => {
+                const meta = templateMeta(tpl);
+                return (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() => handleCreateNote(tpl.id, templateParentId)}
+                    className="rounded-lg border border-[var(--border)] p-3 text-left transition-colors hover:border-[var(--accent)] hover:bg-[var(--surface-muted)]"
+                  >
+                    <div className="text-sm font-medium">{meta.name}</div>
+                    <div className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                      {meta.description}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <div className="mt-4 flex justify-end">
               <Button variant="outline" size="sm" onClick={() => setShowTemplateModal(false)}>
-                Cancel
+                {tr("Cancel", "Cancelar")}
               </Button>
             </div>
           </div>
@@ -772,19 +882,24 @@ export function NotesWorkspace({
               }
             }}
           >
-            <h2 className="text-base font-semibold">Create Flashcard from Note</h2>
+            <h2 className="text-base font-semibold">
+              {tr("Create Flashcard from Note", "Criar Flashcard da Nota")}
+            </h2>
             {decks.length === 0 ? (
               <p className="text-xs text-[var(--muted-foreground)]">
-                No flashcard decks found yet. Create a deck in{" "}
+                {tr(
+                  "No flashcard decks found yet. Create a deck in",
+                  "Nenhum baralho de flashcards encontrado ainda. Crie um baralho em"
+                )}{" "}
                 <Link href="/flashcards" className="text-[var(--accent)] underline">
-                  Flashcards
+                  {tr("Flashcards", "Flashcards")}
                 </Link>{" "}
-                first.
+                {tr("first.", "primeiro.")}
               </p>
             ) : (
               <>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium">Deck</label>
+                  <label className="text-xs font-medium">{tr("Deck", "Baralho")}</label>
                   <select
                     className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm"
                     value={flashcardModal.deckId}
@@ -800,7 +915,7 @@ export function NotesWorkspace({
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium">Type</label>
+                  <label className="text-xs font-medium">{tr("Type", "Tipo")}</label>
                   <select
                     className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm"
                     value={flashcardModal.cardType}
@@ -811,13 +926,15 @@ export function NotesWorkspace({
                       })
                     }
                   >
-                    <option value="basic">Basic</option>
-                    <option value="basic_reversed">Basic (Reversed)</option>
-                    <option value="cloze">Cloze Deletion</option>
+                    <option value="basic">{tr("Basic", "Básico")}</option>
+                    <option value="basic_reversed">
+                      {tr("Basic (Reversed)", "Básico (Invertido)")}
+                    </option>
+                    <option value="cloze">{tr("Cloze Deletion", "Omissão (Cloze)")}</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium">Front</label>
+                  <label className="text-xs font-medium">{tr("Front", "Frente")}</label>
                   <textarea
                     rows={2}
                     required
@@ -829,11 +946,11 @@ export function NotesWorkspace({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium">Back</label>
+                  <label className="text-xs font-medium">{tr("Back", "Verso")}</label>
                   <textarea
                     rows={2}
                     className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm"
-                    placeholder="Answer or explanation..."
+                    placeholder={tr("Answer or explanation...", "Resposta ou explicação...")}
                     value={flashcardModal.back}
                     onChange={(e) =>
                       setFlashcardModal({ ...flashcardModal, back: e.target.value })
@@ -849,11 +966,13 @@ export function NotesWorkspace({
                 size="sm"
                 onClick={() => setFlashcardModal(null)}
               >
-                Cancel
+                {tr("Cancel", "Cancelar")}
               </Button>
               {decks.length > 0 && (
                 <Button type="submit" size="sm" disabled={savingFlashcard}>
-                  {savingFlashcard ? "Saving..." : "Create Flashcard"}
+                  {savingFlashcard
+                    ? tr("Saving...", "Salvando...")
+                    : tr("Create Flashcard", "Criar Flashcard")}
                 </Button>
               )}
             </div>
@@ -894,9 +1013,11 @@ export function NotesWorkspace({
               }
             }}
           >
-            <h2 className="text-base font-semibold">Save Code Block as Snippet</h2>
+            <h2 className="text-base font-semibold">
+              {tr("Save Code Block as Snippet", "Salvar Bloco de Código como Snippet")}
+            </h2>
             <div className="space-y-1">
-              <label className="text-xs font-medium">Title</label>
+              <label className="text-xs font-medium">{tr("Title", "Título")}</label>
               <Input
                 value={snippetModal.title}
                 onChange={(e) =>
@@ -906,7 +1027,7 @@ export function NotesWorkspace({
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium">Language</label>
+              <label className="text-xs font-medium">{tr("Language", "Linguagem")}</label>
               <Input
                 value={snippetModal.language}
                 onChange={(e) =>
@@ -922,10 +1043,10 @@ export function NotesWorkspace({
                 size="sm"
                 onClick={() => setSnippetModal(null)}
               >
-                Cancel
+                {tr("Cancel", "Cancelar")}
               </Button>
               <Button type="submit" size="sm" disabled={savingSnippet}>
-                {savingSnippet ? "Saving..." : "Save Snippet"}
+                {savingSnippet ? tr("Saving...", "Salvando...") : tr("Save Snippet", "Salvar Snippet")}
               </Button>
             </div>
           </form>

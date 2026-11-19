@@ -100,10 +100,36 @@ export async function updateSubscriptionStatus(
   id: string,
   status: "active" | "trial" | "paused" | "cancelled"
 ) {
+  return updateSubscription(userId, id, { status });
+}
+
+export async function updateSubscription(
+  userId: string,
+  id: string,
+  patch: {
+    status?: "active" | "trial" | "paused" | "cancelled";
+    name?: string;
+    category?: string;
+    amountCents?: number;
+    billingCycle?: "weekly" | "monthly" | "quarterly" | "yearly";
+    nextBillingDate?: string;
+  }
+) {
   return withUserRls(userId, async (tx) => {
+    const updateSet: Record<string, unknown> = { updatedAt: new Date() };
+    if (patch.status !== undefined) updateSet.status = patch.status;
+    if (patch.name !== undefined) updateSet.name = patch.name;
+    if (patch.category !== undefined) updateSet.category = patch.category;
+    if (patch.amountCents !== undefined) updateSet.amountCents = patch.amountCents;
+    if (patch.billingCycle !== undefined) updateSet.billingCycle = patch.billingCycle;
+    if (patch.nextBillingDate !== undefined) {
+      updateSet.nextBillingDate = patch.nextBillingDate;
+      updateSet.renewalDate = patch.nextBillingDate;
+    }
+
     const [updated] = await tx
       .update(subscriptions)
-      .set({ status, updatedAt: new Date() })
+      .set(updateSet)
       .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId)))
       .returning();
     return updated ?? null;

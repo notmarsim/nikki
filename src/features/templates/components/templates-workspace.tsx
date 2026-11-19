@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, LayoutTemplate, Sparkles } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface BuiltinTemplate {
   id: string;
@@ -14,6 +15,7 @@ interface BuiltinTemplate {
 }
 
 export function TemplatesWorkspace() {
+  const { tr } = useI18n();
   const [builtin, setBuiltin] = useState<BuiltinTemplate[]>([]);
   const [installedId, setInstalledId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -45,10 +47,13 @@ export function TemplatesWorkspace() {
       <header>
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           <LayoutTemplate className="h-6 w-6 text-[var(--accent)]" />
-          Nikki Templates
+          {tr("Nikki Templates", "Nikki Modelos")}
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          Start faster with ready-to-use packs of Projects, Notes, and starter Tasks.
+          {tr(
+            "Start faster with ready-to-use packs of Projects, Notes, and starter Tasks.",
+            "Comece mais rápido com pacotes prontos de Projetos, Notas e Tarefas iniciais."
+          )}
         </p>
       </header>
 
@@ -65,9 +70,9 @@ export function TemplatesWorkspace() {
               <h2 className="font-semibold">{tpl.name}</h2>
               <p className="text-xs text-[var(--muted)]">{tpl.description}</p>
               <ul className="space-y-1 pt-2 text-xs text-[var(--muted)]">
-                <li>• Project: {tpl.projectTitle}</li>
-                <li>• Note: {tpl.noteTitle}</li>
-                <li>• {tpl.tasks.length} starter tasks</li>
+                <li>• {tr("Project:", "Projeto:")} {tpl.projectTitle}</li>
+                <li>• {tr("Note:", "Nota:")} {tpl.noteTitle}</li>
+                <li>• {tpl.tasks.length} {tr("starter tasks", "tarefas iniciais")}</li>
               </ul>
             </div>
 
@@ -79,11 +84,14 @@ export function TemplatesWorkspace() {
             >
               {installedId === tpl.id ? (
                 <>
-                  <CheckCircle2 className="h-4 w-4" /> Installed
+                  <CheckCircle2 className="h-4 w-4" /> {tr("Installed", "Instalado")}
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4" /> {busyId === tpl.id ? "Installing..." : "Use Template"}
+                  <Sparkles className="h-4 w-4" />{" "}
+                  {busyId === tpl.id
+                    ? tr("Installing...", "Instalando...")
+                    : tr("Use Template", "Usar Modelo")}
                 </>
               )}
             </button>

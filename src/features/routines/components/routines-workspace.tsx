@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Check, Copy, ListOrdered, Pause, Play, Plus, SkipForward, Trash2 } from "lucide-react";
 
 interface RoutineStep {
@@ -28,12 +29,13 @@ interface Routine {
 }
 
 export function RoutinesWorkspace() {
+  const { t, tr } = useI18n();
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [title, setTitle] = useState("");
   const [scheduledTime, setScheduledTime] = useState("20:00");
   const [stepDrafts, setStepDrafts] = useState<Array<{ title: string; durationMinutes: number }>>([
-    { title: "Descansar", durationMinutes: 15 },
-    { title: "Estudar", durationMinutes: 45 },
+    { title: "Rest", durationMinutes: 15 },
+    { title: "Study", durationMinutes: 45 },
   ]);
   const [newStepTitle, setNewStepTitle] = useState("");
   const [newStepDuration, setNewStepDuration] = useState("20");
@@ -87,10 +89,10 @@ export function RoutinesWorkspace() {
       <header>
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           <ListOrdered className="h-6 w-6 text-[var(--accent)]" />
-          Routines
+          {t("routines.title")}
         </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Crie rotinas sequenciais com duração por etapa e execute no modo passo a passo.
+          {t("routines.subtitle")}
         </p>
       </header>
 
@@ -100,16 +102,16 @@ export function RoutinesWorkspace() {
           onSubmit={createRoutine}
           className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
         >
-          <h2 className="text-sm font-semibold">Nova Rotina</h2>
+          <h2 className="text-sm font-semibold">{tr("New Routine", "Nova Rotina")}</h2>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex: Noite produtiva"
+            placeholder={tr("e.g. Productive evening", "Ex: Noite produtiva")}
             className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
             required
           />
           <div className="flex items-center gap-2">
-            <label className="text-xs text-[var(--muted-foreground)]">Horário:</label>
+            <label className="text-xs text-[var(--muted-foreground)]">{tr("Time:", "Horário:")}</label>
             <input
               type="time"
               value={scheduledTime}
@@ -119,7 +121,7 @@ export function RoutinesWorkspace() {
           </div>
 
           <div className="space-y-1.5">
-            <div className="text-xs font-medium">Etapas ({stepDrafts.length})</div>
+            <div className="text-xs font-medium">{tr("Steps", "Etapas")} ({stepDrafts.length})</div>
             {stepDrafts.map((s, idx) => (
               <div
                 key={idx}
@@ -141,7 +143,7 @@ export function RoutinesWorkspace() {
               <input
                 value={newStepTitle}
                 onChange={(e) => setNewStepTitle(e.target.value)}
-                placeholder="Etapa"
+                placeholder={tr("Step", "Etapa")}
                 className="flex-1 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-xs"
               />
               <input
@@ -172,7 +174,7 @@ export function RoutinesWorkspace() {
             type="submit"
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
           >
-            <Plus className="h-4 w-4" /> Criar Rotina
+            <Plus className="h-4 w-4" /> {tr("Create Routine", "Criar Rotina")}
           </button>
         </form>
 
@@ -181,7 +183,7 @@ export function RoutinesWorkspace() {
             <div className="space-y-3 rounded-xl border border-[var(--accent)] bg-[var(--accent)]/10 p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs uppercase text-[var(--accent)]">Executando agora</div>
+                  <div className="text-xs uppercase text-[var(--accent)]">{tr("Running now", "Executando agora")}</div>
                   <h3 className="text-lg font-semibold">{activeRoutine.title}</h3>
                 </div>
                 <button
@@ -196,7 +198,7 @@ export function RoutinesWorkspace() {
                   }
                   className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs"
                 >
-                  Finalizar
+                  {tr("Finish", "Finalizar")}
                 </button>
               </div>
               {(() => {
@@ -206,11 +208,11 @@ export function RoutinesWorkspace() {
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--surface)] p-3">
                     <div>
                       <div className="text-sm font-medium">
-                        Etapa {activeRun.currentStepIndex + 1}/{activeRoutine.steps.length}:{" "}
+                        {tr("Step", "Etapa")} {activeRun.currentStepIndex + 1}/{activeRoutine.steps.length}:{" "}
                         {currentStep.title}
                       </div>
                       <div className="text-xs text-[var(--muted-foreground)]">
-                        Duração: {currentStep.durationMinutes} min
+                        {tr("Duration:", "Duração:")} {currentStep.durationMinutes} min
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -228,7 +230,7 @@ export function RoutinesWorkspace() {
                         }
                         className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white"
                       >
-                        <Check className="h-3.5 w-3.5" /> Concluir etapa
+                        <Check className="h-3.5 w-3.5" /> {tr("Complete step", "Concluir etapa")}
                       </button>
                       <button
                         type="button"
@@ -244,7 +246,7 @@ export function RoutinesWorkspace() {
                         }
                         className="inline-flex items-center gap-1 rounded border border-[var(--border)] px-2.5 py-1 text-xs"
                       >
-                        <SkipForward className="h-3.5 w-3.5" /> Pular
+                        <SkipForward className="h-3.5 w-3.5" /> {tr("Skip", "Pular")}
                       </button>
                     </div>
                   </div>
@@ -255,7 +257,7 @@ export function RoutinesWorkspace() {
 
           {routines.length === 0 ? (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-              Nenhuma rotina criada ainda. Monte sua primeira sequência ao lado.
+              {tr("No routines created yet. Build your first sequence on the side.", "Nenhuma rotina criada ainda. Monte sua primeira sequência ao lado.")}
             </div>
           ) : (
             routines.map((r) => {
@@ -268,10 +270,10 @@ export function RoutinesWorkspace() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <div className="font-semibold">
-                        {r.title} {r.isPaused ? "(Pausada)" : ""}
+                        {r.title} {r.isPaused ? tr("(Paused)", "(Pausada)") : ""}
                       </div>
                       <div className="text-xs text-[var(--muted-foreground)]">
-                        {r.scheduledTime ?? "08:00"} · {r.steps.length} etapas · {totalMin} min total
+                        {r.scheduledTime ?? "08:00"} · {r.steps.length} {tr("steps", "etapas")} · {totalMin} min total
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
@@ -283,7 +285,7 @@ export function RoutinesWorkspace() {
                         }}
                         className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1 text-xs font-medium text-white"
                       >
-                        <Play className="h-3.5 w-3.5" /> Iniciar
+                        <Play className="h-3.5 w-3.5" /> {tr("Start", "Iniciar")}
                       </button>
                       <button
                         type="button"
@@ -291,7 +293,7 @@ export function RoutinesWorkspace() {
                           void runAction({ action: "pause", routineId: r.id, isPaused: !r.isPaused })
                         }
                         className="rounded-lg border border-[var(--border)] p-1.5 text-xs"
-                        title={r.isPaused ? "Retomar" : "Pausar"}
+                        title={r.isPaused ? tr("Resume", "Retomar") : tr("Pause", "Pausar")}
                       >
                         <Pause className="h-3.5 w-3.5" />
                       </button>
@@ -299,7 +301,7 @@ export function RoutinesWorkspace() {
                         type="button"
                         onClick={() => void runAction({ action: "duplicate", routineId: r.id })}
                         className="rounded-lg border border-[var(--border)] p-1.5 text-xs"
-                        title="Duplicar rotina"
+                        title={tr("Duplicate routine", "Duplicar rotina")}
                       >
                         <Copy className="h-3.5 w-3.5" />
                       </button>
@@ -312,7 +314,7 @@ export function RoutinesWorkspace() {
                           await load();
                         }}
                         className="rounded-lg border border-[var(--border)] p-1.5 text-xs text-red-500"
-                        title="Excluir rotina"
+                        title={tr("Delete routine", "Excluir rotina")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

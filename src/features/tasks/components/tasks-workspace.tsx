@@ -32,17 +32,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 type TaskViewMode = "today" | "upcoming" | "all" | "board" | "completed";
 type TaskStatus = "todo" | "in_progress" | "blocked" | "done" | "cancelled";
 type TaskPriority = "none" | "low" | "medium" | "high" | "urgent";
-
-const BOARD_COLUMNS: Array<{ id: TaskStatus; label: string }> = [
-  { id: "todo", label: "To Do" },
-  { id: "in_progress", label: "Working" },
-  { id: "blocked", label: "Blocked" },
-  { id: "done", label: "Done" },
-];
 
 const PRIORITY_BADGE: Record<TaskPriority, "default" | "outline" | "accent" | "warning"> = {
   none: "outline",
@@ -58,8 +52,8 @@ function toLocalDatetimeInputValue(iso: string | Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function formatDueAt(iso: string | Date): string {
-  return new Date(iso).toLocaleString([], {
+function formatDueAt(iso: string | Date, locale: string): string {
+  return new Date(iso).toLocaleString(locale, {
     dateStyle: "short",
     timeStyle: "short",
   });
@@ -72,6 +66,18 @@ function KanbanCard({
   task: TaskWithRelations;
   onSelect: (id: string) => void;
 }) {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
+  const priorityText =
+    task.priority === "urgent"
+      ? tr("Urgent", "Urgente")
+      : task.priority === "high"
+        ? tr("High", "Alta")
+        : task.priority === "medium"
+          ? tr("Medium", "Média")
+          : task.priority === "low"
+            ? tr("Low", "Baixa")
+            : tr("None", "Nenhuma");
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
@@ -93,7 +99,7 @@ function KanbanCard({
     >
       <div className="font-medium leading-snug">{task.title}</div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <Badge variant={PRIORITY_BADGE[task.priority]}>{task.priority}</Badge>
+        <Badge variant={PRIORITY_BADGE[task.priority]}>{priorityText}</Badge>
         {task.projectName && (
           <Badge variant="outline" className="max-w-[120px] truncate">
             {task.projectName}
@@ -101,7 +107,7 @@ function KanbanCard({
         )}
         {task.dueAt && (
           <span className="text-[11px] text-[var(--muted-foreground)]">
-            {formatDueAt(task.dueAt)}
+            {formatDueAt(task.dueAt, locale)}
           </span>
         )}
       </div>
@@ -155,6 +161,43 @@ export function TasksWorkspace({
 }) {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { t, tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
+
+  const boardColumns: Array<{ id: TaskStatus; label: string }> = [
+    { id: "todo", label: tr("To Do", "A Fazer") },
+    { id: "in_progress", label: tr("Working", "Em Andamento") },
+    { id: "blocked", label: tr("Blocked", "Bloqueada") },
+    { id: "done", label: tr("Done", "Concluída") },
+  ];
+
+  const priorityLabel = (p: TaskPriority): string => {
+    switch (p) {
+      case "urgent":
+        return tr("Urgent", "Urgente");
+      case "high":
+        return tr("High", "Alta");
+      case "medium":
+        return tr("Medium", "Média");
+      case "low":
+        return tr("Low", "Baixa");
+      case "none":
+        return tr("None", "Nenhuma");
+    }
+  };
+
+  const recurrenceLabel = (freq: string): string => {
+    switch (freq) {
+      case "daily":
+        return tr("Daily", "Diária");
+      case "weekly":
+        return tr("Weekly", "Semanal");
+      case "monthly":
+        return tr("Monthly", "Mensal");
+      default:
+        return freq;
+    }
+  };
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
@@ -356,9 +399,9 @@ export function TasksWorkspace({
     <div className="mx-auto max-w-6xl space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("tasks.title")}</h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Manage tasks, subtasks, recurrence, and Kanban workflows linked to your projects and notes.
+            {t("tasks.subtitle")}
           </p>
         </div>
       </div>
@@ -373,7 +416,7 @@ export function TasksWorkspace({
           >
             <Input
               className="flex-1 min-w-[200px]"
-              placeholder="Add a task..."
+              placeholder={t("tasks.addPlaceholder")}
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
             />
@@ -381,36 +424,36 @@ export function TasksWorkspace({
               value={newPriority}
               onChange={(e) => setNewPriority(e.target.value as TaskPriority)}
               className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-              aria-label="Task priority"
+              aria-label={tr("Task priority", "Prioridade da tarefa")}
             >
-              <option value="urgent">Urgent</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-              <option value="none">None</option>
+              <option value="urgent">{tr("Urgent", "Urgente")}</option>
+              <option value="high">{tr("High", "Alta")}</option>
+              <option value="medium">{tr("Medium", "Média")}</option>
+              <option value="low">{tr("Low", "Baixa")}</option>
+              <option value="none">{tr("None", "Nenhuma")}</option>
             </select>
             <Input
               type="date"
               value={newDueDate}
               onChange={(e) => setNewDueDate(e.target.value)}
               className="w-36 text-xs"
-              aria-label="Due date"
+              aria-label={tr("Due date", "Data de vencimento")}
             />
             <Input
               type="time"
               value={newDueTime}
               onChange={(e) => setNewDueTime(e.target.value)}
               className="w-28 text-xs"
-              aria-label="Due time (optional, defaults to 23:59)"
-              title="Optional time (defaults to 23:59)"
+              aria-label={tr("Due time (optional, defaults to 23:59)", "Horário de vencimento (opcional, padrão 23:59)")}
+              title={tr("Optional time (defaults to 23:59)", "Horário opcional (padrão 23:59)")}
             />
             <select
               value={newProjectId}
               onChange={(e) => setNewProjectId(e.target.value)}
               className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-              aria-label="Project"
+              aria-label={tr("Project", "Projeto")}
             >
-              <option value="">No project</option>
+              <option value="">{tr("No project", "Sem projeto")}</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -423,16 +466,16 @@ export function TasksWorkspace({
                 setNewRecurrence(e.target.value as "" | "daily" | "weekly" | "monthly")
               }
               className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-              aria-label="Recurrence"
+              aria-label={tr("Recurrence", "Recorrência")}
             >
-              <option value="">One-time</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
+              <option value="">{tr("One-time", "Única")}</option>
+              <option value="daily">{tr("Daily", "Diária")}</option>
+              <option value="weekly">{tr("Weekly", "Semanal")}</option>
+              <option value="monthly">{tr("Monthly", "Mensal")}</option>
             </select>
             <Button type="submit" disabled={creating || !newTitle.trim()}>
               <Plus className="h-4 w-4" />
-              Add
+              {tr("Add", "Adicionar")}
             </Button>
           </form>
         </CardContent>
@@ -443,11 +486,11 @@ export function TasksWorkspace({
         <div className="flex flex-wrap gap-1">
           {(
             [
-              { id: "all", label: "All Tasks" },
-              { id: "today", label: "Today" },
-              { id: "upcoming", label: "Upcoming" },
-              { id: "board", label: "Board" },
-              { id: "completed", label: "Completed" },
+              { id: "all", label: tr("All Tasks", "Todas as Tarefas") },
+              { id: "today", label: tr("Today", "Hoje") },
+              { id: "upcoming", label: tr("Upcoming", "Próximas") },
+              { id: "board", label: tr("Board", "Quadro") },
+              { id: "completed", label: tr("Completed", "Concluídas") },
             ] as const
           ).map((tab) => (
             <button
@@ -471,7 +514,7 @@ export function TasksWorkspace({
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Filter tasks..."
+              placeholder={tr("Filter tasks...", "Filtrar tarefas...")}
               className="h-8 w-44 pl-8 text-xs"
             />
           </div>
@@ -479,9 +522,9 @@ export function TasksWorkspace({
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
             className="h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-            aria-label="Filter by project"
+            aria-label={tr("Filter by project", "Filtrar por projeto")}
           >
-            <option value="">All projects</option>
+            <option value="">{tr("All projects", "Todos os projetos")}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -492,34 +535,32 @@ export function TasksWorkspace({
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
             className="h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-            aria-label="Filter by priority"
+            aria-label={tr("Filter by priority", "Filtrar por prioridade")}
           >
-            <option value="">All priorities</option>
-            <option value="urgent">Urgent</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-            <option value="none">None</option>
+            <option value="">{tr("All priorities", "Todas as prioridades")}</option>
+            <option value="urgent">{tr("Urgent", "Urgente")}</option>
+            <option value="high">{tr("High", "Alta")}</option>
+            <option value="medium">{tr("Medium", "Média")}</option>
+            <option value="low">{tr("Low", "Baixa")}</option>
+            <option value="none">{tr("None", "Nenhuma")}</option>
           </select>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as "default" | "due_soonest")}
             className="h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-            aria-label="Sort tasks"
+            aria-label={tr("Sort tasks", "Ordenar tarefas")}
           >
-            <option value="default">Sort: Default</option>
-            <option value="due_soonest">Closest due date</option>
+            <option value="default">{t("tasks.sortDefault")}</option>
+            <option value="due_soonest">{t("tasks.sortDueSoonest")}</option>
           </select>
         </div>
       </div>
 
       {view === "completed" && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-xs text-[var(--muted-foreground)]">
-          <span>
-            Tarefas concluídas permanecem visíveis até o fim da semana e depois vão para o Arquivo.
-          </span>
+          <span>{t("tasks.archiveBanner")}</span>
           <Link href="/archive" className="font-medium text-[var(--accent)] hover:underline">
-            Abrir Arquivo →
+            {t("tasks.openArchive")}
           </Link>
         </div>
       )}
@@ -528,7 +569,7 @@ export function TasksWorkspace({
       {view === "board" ? (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {BOARD_COLUMNS.map((col) => (
+            {boardColumns.map((col) => (
               <KanbanColumn
                 key={col.id}
                 id={col.id}
@@ -542,7 +583,7 @@ export function TasksWorkspace({
       ) : filteredTasks.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-[var(--muted-foreground)]">
-            No tasks match this view. Create one above!
+            {tr("No tasks match this view. Create one above!", "Nenhuma tarefa nesta visualização. Crie uma acima!")}
           </CardContent>
         </Card>
       ) : (
@@ -566,8 +607,8 @@ export function TasksWorkspace({
                         setStatusMenuTaskId((prev) => (prev === task.id ? null : task.id))
                       }
                       className="shrink-0 text-[var(--muted-foreground)] hover:text-[var(--accent)]"
-                      aria-label="Choose task status"
-                      title="Change status"
+                      aria-label={tr("Choose task status", "Escolher status da tarefa")}
+                      title={tr("Change status", "Alterar status")}
                     >
                       {task.status === "done" ? (
                         <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -579,11 +620,11 @@ export function TasksWorkspace({
                       <div className="absolute left-0 top-7 z-30 w-36 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg">
                         {(
                           [
-                            ["todo", "To Do"],
-                            ["in_progress", "In Progress"],
-                            ["blocked", "Blocked"],
-                            ["done", "Done"],
-                            ["cancelled", "Cancelled"],
+                            ["todo", t("tasks.status.todo")],
+                            ["in_progress", t("tasks.status.in_progress")],
+                            ["blocked", t("tasks.status.blocked")],
+                            ["done", t("tasks.status.done")],
+                            ["cancelled", t("tasks.status.cancelled")],
                           ] as const
                         ).map(([st, label]) => (
                           <button
@@ -641,13 +682,13 @@ export function TasksWorkspace({
                           }`}
                         >
                           <Calendar className="h-3 w-3" />
-                          {formatDueAt(task.dueAt)}
+                          {formatDueAt(task.dueAt, locale)}
                         </span>
                       )}
                       {task.recurrence && (
                         <span className="inline-flex items-center gap-1">
                           <Repeat className="h-3 w-3" />
-                          {task.recurrence.frequency}
+                          {recurrenceLabel(task.recurrence.frequency)}
                         </span>
                       )}
                     </div>
@@ -655,20 +696,20 @@ export function TasksWorkspace({
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={PRIORITY_BADGE[task.priority]}>{task.priority}</Badge>
+                  <Badge variant={PRIORITY_BADGE[task.priority]}>{priorityLabel(task.priority)}</Badge>
                   <select
                     value={task.status}
                     onChange={(e) =>
                       handleUpdateTask(task.id, { status: e.target.value })
                     }
                     className="h-7 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-                    aria-label={`Status for ${task.title}`}
+                    aria-label={tr(`Status for ${task.title}`, `Status de ${task.title}`)}
                   >
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">Working</option>
-                    <option value="done">Done</option>
-                    <option value="blocked">Blocked</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="todo">{tr("To Do", "A Fazer")}</option>
+                    <option value="in_progress">{tr("Working", "Em Andamento")}</option>
+                    <option value="done">{tr("Done", "Concluída")}</option>
+                    <option value="blocked">{tr("Blocked", "Bloqueada")}</option>
+                    <option value="cancelled">{tr("Cancelled", "Cancelada")}</option>
                   </select>
                 </div>
               </div>
@@ -686,14 +727,14 @@ export function TasksWorkspace({
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                Task Detail
+                {tr("Task Detail", "Detalhes da Tarefa")}
               </span>
               <div className="flex items-center gap-1">
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={() => handleDuplicateTask(selectedTask.id)}
-                  title="Duplicate task"
+                  title={tr("Duplicate task", "Duplicar tarefa")}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -701,7 +742,7 @@ export function TasksWorkspace({
                   size="icon"
                   variant="ghost"
                   onClick={() => handleDeleteTask(selectedTask.id)}
-                  title="Delete task"
+                  title={tr("Delete task", "Excluir tarefa")}
                 >
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
@@ -709,7 +750,7 @@ export function TasksWorkspace({
                   size="icon"
                   variant="ghost"
                   onClick={() => setSelectedTaskId(null)}
-                  aria-label="Close detail panel"
+                  aria-label={tr("Close detail panel", "Fechar painel de detalhes")}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -719,7 +760,7 @@ export function TasksWorkspace({
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-medium text-[var(--muted-foreground)]">
-                  Title
+                  {tr("Title", "Título")}
                 </label>
                 <Input
                   defaultValue={selectedTask.title}
@@ -735,7 +776,7 @@ export function TasksWorkspace({
 
               <div>
                 <label className="text-xs font-medium text-[var(--muted-foreground)]">
-                  Description
+                  {tr("Description", "Descrição")}
                 </label>
                 <textarea
                   rows={3}
@@ -748,7 +789,7 @@ export function TasksWorkspace({
                       });
                     }
                   }}
-                  placeholder="Add notes or context..."
+                  placeholder={tr("Add notes or context...", "Adicione notas ou contexto...")}
                   className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
                 />
               </div>
@@ -756,7 +797,7 @@ export function TasksWorkspace({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-[var(--muted-foreground)]">
-                    Status
+                    {tr("Status", "Status")}
                   </label>
                   <select
                     value={selectedTask.status}
@@ -765,17 +806,17 @@ export function TasksWorkspace({
                     }
                     className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-sm"
                   >
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">Working</option>
-                    <option value="blocked">Blocked</option>
-                    <option value="done">Done</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="todo">{tr("To Do", "A Fazer")}</option>
+                    <option value="in_progress">{tr("Working", "Em Andamento")}</option>
+                    <option value="blocked">{tr("Blocked", "Bloqueada")}</option>
+                    <option value="done">{tr("Done", "Concluída")}</option>
+                    <option value="cancelled">{tr("Cancelled", "Cancelada")}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-xs font-medium text-[var(--muted-foreground)]">
-                    Priority
+                    {tr("Priority", "Prioridade")}
                   </label>
                   <select
                     value={selectedTask.priority}
@@ -784,21 +825,21 @@ export function TasksWorkspace({
                     }
                     className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-sm"
                   >
-                    <option value="urgent">Urgent</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                    <option value="none">None</option>
+                    <option value="urgent">{tr("Urgent", "Urgente")}</option>
+                    <option value="high">{tr("High", "Alta")}</option>
+                    <option value="medium">{tr("Medium", "Média")}</option>
+                    <option value="low">{tr("Low", "Baixa")}</option>
+                    <option value="none">{tr("None", "Nenhuma")}</option>
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium text-[var(--muted-foreground)]">
-                    Due Date
+                    {tr("Due Date", "Vencimento")}
                   </label>
-                  <div className="flex gap-1.5">
+                  <div className="mt-1 grid grid-cols-[1fr_7.5rem] gap-2">
                     <Input
                       type="date"
                       value={
@@ -822,7 +863,6 @@ export function TasksWorkspace({
                     />
                     <Input
                       type="time"
-                      className="w-28 shrink-0"
                       value={
                         selectedTask.dueAt
                           ? toLocalDatetimeInputValue(selectedTask.dueAt).slice(11, 16)
@@ -837,24 +877,36 @@ export function TasksWorkspace({
                           dueAt: new Date(`${datePart}T${timePart}:00`).toISOString(),
                         });
                       }}
-                      title="Optional time (defaults to 23:59)"
+                      title={tr("Optional time (defaults to 23:59)", "Horário opcional (padrão 23:59)")}
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs font-medium text-[var(--muted-foreground)]">
-                    Estimate (min)
+                    {tr("Estimate (hours)", "Estimativa (horas)")}
                   </label>
                   <Input
                     type="number"
-                    min={1}
-                    defaultValue={selectedTask.estimatedMinutes ?? ""}
+                    min={0}
+                    step="0.25"
+                    placeholder={tr("e.g. 2.5", "ex: 2.5")}
+                    defaultValue={
+                      selectedTask.estimatedMinutes
+                        ? Number((selectedTask.estimatedMinutes / 60).toFixed(2))
+                        : ""
+                    }
                     key={`est-${selectedTask.id}`}
+                    className="mt-1"
                     onBlur={(e) => {
-                      const val = e.target.value ? Number(e.target.value) : null;
-                      if (val !== selectedTask.estimatedMinutes) {
-                        handleUpdateTask(selectedTask.id, { estimatedMinutes: val });
+                      const raw = e.target.value.trim().replace(",", ".");
+                      const hours = raw ? Number(raw) : null;
+                      const mins =
+                        hours !== null && Number.isFinite(hours) && hours > 0
+                          ? Math.round(hours * 60)
+                          : null;
+                      if (mins !== selectedTask.estimatedMinutes) {
+                        handleUpdateTask(selectedTask.id, { estimatedMinutes: mins });
                       }
                     }}
                   />
@@ -864,7 +916,7 @@ export function TasksWorkspace({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-[var(--muted-foreground)]">
-                    Project
+                    {tr("Project", "Projeto")}
                   </label>
                   <select
                     value={selectedTask.projectId ?? ""}
@@ -875,7 +927,7 @@ export function TasksWorkspace({
                     }
                     className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-sm"
                   >
-                    <option value="">None</option>
+                    <option value="">{tr("None", "Nenhum")}</option>
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -886,7 +938,7 @@ export function TasksWorkspace({
 
                 <div>
                   <label className="text-xs font-medium text-[var(--muted-foreground)]">
-                    Linked Note
+                    {tr("Linked Note", "Nota Vinculada")}
                   </label>
                   <select
                     value={selectedTask.noteId ?? ""}
@@ -897,7 +949,7 @@ export function TasksWorkspace({
                     }
                     className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-sm"
                   >
-                    <option value="">None</option>
+                    <option value="">{tr("None", "Nenhuma")}</option>
                     {notes.map((n) => (
                       <option key={n.id} value={n.id}>
                         {n.title}
@@ -913,7 +965,7 @@ export function TasksWorkspace({
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--accent)] hover:underline"
                 >
                   <FileText className="h-3.5 w-3.5" />
-                  Open linked note →
+                  {tr("Open linked note →", "Abrir nota vinculada →")}
                 </Link>
               )}
 
@@ -926,7 +978,7 @@ export function TasksWorkspace({
               {/* Tags */}
               <div>
                 <label className="text-xs font-medium text-[var(--muted-foreground)]">
-                  Tags
+                  {tr("Tags", "Tags")}
                 </label>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {selectedTask.tags.map((tag) => (
@@ -941,7 +993,7 @@ export function TasksWorkspace({
                               .map((t) => t.name),
                           })
                         }
-                        aria-label={`Remove tag ${tag.name}`}
+                        aria-label={tr(`Remove tag ${tag.name}`, `Remover tag ${tag.name}`)}
                       >
                         ×
                       </button>
@@ -963,11 +1015,11 @@ export function TasksWorkspace({
                   <Input
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
-                    placeholder="Add tag..."
+                    placeholder={tr("Add tag...", "Adicionar tag...")}
                     className="h-8 text-xs"
                   />
                   <Button type="submit" size="sm" variant="outline">
-                    Add
+                    {tr("Add", "Adicionar")}
                   </Button>
                 </form>
               </div>
@@ -975,7 +1027,7 @@ export function TasksWorkspace({
               {/* Subtasks */}
               <div className="border-t border-[var(--border)] pt-4">
                 <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                  Subtasks ({subtasksOfSelected.length})
+                  {tr("Subtasks", "Subtarefas")} ({subtasksOfSelected.length})
                 </label>
                 <div className="mt-2 space-y-1.5">
                   {subtasksOfSelected.map((sub) => (
@@ -1011,7 +1063,7 @@ export function TasksWorkspace({
                         type="button"
                         onClick={() => handleDeleteTask(sub.id)}
                         className="text-[var(--muted-foreground)] hover:text-red-500"
-                        aria-label="Delete subtask"
+                        aria-label={tr("Delete subtask", "Excluir subtarefa")}
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -1022,11 +1074,11 @@ export function TasksWorkspace({
                   <Input
                     value={subtaskTitle}
                     onChange={(e) => setSubtaskTitle(e.target.value)}
-                    placeholder="Add subtask..."
+                    placeholder={tr("Add subtask...", "Adicionar subtarefa...")}
                     className="h-8 text-xs"
                   />
                   <Button type="submit" size="sm" variant="outline">
-                    Add
+                    {tr("Add", "Adicionar")}
                   </Button>
                 </form>
               </div>
@@ -1034,12 +1086,12 @@ export function TasksWorkspace({
               {/* Comments */}
               <div className="border-t border-[var(--border)] pt-4">
                 <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                  Comments ({comments.length})
+                  {tr("Comments", "Comentários")} ({comments.length})
                 </label>
                 <div className="mt-2 space-y-2">
                   {comments.length === 0 ? (
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      No comments yet.
+                      {tr("No comments yet.", "Nenhum comentário ainda.")}
                     </p>
                   ) : (
                     comments.map((comment) => (
@@ -1063,13 +1115,13 @@ export function TasksWorkspace({
                               });
                             }}
                             className="shrink-0 text-[var(--muted-foreground)] hover:text-red-500"
-                            aria-label="Delete comment"
+                            aria-label={tr("Delete comment", "Excluir comentário")}
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
                         </div>
                         <div className="mt-1 text-[10px] text-[var(--muted-foreground)]">
-                          {new Date(comment.createdAt).toLocaleString()}
+                          {new Date(comment.createdAt).toLocaleString(locale)}
                         </div>
                       </div>
                     ))
@@ -1108,7 +1160,7 @@ export function TasksWorkspace({
                   <Input
                     value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
-                    placeholder="Write a comment..."
+                    placeholder={tr("Write a comment...", "Escreva um comentário...")}
                     className="h-8 text-xs"
                   />
                   <Button
@@ -1117,7 +1169,7 @@ export function TasksWorkspace({
                     variant="outline"
                     disabled={postingComment || !commentInput.trim()}
                   >
-                    Post
+                    {tr("Post", "Publicar")}
                   </Button>
                 </form>
               </div>
@@ -1138,12 +1190,30 @@ function TaskDependenciesPanel({
   allTasks: TaskWithRelations[];
   onJumpToTask: (id: string) => void;
 }) {
+  const { tr } = useI18n();
   const [predecessors, setPredecessors] = useState<
     Array<{ id: string; title: string; status: string }>
   >([]);
   const [blockingReason, setBlockingReason] = useState<string | null>(null);
   const [selectedDepId, setSelectedDepId] = useState("");
   const [depError, setDepError] = useState<string | null>(null);
+
+  const statusLabel = (s: string): string => {
+    switch (s) {
+      case "todo":
+        return tr("To Do", "A Fazer");
+      case "in_progress":
+        return tr("Working", "Em Andamento");
+      case "blocked":
+        return tr("Blocked", "Bloqueada");
+      case "done":
+        return tr("Done", "Concluída");
+      case "cancelled":
+        return tr("Cancelled", "Cancelada");
+      default:
+        return s;
+    }
+  };
 
   const loadDeps = React.useCallback(async () => {
     const res = await fetch(`/api/tasks/${taskId}/dependencies`);
@@ -1166,11 +1236,11 @@ function TaskDependenciesPanel({
     <div className="space-y-2 border-t border-[var(--border)] pt-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-[var(--muted-foreground)]">
-          Dependencies (Predecessors)
+          {tr("Dependencies (Predecessors)", "Dependências (Predecessoras)")}
         </span>
         {blockingReason && (
           <Badge variant="warning" className="text-[10px]">
-            Blocked
+            {tr("Blocked", "Bloqueada")}
           </Badge>
         )}
       </div>
@@ -1188,7 +1258,7 @@ function TaskDependenciesPanel({
               onClick={() => onJumpToTask(p.id)}
               className="truncate text-left hover:underline"
             >
-              {p.title} ({p.status})
+              {p.title} ({statusLabel(p.status)})
             </button>
             <button
               type="button"
@@ -1199,6 +1269,7 @@ function TaskDependenciesPanel({
                 );
                 await loadDeps();
               }}
+              aria-label={tr("Remove dependency", "Remover dependência")}
               className="text-red-500 ml-2"
             >
               ×
@@ -1212,7 +1283,7 @@ function TaskDependenciesPanel({
           onChange={(e) => setSelectedDepId(e.target.value)}
           className="h-8 flex-1 rounded border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
         >
-          <option value="">Add predecessor task...</option>
+          <option value="">{tr("Add predecessor task...", "Adicionar tarefa predecessora...")}</option>
           {allTasks.map((t) => (
             <option key={t.id} value={t.id}>
               {t.title}
@@ -1233,14 +1304,14 @@ function TaskDependenciesPanel({
             });
             const json = (await res.json()) as { error?: { message?: string } };
             if (!res.ok) {
-              setDepError(json.error?.message ?? "Failed to add dependency");
+              setDepError(json.error?.message ?? tr("Failed to add dependency", "Falha ao adicionar dependência"));
               return;
             }
             setSelectedDepId("");
             await loadDeps();
           }}
         >
-          Add
+          {tr("Add", "Adicionar")}
         </Button>
       </div>
       {depError && <p className="text-xs text-red-500">{depError}</p>}

@@ -5,10 +5,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Inbox, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { matchesKeybinding } from "@/lib/keybindings";
 import { useUiStore } from "@/stores/ui-store";
 
 export function QuickCaptureModal() {
+  const { tr } = useI18n();
   const queryClient = useQueryClient();
   const { quickCaptureOpen, setQuickCaptureOpen, keybindings } = useUiStore();
   const [type, setType] = useState<"note" | "idea" | "link" | "task" | "quick_note">("note");
@@ -54,7 +56,7 @@ export function QuickCaptureModal() {
 
       const payload = await response.json();
       if (!response.ok) {
-        setError(payload?.error?.message ?? "Failed to capture item");
+        setError(payload?.error?.message ?? tr("Failed to capture item", "Falha ao capturar item"));
         return;
       }
 
@@ -71,13 +73,28 @@ export function QuickCaptureModal() {
     }
   };
 
+  const typeLabel = (itemType: "note" | "idea" | "link" | "task" | "quick_note") => {
+    switch (itemType) {
+      case "note":
+        return tr("Note", "Nota");
+      case "idea":
+        return tr("Idea", "Ideia");
+      case "task":
+        return tr("Task", "Tarefa");
+      case "link":
+        return tr("Link", "Link");
+      case "quick_note":
+        return tr("Quick note", "Nota rápida");
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[14vh] px-4"
       onClick={() => setQuickCaptureOpen(false)}
       role="dialog"
       aria-modal="true"
-      aria-label="Quick Capture"
+      aria-label={tr("Quick Capture", "Captura Rápida")}
     >
       <div
         className="w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl"
@@ -86,13 +103,15 @@ export function QuickCaptureModal() {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Inbox className="h-4 w-4 text-[var(--accent)]" />
-            <h2 className="text-base font-semibold">Quick Capture to Inbox</h2>
+            <h2 className="text-base font-semibold">
+              {tr("Quick Capture to Inbox", "Captura Rápida para a Caixa de Entrada")}
+            </h2>
           </div>
           <button
             type="button"
             onClick={() => setQuickCaptureOpen(false)}
             className="rounded-md p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)]"
-            aria-label="Close Quick Capture"
+            aria-label={tr("Close Quick Capture", "Fechar Captura Rápida")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -117,13 +136,13 @@ export function QuickCaptureModal() {
                     : "bg-[var(--surface-muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 }`}
               >
-                {t.replace("_", " ")}
+                {typeLabel(t)}
               </button>
             ))}
           </div>
 
           <Input
-            placeholder="Optional title..."
+            placeholder={tr("Optional title...", "Título opcional...")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
@@ -134,7 +153,10 @@ export function QuickCaptureModal() {
             required
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Capture a thought, task, snippet, or reference..."
+            placeholder={tr(
+              "Capture a thought, task, snippet, or reference...",
+              "Capture uma ideia, tarefa, snippet ou referência..."
+            )}
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
 
@@ -149,7 +171,8 @@ export function QuickCaptureModal() {
 
           <div className="flex items-center justify-between pt-1">
             <span className="text-xs text-[var(--muted-foreground)]">
-              Shortcut: <kbd className="rounded border border-[var(--border)] px-1">Ctrl+Shift+I</kbd>
+              {tr("Shortcut:", "Atalho:")}{" "}
+              <kbd className="rounded border border-[var(--border)] px-1">Ctrl+Shift+I</kbd>
             </span>
             <div className="flex gap-2">
               <Button
@@ -157,10 +180,12 @@ export function QuickCaptureModal() {
                 variant="outline"
                 onClick={() => setQuickCaptureOpen(false)}
               >
-                Cancel
+                {tr("Cancel", "Cancelar")}
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? "Capturing..." : "Capture"}
+                {submitting
+                  ? tr("Capturing...", "Capturando...")
+                  : tr("Capture", "Capturar")}
               </Button>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Compass, Sparkles, X } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { ALL_TOURS, INITIAL_TOUR_ID, type TourStepConfig } from "@/modules/onboarding/tours";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -18,6 +19,7 @@ interface OnboardingStatePayload {
 export function OnboardingTourOverlay() {
   const router = useRouter();
   const pathname = usePathname();
+  const { language, t } = useI18n();
   const interfaceMode = useUiStore((s) => s.interfaceMode);
   const setInterfaceMode = useUiStore((s) => s.setInterfaceMode);
 
@@ -44,7 +46,7 @@ export function OnboardingTourOverlay() {
   }, [loadState]);
 
   const activeTour =
-    ALL_TOURS.find((t) => t.id === (state?.currentTourId || INITIAL_TOUR_ID)) ?? ALL_TOURS[0]!;
+    ALL_TOURS.find((tDef) => tDef.id === (state?.currentTourId || INITIAL_TOUR_ID)) ?? ALL_TOURS[0]!;
   const visibleSteps: TourStepConfig[] = activeTour.steps.filter(
     (s) => !(s.advancedOnly && interfaceMode === "simple")
   );
@@ -61,17 +63,26 @@ export function OnboardingTourOverlay() {
       router.push(currentStep.route);
     }
 
-    const timer = setTimeout(() => {
+    let attempts = 0;
+    const findAndFocus = () => {
       const el = document.querySelector(currentStep.targetSelector);
       if (el instanceof HTMLElement) {
         el.scrollIntoView({ behavior: "smooth", block: "nearest" });
         setTargetRect(el.getBoundingClientRect());
-      } else {
-        setTargetRect(null);
+        return true;
       }
-    }, 280);
+      return false;
+    };
 
-    return () => clearTimeout(timer);
+    if (!findAndFocus()) {
+      const interval = setInterval(() => {
+        attempts++;
+        if (findAndFocus() || attempts >= 8) {
+          clearInterval(interval);
+        }
+      }, 150);
+      return () => clearInterval(interval);
+    }
   }, [state, currentStep, pathname, router]);
 
   async function patchState(patch: Record<string, unknown>) {
@@ -103,21 +114,18 @@ export function OnboardingTourOverlay() {
 
   if (!state) return null;
 
-  // 1. First-time Welcome Card
   if (!state.welcomeCompleted) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
         <div className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
           <div className="flex items-center gap-2 text-lg font-semibold">
             <Sparkles className="h-5 w-5 text-[var(--accent)]" />
-            Bem-vindo ao Nikki
+            {t("tour.welcomeTitle")}
           </div>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Seu espaço pessoal para organizar tarefas, rotina, agenda, estudos, viagens e finanças em um só lugar.
-          </p>
+          <p className="text-sm text-[var(--muted-foreground)]">{t("tour.welcomeDesc")}</p>
 
           <div className="space-y-2">
-            <div className="text-xs font-medium">Escolha como prefere começar:</div>
+            <div className="text-xs font-medium">{t("tour.chooseMode")}</div>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
@@ -128,9 +136,9 @@ export function OnboardingTourOverlay() {
                     : "border-[var(--border)]"
                 }`}
               >
-                <div className="font-semibold">Modo Simples</div>
+                <div className="font-semibold">{t("settings.simpleMode")}</div>
                 <div className="mt-0.5 text-[var(--muted-foreground)]">
-                  Navegação enxuta com os módulos essenciais.
+                  {t("settings.simpleModeDesc")}
                 </div>
               </button>
               <button
@@ -142,9 +150,9 @@ export function OnboardingTourOverlay() {
                     : "border-[var(--border)]"
                 }`}
               >
-                <div className="font-semibold">Modo Avançado</div>
+                <div className="font-semibold">{t("settings.advancedMode")}</div>
                 <div className="mt-0.5 text-[var(--muted-foreground)]">
-                  Acesso completo a todos os recursos e ferramentas.
+                  {t("settings.advancedModeDesc")}
                 </div>
               </button>
             </div>
@@ -156,14 +164,14 @@ export function OnboardingTourOverlay() {
               onClick={() => void applyModeAndStart(false)}
               className="rounded-lg border border-[var(--border)] px-3.5 py-2 text-xs font-medium"
             >
-              Pular Tour
+              {t("tour.skip")}
             </button>
             <button
               type="button"
               onClick={() => void applyModeAndStart(true)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white"
             >
-              <Compass className="h-4 w-4" /> Iniciar Tour Guiado
+              <Compass className="h-4 w-4" /> {t("tour.start")}
             </button>
           </div>
         </div>
@@ -171,23 +179,26 @@ export function OnboardingTourOverlay() {
     );
   }
 
-  // 2. Active Guided Tour Popover / Bottom Sheet
   if (state.tourStatus !== "in_progress" || !currentStep) return null;
 
   const isLast = stepIndex >= visibleSteps.length - 1;
+  const stepCounter = t("tour.stepOf")
+    .replace("{current}", String(stepIndex + 1))
+    .replace("{total}", String(visibleSteps.length));
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/35" />
+      {!targetRect && <div className="absolute inset-0 bg-black/45" />}
 
       {targetRect && (
         <div
-          className="absolute rounded-xl border-2 border-[var(--accent)] shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] transition-all duration-200"
+          className="absolute rounded-xl border-2 border-[var(--accent)] bg-white/10 ring-4 ring-[var(--accent)]/35 transition-all duration-200"
           style={{
             top: Math.max(4, targetRect.top - 4),
             left: Math.max(4, targetRect.left - 4),
             width: targetRect.width + 8,
             height: targetRect.height + 8,
+            boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.45)",
           }}
         />
       )}
@@ -196,14 +207,16 @@ export function OnboardingTourOverlay() {
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="text-[11px] font-medium text-[var(--accent)]">
-              {activeTour.title} · Etapa {stepIndex + 1} de {visibleSteps.length}
+              {activeTour.title[language]} · {stepCounter}
             </div>
-            <h3 className="mt-0.5 text-sm font-semibold">{currentStep.title}</h3>
+            <h3 className="mt-0.5 text-sm font-semibold">
+              {stepIndex + 1}. {currentStep.title[language]}
+            </h3>
           </div>
           <button
             type="button"
             onClick={() => void patchState({ tourStatus: "skipped" })}
-            aria-label="Fechar tour"
+            aria-label="Close tour"
             className="rounded p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
           >
             <X className="h-4 w-4" />
@@ -211,7 +224,7 @@ export function OnboardingTourOverlay() {
         </div>
 
         <p className="mt-2 text-xs leading-relaxed text-[var(--muted-foreground)]">
-          {currentStep.description}
+          {currentStep.description[language]}
         </p>
 
         <div className="mt-4 flex items-center justify-between gap-2">
@@ -220,7 +233,7 @@ export function OnboardingTourOverlay() {
             onClick={() => void patchState({ tourStatus: "skipped" })}
             className="text-xs text-[var(--muted-foreground)] hover:underline"
           >
-            Pular
+            {t("tour.skip")}
           </button>
           <div className="flex gap-2">
             {stepIndex > 0 && (
@@ -229,7 +242,7 @@ export function OnboardingTourOverlay() {
                 onClick={() => void patchState({ currentStepIndex: stepIndex - 1 })}
                 className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs"
               >
-                <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+                <ArrowLeft className="h-3.5 w-3.5" /> {t("tour.back")}
               </button>
             )}
             <button
@@ -246,7 +259,8 @@ export function OnboardingTourOverlay() {
               }}
               className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white"
             >
-              {isLast ? "Concluir" : "Avançar"} {!isLast && <ArrowRight className="h-3.5 w-3.5" />}
+              {isLast ? t("tour.finish") : t("tour.next")}{" "}
+              {!isLast && <ArrowRight className="h-3.5 w-3.5" />}
             </button>
           </div>
         </div>

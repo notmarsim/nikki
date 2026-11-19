@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Target, Trash2 } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface LifeArea {
   id: string;
@@ -24,6 +25,7 @@ interface LifeGoal {
 }
 
 export function GoalsWorkspace() {
+  const { tr } = useI18n();
   const [areas, setAreas] = useState<LifeArea[]>([]);
   const [goals, setGoals] = useState<LifeGoal[]>([]);
   const [areaName, setAreaName] = useState("");
@@ -95,15 +97,34 @@ export function GoalsWorkspace() {
     await load();
   }
 
+  const horizonLabel = (h: string) => {
+    if (h === "monthly") return tr("Monthly", "Mensal");
+    if (h === "quarterly") return tr("Quarterly", "Trimestral");
+    if (h === "annual") return tr("Annual", "Anual");
+    if (h === "multi_year") return tr("Multi-year", "Plurianual");
+    return h;
+  };
+
+  const goalStatusLabel = (s: string) => {
+    if (s === "active") return tr("active", "ativa");
+    if (s === "completed") return tr("completed", "concluída");
+    if (s === "paused") return tr("paused", "pausada");
+    if (s === "archived") return tr("archived", "arquivada");
+    return s;
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <header>
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           <Target className="h-6 w-6 text-[var(--accent)]" />
-          Goals & Life Areas
+          {tr("Goals & Life Areas", "Metas e Áreas da Vida")}
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          Organize life areas, long-term horizons, and track progress across manual and linked metrics.
+          {tr(
+            "Organize life areas, long-term horizons, and track progress across manual and linked metrics.",
+            "Organize áreas da vida, horizontes de longo prazo e acompanhe o progresso por métricas manuais e vinculadas."
+          )}
         </p>
       </header>
 
@@ -112,11 +133,13 @@ export function GoalsWorkspace() {
           onSubmit={createArea}
           className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
         >
-          <h2 className="text-sm font-semibold">Add Life Area</h2>
+          <h2 className="text-sm font-semibold">
+            {tr("Add Life Area", "Adicionar Área da Vida")}
+          </h2>
           <input
             value={areaName}
             onChange={(e) => setAreaName(e.target.value)}
-            placeholder="e.g. Health, Career, Learning"
+            placeholder={tr("e.g. Health, Career, Learning", "ex.: Saúde, Carreira, Aprendizado")}
             className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
             required
           />
@@ -124,7 +147,7 @@ export function GoalsWorkspace() {
             type="submit"
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5"
           >
-            <Plus className="h-4 w-4" /> Add Area
+            <Plus className="h-4 w-4" /> {tr("Add Area", "Adicionar Área")}
           </button>
           <div className="flex flex-wrap gap-1.5 pt-2">
             {areas.map((a) => (
@@ -142,12 +165,12 @@ export function GoalsWorkspace() {
           onSubmit={createGoal}
           className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:col-span-2"
         >
-          <h2 className="text-sm font-semibold">New Goal</h2>
+          <h2 className="text-sm font-semibold">{tr("New Goal", "Nova Meta")}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Goal title"
+              placeholder={tr("Goal title", "Título da meta")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm sm:col-span-2"
               required
             />
@@ -156,7 +179,7 @@ export function GoalsWorkspace() {
               onChange={(e) => setAreaId(e.target.value)}
               className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
             >
-              <option value="">No life area</option>
+              <option value="">{tr("No life area", "Sem área da vida")}</option>
               {areas.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
@@ -168,23 +191,23 @@ export function GoalsWorkspace() {
               onChange={(e) => setHorizon(e.target.value)}
               className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
             >
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="annual">Annual</option>
-              <option value="multi_year">Multi-year</option>
+              <option value="monthly">{tr("Monthly", "Mensal")}</option>
+              <option value="quarterly">{tr("Quarterly", "Trimestral")}</option>
+              <option value="annual">{tr("Annual", "Anual")}</option>
+              <option value="multi_year">{tr("Multi-year", "Plurianual")}</option>
             </select>
             <input
               type="number"
               min={1}
               value={targetValue}
               onChange={(e) => setTargetValue(e.target.value)}
-              placeholder="Target"
+              placeholder={tr("Target", "Alvo")}
               className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
             />
             <input
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              placeholder="Unit (%, books, km)"
+              placeholder={tr("Unit (%, books, km)", "Unidade (%, livros, km)")}
               className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
             />
           </div>
@@ -192,7 +215,7 @@ export function GoalsWorkspace() {
             type="submit"
             className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
           >
-            <Plus className="h-4 w-4" /> Create Goal
+            <Plus className="h-4 w-4" /> {tr("Create Goal", "Criar Meta")}
           </button>
         </form>
       </div>
@@ -200,7 +223,10 @@ export function GoalsWorkspace() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {goals.length === 0 ? (
           <div className="col-span-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted)]">
-            No goals yet. Create a life area and your first goal above.
+            {tr(
+              "No goals yet. Create a life area and your first goal above.",
+              "Nenhuma meta ainda. Crie uma área da vida e sua primeira meta acima."
+            )}
           </div>
         ) : (
           goals.map((g) => {
@@ -215,14 +241,14 @@ export function GoalsWorkspace() {
                     <div className="font-medium">{g.title}</div>
                     <div className="text-xs text-[var(--muted)]">
                       {area ? `${area.name} · ` : ""}
-                      {g.horizon} · {g.status}
+                      {horizonLabel(g.horizon)} · {goalStatusLabel(g.status)}
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => removeGoal(g.id)}
                     className="rounded p-1 text-[var(--muted)] hover:text-red-500"
-                    aria-label="Delete goal"
+                    aria-label={tr("Delete goal", "Excluir meta")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

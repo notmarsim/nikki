@@ -51,8 +51,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+    <html lang="en" translate="no" suppressHydrationWarning>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} notranslate font-sans antialiased`}>
         <ThemeProvider initialTheme="system">
           <QueryProvider>
             <PwaProvider>{children}</PwaProvider>

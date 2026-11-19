@@ -4,6 +4,8 @@ import React, { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
+  ChevronLeft,
+  ChevronRight,
   CreditCard,
   Download,
   Eye,
@@ -16,6 +18,7 @@ import {
   Upload,
   Wallet,
 } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -142,9 +145,27 @@ export function FinancesWorkspace({
   initialHideValues?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const { language, tr } = useI18n();
   const [tab, setTab] = useState<FinanceTab>("overview");
   const [month, setMonth] = useState(initialData.month);
   const [hideValues, setHideValues] = useState(initialHideValues);
+
+  const shiftMonth = (delta: number) => {
+    const [y, m] = month.split("-").map(Number);
+    if (!y || !m) return;
+    const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+    setMonth(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+  };
+
+  const monthLabel = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    if (!y || !m) return month;
+    return new Intl.DateTimeFormat(language === "pt-BR" ? "pt-BR" : "en-US", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(Date.UTC(y, m - 1, 1)));
+  }, [month, language]);
 
   // Forms state
   const [accName, setAccName] = useState("");
@@ -189,6 +210,7 @@ export function FinancesWorkspace({
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvText, setCsvText] = useState("");
   const [csvAccount, setCsvAccount] = useState(initialData.accounts[0]?.id ?? "");
+  const [csvExpenseSign, setCsvExpenseSign] = useState<"negative" | "positive">("negative");
   const [csvStatus, setCsvStatus] = useState<string | null>(null);
 
   const { data = initialData } = useQuery<FinanceOverviewPayload>({
@@ -209,6 +231,91 @@ export function FinancesWorkspace({
 
   const fmt = (cents: number, currency = "BRL") =>
     formatCents(cents, currency, true, hideValues);
+
+  const txTypeLabel = (type: string) => {
+    switch (type) {
+      case "income":
+        return tr("Income", "Receita");
+      case "expense":
+        return tr("Expense", "Despesa");
+      case "transfer":
+        return tr("Transfer", "Transferência");
+      case "refund":
+        return tr("Refund", "Reembolso");
+      case "adjustment":
+        return tr("Adjustment", "Ajuste");
+      default:
+        return type;
+    }
+  };
+
+  const txStatusLabel = (status: string) => {
+    switch (status) {
+      case "paid":
+        return tr("Paid", "Pago");
+      case "settled":
+        return tr("Settled", "Liquidado");
+      case "completed":
+        return tr("Completed", "Concluído");
+      case "pending":
+        return tr("Pending", "Pendente");
+      case "cancelled":
+        return tr("Cancelled", "Cancelado");
+      case "scheduled":
+        return tr("Scheduled", "Agendado");
+      default:
+        return status;
+    }
+  };
+
+  const accountTypeLabel = (type: string) => {
+    switch (type) {
+      case "checking":
+        return tr("Checking", "Conta Corrente");
+      case "savings":
+        return tr("Savings", "Poupança");
+      case "cash":
+        return tr("Cash", "Dinheiro");
+      case "wallet":
+        return tr("Digital Wallet", "Carteira Digital");
+      case "investment":
+        return tr("Investment", "Investimentos");
+      default:
+        return type;
+    }
+  };
+
+  const statementStatusLabel = (status: string) => {
+    switch (status) {
+      case "open":
+        return tr("Open", "Aberta");
+      case "closed":
+        return tr("Closed", "Fechada");
+      case "paid":
+        return tr("Paid", "Paga");
+      case "partial":
+        return tr("Partial", "Parcial");
+      case "overdue":
+        return tr("Overdue", "Vencida");
+      default:
+        return status;
+    }
+  };
+
+  const frequencyLabel = (freq: string) => {
+    switch (freq) {
+      case "daily":
+        return tr("Daily", "Diária");
+      case "weekly":
+        return tr("Weekly", "Semanal");
+      case "monthly":
+        return tr("Monthly", "Mensal");
+      case "annual":
+        return tr("Annual", "Anual");
+      default:
+        return freq;
+    }
+  };
 
   const maxMonthlyBar = useMemo(() => {
     let max = 100;
@@ -284,6 +391,7 @@ export function FinancesWorkspace({
       const fd = new FormData();
       fd.append("file", csvFile);
       fd.append("accountId", accountId);
+      fd.append("expenseSign", csvExpenseSign);
       res = await fetch("/api/finances/import", {
         method: "POST",
         body: fd,
@@ -312,7 +420,14 @@ export function FinancesWorkspace({
             date: dateRaw,
             description: descRaw || "Imported",
             amountCents: Math.abs(cents),
-            type: cents >= 0 ? "income" : "expense",
+            type:
+              csvExpenseSign === "positive"
+                ? cents >= 0
+                  ? "expense"
+                  : "income"
+                : cents >= 0
+                  ? "income"
+                  : "expense",
           });
         } catch {
           // skip invalid line
@@ -320,7 +435,12 @@ export function FinancesWorkspace({
       }
 
       if (parsedRows.length === 0) {
-        setCsvStatus("No valid rows found (expected: YYYY-MM-DD;Description;Amount).");
+        setCsvStatus(
+          tr(
+            "No valid rows found (expected: YYYY-MM-DD;Description;Amount).",
+            "Nenhuma linha válida encontrada (esperado: AAAA-MM-DD;Descrição;Valor)."
+          )
+        );
         return;
       }
 
@@ -338,13 +458,16 @@ export function FinancesWorkspace({
     const json = await res.json();
     if (res.ok) {
       setCsvStatus(
-        `Imported ${json.data.imported} rows (${json.data.skipped} duplicates skipped).`
+        tr(
+          `Imported ${json.data.imported} rows (${json.data.skipped} duplicates skipped).`,
+          `${json.data.imported} linha(s) importada(s) (${json.data.skipped} duplicata(s) ignorada(s)).`
+        )
       );
       setCsvFile(null);
       setCsvText("");
       refresh();
     } else {
-      setCsvStatus(json.error?.message ?? "Failed to import CSV.");
+      setCsvStatus(json.error?.message ?? tr("Failed to import CSV.", "Falha ao importar CSV."));
     }
   };
 
@@ -354,31 +477,49 @@ export function FinancesWorkspace({
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Wallet className="h-6 w-6 text-[var(--accent)]" />
-            Personal Finances
+            {tr("Personal Finances", "Finanças Pessoais")}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Manage accounts, credit card installments, budgets, goals, and monthly cash flow.
+            {tr(
+              "Manage accounts, credit card installments, budgets, goals, and monthly cash flow.",
+              "Gerencie contas, parcelas de cartão, orçamentos, metas e fluxo de caixa mensal."
+            )}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="h-9 w-40 text-xs"
-          />
+          <div className="inline-flex h-9 items-center rounded-md border border-[var(--border)] bg-[var(--surface)] px-1">
+            <button
+              type="button"
+              onClick={() => shiftMonth(-1)}
+              className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+              aria-label={tr("Previous month", "Mês anterior")}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <span className="min-w-[120px] px-2 text-center text-xs font-medium capitalize">
+              {monthLabel}
+            </span>
+            <button
+              type="button"
+              onClick={() => shiftMonth(1)}
+              className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+              aria-label={tr("Next month", "Próximo mês")}
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setHideValues((h) => !h)}
-            title="Toggle financial privacy"
+            title={tr("Toggle financial privacy", "Alternar privacidade financeira")}
           >
             {hideValues ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-            {hideValues ? "Show Values" : "Hide Values"}
+            {hideValues ? tr("Show Values", "Mostrar Valores") : tr("Hide Values", "Ocultar Valores")}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowCsvModal(true)}>
-            <Upload className="h-3.5 w-3.5" /> Import CSV
+            <Upload className="h-3.5 w-3.5" /> {tr("Import CSV", "Importar CSV")}
           </Button>
           <Button
             variant="outline"
@@ -394,13 +535,13 @@ export function FinancesWorkspace({
       <div className="flex flex-wrap gap-1 border-b border-[var(--border)] pb-2">
         {(
           [
-            { id: "overview", label: "Overview" },
-            { id: "transactions", label: "Transactions" },
-            { id: "accounts", label: `Accounts (${data.accounts.length})` },
-            { id: "cards", label: `Credit Cards (${data.creditCards.length})` },
-            { id: "budgets", label: `Budgets (${data.budgets.length})` },
-            { id: "recurring", label: `Recurring (${data.recurringRules.length})` },
-            { id: "goals", label: `Goals (${data.goals.length})` },
+            { id: "overview", label: tr("Overview", "Visão Geral") },
+            { id: "transactions", label: tr("Transactions", "Transações") },
+            { id: "accounts", label: `${tr("Accounts", "Contas")} (${data.accounts.length})` },
+            { id: "cards", label: `${tr("Credit Cards", "Cartões de Crédito")} (${data.creditCards.length})` },
+            { id: "budgets", label: `${tr("Budgets", "Orçamentos")} (${data.budgets.length})` },
+            { id: "recurring", label: `${tr("Recurring", "Recorrências")} (${data.recurringRules.length})` },
+            { id: "goals", label: `${tr("Goals", "Metas")} (${data.goals.length})` },
           ] as const
         ).map((t) => (
           <button
@@ -423,7 +564,7 @@ export function FinancesWorkspace({
         <Card>
           <CardHeader className="pb-1">
             <CardTitle className="text-xs text-[var(--muted-foreground)]">
-              Available Balance
+              {tr("Available Balance", "Saldo Disponível")}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-bold">
@@ -433,7 +574,7 @@ export function FinancesWorkspace({
         <Card>
           <CardHeader className="pb-1">
             <CardTitle className="text-xs text-[var(--muted-foreground)]">
-              Income ({data.month})
+              {tr("Income", "Receitas")} ({data.month})
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-bold text-emerald-500">
@@ -443,7 +584,7 @@ export function FinancesWorkspace({
         <Card>
           <CardHeader className="pb-1">
             <CardTitle className="text-xs text-[var(--muted-foreground)]">
-              Expenses ({data.month})
+              {tr("Expenses", "Despesas")} ({data.month})
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-bold text-red-500">
@@ -453,7 +594,7 @@ export function FinancesWorkspace({
         <Card>
           <CardHeader className="pb-1">
             <CardTitle className="text-xs text-[var(--muted-foreground)]">
-              Monthly Result
+              {tr("Monthly Result", "Resultado Mensal")}
             </CardTitle>
           </CardHeader>
           <CardContent
@@ -467,7 +608,7 @@ export function FinancesWorkspace({
         <Card>
           <CardHeader className="pb-1">
             <CardTitle className="text-xs text-[var(--muted-foreground)]">
-              Open Statements
+              {tr("Open Statements", "Faturas em Aberto")}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-bold text-amber-500">
@@ -481,12 +622,14 @@ export function FinancesWorkspace({
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Income vs Expenses (Last 6 Months)</CardTitle>
+              <CardTitle className="text-base">
+                {tr("Income vs Expenses (Last 6 Months)", "Receitas vs Despesas (Últimos 6 Meses)")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {data.monthlySeries.length === 0 ? (
                 <p className="py-8 text-center text-xs text-[var(--muted-foreground)]">
-                  Record transactions to view monthly cash flow.
+                  {tr("Record transactions to view monthly cash flow.", "Registre transações para visualizar o fluxo de caixa mensal.")}
                 </p>
               ) : (
                 <div className="flex items-end gap-4 h-44 pt-4">
@@ -498,14 +641,14 @@ export function FinancesWorkspace({
                           style={{
                             height: `${Math.max(4, Math.round((m.incomeCents / maxMonthlyBar) * 100))}%`,
                           }}
-                          title={`Income: ${fmt(m.incomeCents)}`}
+                          title={`${tr("Income", "Receita")}: ${fmt(m.incomeCents)}`}
                         />
                         <div
                           className="w-4 rounded-t bg-red-500/85"
                           style={{
                             height: `${Math.max(4, Math.round((m.expenseCents / maxMonthlyBar) * 100))}%`,
                           }}
-                          title={`Expense: ${fmt(m.expenseCents)}`}
+                          title={`${tr("Expense", "Despesa")}: ${fmt(m.expenseCents)}`}
                         />
                       </div>
                       <span className="text-[10px] text-[var(--muted-foreground)]">
@@ -520,12 +663,17 @@ export function FinancesWorkspace({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Expenses by Category ({data.month})</CardTitle>
+              <CardTitle className="text-base">
+                {tr("Expenses by Category", "Despesas por Categoria")} ({data.month})
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5">
               {data.expensesByCategory.length === 0 ? (
                 <p className="py-8 text-center text-xs text-[var(--muted-foreground)]">
-                  No expenses recorded for {data.month}.
+                  {tr(
+                    `No expenses recorded for ${data.month}.`,
+                    `Nenhuma despesa registrada em ${data.month}.`
+                  )}
                 </p>
               ) : (
                 data.expensesByCategory.slice(0, 6).map((c) => {
@@ -561,12 +709,12 @@ export function FinancesWorkspace({
         <div className="space-y-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">New Transaction</CardTitle>
+              <CardTitle className="text-base">{tr("New Transaction", "Nova Transação")}</CardTitle>
             </CardHeader>
             <CardContent>
               {data.accounts.length === 0 ? (
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  Create an account in the Accounts tab first.
+                  {tr("Create an account in the Accounts tab first.", "Crie uma conta na aba Contas primeiro.")}
                 </p>
               ) : (
                 <form onSubmit={handleCreateTransaction} className="grid grid-cols-1 gap-2 sm:grid-cols-6">
@@ -586,19 +734,19 @@ export function FinancesWorkspace({
                     onChange={(e) => setTxType(e.target.value as "expense" | "income")}
                     className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                   >
-                    <option value="expense">Expense</option>
-                    <option value="income">Income</option>
+                    <option value="expense">{tr("Expense", "Despesa")}</option>
+                    <option value="income">{tr("Income", "Receita")}</option>
                   </select>
                   <Input
                     value={txDesc}
                     onChange={(e) => setTxDesc(e.target.value)}
-                    placeholder="Description"
+                    placeholder={tr("Description", "Descrição")}
                     required
                   />
                   <Input
                     value={txAmount}
                     onChange={(e) => setTxAmount(e.target.value)}
-                    placeholder="Amount (e.g. 49,90)"
+                    placeholder={tr("Amount (e.g. 49,90)", "Valor (ex: 49,90)")}
                     required
                   />
                   <select
@@ -606,7 +754,7 @@ export function FinancesWorkspace({
                     onChange={(e) => setTxCat(e.target.value)}
                     className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                   >
-                    <option value="">Category</option>
+                    <option value="">{tr("Category", "Categoria")}</option>
                     {data.categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -633,7 +781,10 @@ export function FinancesWorkspace({
             <CardContent className="pt-4 space-y-2">
               {data.transactions.length === 0 ? (
                 <p className="py-8 text-center text-xs text-[var(--muted-foreground)]">
-                  No transactions recorded yet. Add your first income or expense above.
+                  {tr(
+                    "No transactions recorded yet. Add your first income or expense above.",
+                    "Nenhuma transação registrada ainda. Adicione sua primeira receita ou despesa acima."
+                  )}
                 </p>
               ) : (
                 data.transactions.map((t) => (
@@ -644,19 +795,19 @@ export function FinancesWorkspace({
                   <div className="min-w-0">
                     <div className="font-medium truncate">{t.description}</div>
                     <div className="text-[11px] text-[var(--muted-foreground)]">
-                      {t.transactionDate} · {t.type} ·{" "}
-                      {t.categoryId ? catMap.get(t.categoryId)?.name ?? "Category" : "Uncategorized"}
+                      {t.transactionDate} · {txTypeLabel(t.type)} ·{" "}
+                      {t.categoryId ? catMap.get(t.categoryId)?.name ?? tr("Category", "Categoria") : tr("Uncategorized", "Sem categoria")}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="capitalize">
-                      {t.status}
+                    <Badge variant="outline">
+                      {txStatusLabel(t.status)}
                     </Badge>
                     <span
                       className={`font-semibold ${
                         t.type === "income" || t.type === "refund"
                           ? "text-emerald-500"
-                          : "text-[var(--foreground)]"
+                          : "text-red-500"
                       }`}
                     >
                       {fmt(t.amountCents, t.currency)}
@@ -675,14 +826,14 @@ export function FinancesWorkspace({
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Accounts</CardTitle>
+              <CardTitle className="text-base">{tr("Accounts", "Contas")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <form onSubmit={handleCreateAccount} className="grid grid-cols-3 gap-2">
                 <Input
                   value={accName}
                   onChange={(e) => setAccName(e.target.value)}
-                  placeholder="Account name"
+                  placeholder={tr("Account name", "Nome da conta")}
                   required
                 />
                 <select
@@ -690,17 +841,17 @@ export function FinancesWorkspace({
                   onChange={(e) => setAccType(e.target.value)}
                   className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                 >
-                  <option value="checking">Checking</option>
-                  <option value="savings">Savings</option>
-                  <option value="cash">Cash</option>
-                  <option value="wallet">Digital Wallet</option>
-                  <option value="investment">Investment</option>
+                  <option value="checking">{tr("Checking", "Conta Corrente")}</option>
+                  <option value="savings">{tr("Savings", "Poupança")}</option>
+                  <option value="cash">{tr("Cash", "Dinheiro")}</option>
+                  <option value="wallet">{tr("Digital Wallet", "Carteira Digital")}</option>
+                  <option value="investment">{tr("Investment", "Investimentos")}</option>
                 </select>
                 <div className="flex gap-1">
                   <Input
                     value={accInit}
                     onChange={(e) => setAccInit(e.target.value)}
-                    placeholder="Initial (0,00)"
+                    placeholder={tr("Initial (0,00)", "Inicial (0,00)")}
                   />
                   <Button type="submit" size="sm">
                     <Plus className="h-4 w-4" />
@@ -716,8 +867,8 @@ export function FinancesWorkspace({
                   >
                     <div>
                       <div className="font-medium">{a.name}</div>
-                      <div className="text-xs text-[var(--muted-foreground)] capitalize">
-                        {a.accountType}
+                      <div className="text-xs text-[var(--muted-foreground)]">
+                        {accountTypeLabel(a.accountType)}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -725,7 +876,7 @@ export function FinancesWorkspace({
                       <button
                         type="button"
                         onClick={async () => {
-                          const nextName = window.prompt("Rename account:", a.name);
+                          const nextName = window.prompt(tr("Rename account:", "Renomear conta:"), a.name);
                           if (!nextName || !nextName.trim() || nextName.trim() === a.name) return;
                           const res = await fetch("/api/finances/accounts", {
                             method: "PATCH",
@@ -734,8 +885,8 @@ export function FinancesWorkspace({
                           });
                           if (res.ok) refresh();
                         }}
-                        title="Rename account"
-                        aria-label={`Rename account ${a.name}`}
+                        title={tr("Rename account", "Renomear conta")}
+                        aria-label={tr(`Rename account ${a.name}`, `Renomear conta ${a.name}`)}
                         className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -751,7 +902,7 @@ export function FinancesWorkspace({
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <ArrowLeftRight className="h-4 w-4 text-[var(--accent)]" />
-                Atomic Transfer Between Accounts
+                {tr("Atomic Transfer Between Accounts", "Transferência Atômica entre Contas")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -782,7 +933,7 @@ export function FinancesWorkspace({
                   onChange={(e) => setTrSrc(e.target.value)}
                   className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                 >
-                  <option value="">Source account</option>
+                  <option value="">{tr("Source account", "Conta de origem")}</option>
                   {data.accounts.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
@@ -794,7 +945,7 @@ export function FinancesWorkspace({
                   onChange={(e) => setTrDst(e.target.value)}
                   className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                 >
-                  <option value="">Target account</option>
+                  <option value="">{tr("Target account", "Conta de destino")}</option>
                   {data.accounts.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
@@ -804,10 +955,10 @@ export function FinancesWorkspace({
                 <Input
                   value={trAmount}
                   onChange={(e) => setTrAmount(e.target.value)}
-                  placeholder="Amount (e.g. 500,00)"
+                  placeholder={tr("Amount (e.g. 500,00)", "Valor (ex: 500,00)")}
                 />
                 <Button type="submit" size="sm">
-                  Transfer
+                  {tr("Transfer", "Transferir")}
                 </Button>
               </form>
             </CardContent>
@@ -821,7 +972,7 @@ export function FinancesWorkspace({
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Add Credit Card</CardTitle>
+                <CardTitle className="text-base">{tr("Add Credit Card", "Adicionar Cartão de Crédito")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form
@@ -850,13 +1001,13 @@ export function FinancesWorkspace({
                   <Input
                     value={cardName}
                     onChange={(e) => setCardName(e.target.value)}
-                    placeholder="Card name"
+                    placeholder={tr("Card name", "Nome do cartão")}
                     required
                   />
                   <Input
                     value={cardLimit}
                     onChange={(e) => setCardLimit(e.target.value)}
-                    placeholder="Limit (e.g. 3000,00)"
+                    placeholder={tr("Limit (e.g. 3000,00)", "Limite (ex: 3000,00)")}
                   />
                   <Input
                     type="number"
@@ -864,7 +1015,7 @@ export function FinancesWorkspace({
                     max={31}
                     value={cardClosing}
                     onChange={(e) => setCardClosing(e.target.value)}
-                    placeholder="Closing day"
+                    placeholder={tr("Closing day", "Dia de fechamento")}
                   />
                   <Input
                     type="number"
@@ -872,10 +1023,10 @@ export function FinancesWorkspace({
                     max={31}
                     value={cardDue}
                     onChange={(e) => setCardDue(e.target.value)}
-                    placeholder="Due day"
+                    placeholder={tr("Due day", "Dia de vencimento")}
                   />
                   <Button type="submit" size="sm" className="col-span-2">
-                    <CreditCard className="h-4 w-4" /> Add Card
+                    <CreditCard className="h-4 w-4" /> {tr("Add Card", "Adicionar Cartão")}
                   </Button>
                 </form>
               </CardContent>
@@ -883,7 +1034,9 @@ export function FinancesWorkspace({
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Record Card Purchase (Installments)</CardTitle>
+                <CardTitle className="text-base">
+                  {tr("Record Card Purchase (Installments)", "Registrar Compra no Cartão (Parcelas)")}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <form
@@ -925,13 +1078,13 @@ export function FinancesWorkspace({
                   <Input
                     value={purchDesc}
                     onChange={(e) => setPurchDesc(e.target.value)}
-                    placeholder="Purchase description"
+                    placeholder={tr("Purchase description", "Descrição da compra")}
                     required
                   />
                   <Input
                     value={purchAmount}
                     onChange={(e) => setPurchAmount(e.target.value)}
-                    placeholder="Total (e.g. 1200,00)"
+                    placeholder={tr("Total (e.g. 1200,00)", "Total (ex: 1200,00)")}
                     required
                   />
                   <Input
@@ -940,10 +1093,10 @@ export function FinancesWorkspace({
                     max={48}
                     value={purchInstallments}
                     onChange={(e) => setPurchInstallments(e.target.value)}
-                    placeholder="Installments"
+                    placeholder={tr("Installments", "Parcelas")}
                   />
                   <Button type="submit" size="sm" className="col-span-2">
-                    Record Purchase
+                    {tr("Record Purchase", "Registrar Compra")}
                   </Button>
                 </form>
               </CardContent>
@@ -958,9 +1111,9 @@ export function FinancesWorkspace({
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span>Limit: {fmt(c.creditLimitCents, c.currency)}</span>
-                    <span>Used: {fmt(c.usedLimitCents, c.currency)}</span>
-                    <span>Available: {fmt(c.availableLimitCents, c.currency)}</span>
+                    <span>{tr("Limit:", "Limite:")} {fmt(c.creditLimitCents, c.currency)}</span>
+                    <span>{tr("Used:", "Usado:")} {fmt(c.usedLimitCents, c.currency)}</span>
+                    <span>{tr("Available:", "Disponível:")} {fmt(c.availableLimitCents, c.currency)}</span>
                   </div>
                   <div className="space-y-1.5 pt-2">
                     {data.statements
@@ -975,14 +1128,14 @@ export function FinancesWorkspace({
                             <div>
                               <span className="font-medium">{s.periodKey}</span>
                               <span className="ml-2 text-[var(--muted-foreground)]">
-                                Due {s.dueDate}
+                                {tr("Due", "Venc.")} {s.dueDate}
                               </span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span>
                                 {fmt(remaining, c.currency)} / {fmt(s.totalCents, c.currency)}
                               </span>
-                              <Badge variant="outline">{s.status}</Badge>
+                              <Badge variant="outline">{statementStatusLabel(s.status)}</Badge>
                               {remaining > 0 && data.accounts.length > 0 && (
                                 <Button
                                   size="sm"
@@ -1003,7 +1156,7 @@ export function FinancesWorkspace({
                                     refresh();
                                   }}
                                 >
-                                  Pay
+                                  {tr("Pay", "Pagar")}
                                 </Button>
                               )}
                             </div>
@@ -1047,7 +1200,7 @@ export function FinancesWorkspace({
                 <Input
                   value={budName}
                   onChange={(e) => setBudName(e.target.value)}
-                  placeholder="Budget name"
+                  placeholder={tr("Budget name", "Nome do orçamento")}
                   required
                   className="w-48"
                 />
@@ -1056,7 +1209,7 @@ export function FinancesWorkspace({
                   onChange={(e) => setBudCat(e.target.value)}
                   className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                 >
-                  <option value="">All expenses</option>
+                  <option value="">{tr("All expenses", "Todas as despesas")}</option>
                   {data.categories
                     .filter((c) => c.kind === "expense")
                     .map((c) => (
@@ -1068,12 +1221,12 @@ export function FinancesWorkspace({
                 <Input
                   value={budLimit}
                   onChange={(e) => setBudLimit(e.target.value)}
-                  placeholder="Monthly limit (e.g. 800,00)"
+                  placeholder={tr("Monthly limit (e.g. 800,00)", "Limite mensal (ex: 800,00)")}
                   required
                   className="w-full sm:w-56"
                 />
                 <Button type="submit" size="sm">
-                  <PiggyBank className="h-4 w-4" /> Create Budget
+                  <PiggyBank className="h-4 w-4" /> {tr("Create Budget", "Criar Orçamento")}
                 </Button>
               </form>
             </CardContent>
@@ -1102,8 +1255,8 @@ export function FinancesWorkspace({
                     />
                   </div>
                   <div className="flex justify-between text-[var(--muted-foreground)]">
-                    <span>Spent: {fmt(b.spentCents, b.currency)}</span>
-                    <span>Limit: {fmt(b.limitCents, b.currency)}</span>
+                    <span>{tr("Spent:", "Gasto:")} {fmt(b.spentCents, b.currency)}</span>
+                    <span>{tr("Limit:", "Limite:")} {fmt(b.limitCents, b.currency)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -1143,14 +1296,14 @@ export function FinancesWorkspace({
                 <Input
                   value={recName}
                   onChange={(e) => setRecName(e.target.value)}
-                  placeholder="Rule name (e.g. Internet)"
+                  placeholder={tr("Rule name (e.g. Internet)", "Nome da regra (ex: Internet)")}
                   required
                   className="w-48"
                 />
                 <Input
                   value={recAmount}
                   onChange={(e) => setRecAmount(e.target.value)}
-                  placeholder="Amount (e.g. 99,90)"
+                  placeholder={tr("Amount (e.g. 99,90)", "Valor (ex: 99,90)")}
                   required
                   className="w-40"
                 />
@@ -1159,12 +1312,12 @@ export function FinancesWorkspace({
                   onChange={(e) => setRecFreq(e.target.value)}
                   className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                 >
-                  <option value="monthly">Monthly</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="annual">Annual</option>
+                  <option value="monthly">{tr("Monthly", "Mensal")}</option>
+                  <option value="weekly">{tr("Weekly", "Semanal")}</option>
+                  <option value="annual">{tr("Annual", "Anual")}</option>
                 </select>
                 <Button type="submit" size="sm">
-                  <Plus className="h-4 w-4" /> Add Rule
+                  <Plus className="h-4 w-4" /> {tr("Add Rule", "Adicionar Regra")}
                 </Button>
               </form>
 
@@ -1180,7 +1333,7 @@ export function FinancesWorkspace({
                   refresh();
                 }}
               >
-                <RefreshCw className="h-3.5 w-3.5" /> Generate Due
+                <RefreshCw className="h-3.5 w-3.5" /> {tr("Generate Due", "Gerar Vencidas")}
               </Button>
             </CardContent>
           </Card>
@@ -1194,7 +1347,7 @@ export function FinancesWorkspace({
                 <div>
                   <div className="font-medium text-sm">{r.name}</div>
                   <div className="text-[var(--muted-foreground)]">
-                    {r.frequency} · Next: {r.nextOccurrence}
+                    {frequencyLabel(r.frequency)} · {tr("Next:", "Próxima:")} {r.nextOccurrence}
                   </div>
                 </div>
                 <span className="font-semibold">{fmt(r.amountCents, r.currency)}</span>
@@ -1232,19 +1385,19 @@ export function FinancesWorkspace({
                 <Input
                   value={goalName}
                   onChange={(e) => setGoalName(e.target.value)}
-                  placeholder="Goal name (e.g. Emergency Fund)"
+                  placeholder={tr("Goal name (e.g. Emergency Fund)", "Nome da meta (ex: Reserva de Emergência)")}
                   required
                   className="w-full sm:w-72"
                 />
                 <Input
                   value={goalTarget}
                   onChange={(e) => setGoalTarget(e.target.value)}
-                  placeholder="Target (e.g. 5000,00)"
+                  placeholder={tr("Target (e.g. 5000,00)", "Meta (ex: 5000,00)")}
                   required
                   className="w-full sm:w-48"
                 />
                 <Button type="submit" size="sm">
-                  <Target className="h-4 w-4" /> Create Goal
+                  <Target className="h-4 w-4" /> {tr("Create Goal", "Criar Meta")}
                 </Button>
               </form>
             </CardContent>
@@ -1278,7 +1431,9 @@ export function FinancesWorkspace({
                         variant="outline"
                         className="h-7 text-[11px]"
                         onClick={async () => {
-                          const input = window.prompt("Contribution amount (e.g. 100,00):");
+                          const input = window.prompt(
+                            tr("Contribution amount (e.g. 100,00):", "Valor da contribuição (ex: 100,00):")
+                          );
                           if (!input) return;
                           const cents = Math.abs(parseMoneyToCents(input));
                           if (cents <= 0) return;
@@ -1290,7 +1445,7 @@ export function FinancesWorkspace({
                           refresh();
                         }}
                       >
-                        + Contribute
+                        {tr("+ Contribute", "+ Contribuir")}
                       </Button>
                     </div>
                   </CardContent>
@@ -1312,21 +1467,41 @@ export function FinancesWorkspace({
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleCsvImport}
           >
-            <h2 className="text-base font-semibold">Import Transactions (CSV)</h2>
+            <h2 className="text-base font-semibold">
+              {tr("Import Transactions (CSV)", "Importar Transações (CSV)")}
+            </h2>
             <p className="text-xs text-[var(--muted-foreground)]">
-              Format: <code>YYYY-MM-DD;Description;Amount</code> (negative for expenses).
+              {tr("Format:", "Formato:")}{" "}
+              <code>{tr("YYYY-MM-DD;Description;Amount", "AAAA-MM-DD;Descrição;Valor")}</code>{" "}
+              {tr("or", "ou")}{" "}
+              <code>date,title,&quot;amount&quot;</code> (Nubank).
             </p>
-            <select
-              value={csvAccount || data.accounts[0]?.id || ""}
-              onChange={(e) => setCsvAccount(e.target.value)}
-              className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
-            >
-              {data.accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <select
+                value={csvAccount || data.accounts[0]?.id || ""}
+                onChange={(e) => setCsvAccount(e.target.value)}
+                className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
+              >
+                {data.accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={csvExpenseSign}
+                onChange={(e) => setCsvExpenseSign(e.target.value as "negative" | "positive")}
+                className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
+                aria-label={tr("Expense sign in CSV", "Sinal das despesas no CSV")}
+              >
+                <option value="negative">
+                  {tr("Expenses are negative (-25.00)", "Despesas com valor negativo (-25,00)")}
                 </option>
-              ))}
-            </select>
+                <option value="positive">
+                  {tr("Expenses are positive (Nubank 25,00)", "Despesas com valor positivo (Nubank 25,00)")}
+                </option>
+              </select>
+            </div>
             <input
               type="file"
               accept=".csv,text/csv"
@@ -1337,7 +1512,7 @@ export function FinancesWorkspace({
                   return;
                 }
                 if (file.size > MAX_CSV_UPLOAD_BYTES) {
-                  setCsvStatus("CSV file exceeds 5 MB limit.");
+                  setCsvStatus(tr("CSV file exceeds 5 MB limit.", "O arquivo CSV excede o limite de 5 MB."));
                   setCsvFile(null);
                   return;
                 }
@@ -1348,7 +1523,9 @@ export function FinancesWorkspace({
                   setCsvText(clean);
                   setCsvStatus(null);
                 } catch (err) {
-                  setCsvStatus(err instanceof Error ? err.message : "Invalid CSV file.");
+                  setCsvStatus(
+                    err instanceof Error ? err.message : tr("Invalid CSV file.", "Arquivo CSV inválido.")
+                  );
                   setCsvFile(null);
                 }
               }}
@@ -1361,7 +1538,10 @@ export function FinancesWorkspace({
                 setCsvFile(null);
                 setCsvText(e.target.value);
               }}
-              placeholder={"2026-11-01;Salário;5000,00\n2026-11-02;Mercado;-250,40"}
+              placeholder={tr(
+                "2026-11-01;Salary;5000.00\n2026-11-02;Groceries;-250.40",
+                "2026-11-01;Salário;5000,00\n2026-11-02;Mercado;-250,40"
+              )}
               className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] p-2 font-mono text-xs"
             />
             {csvStatus && <p className="text-xs text-emerald-500">{csvStatus}</p>}
@@ -1372,10 +1552,10 @@ export function FinancesWorkspace({
                 size="sm"
                 onClick={() => setShowCsvModal(false)}
               >
-                Close
+                {tr("Close", "Fechar")}
               </Button>
               <Button type="submit" size="sm">
-                Import
+                {tr("Import", "Importar")}
               </Button>
             </div>
           </form>

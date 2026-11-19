@@ -383,17 +383,17 @@ export const APP_MODULES: AppModule[] = [
   },
   {
     id: "archive",
-    name: "Arquivo",
+    name: "Archive",
     href: "/archive",
     icon: "Archive",
     section: "productivity",
     phase: 6,
     status: "active",
-    description: "Histórico de tarefas concluídas, projetos arquivados e Lixeira.",
+    description: "History of completed tasks, archived projects, and 30-day Trash.",
     plannedFeatures: [
-      "Arquivamento semanal automático de tarefas concluídas",
-      "Histórico de projetos e restauração em lote",
-      "Lixeira com recuperação de 30 dias",
+      "Automatic weekly archiving of completed tasks",
+      "Project history and batch restoration",
+      "30-day Trash recovery",
     ],
   },
   {

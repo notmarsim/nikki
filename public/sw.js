@@ -1,4 +1,4 @@
-const CACHE_NAME = "nikki-static-v1";
+const CACHE_NAME = "nikki-static-v2";
 const STATIC_ASSETS = ["/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {
@@ -24,6 +24,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return;
 
   // Never cache API calls or dynamic auth endpoints
   if (url.pathname.startsWith("/api/")) return;

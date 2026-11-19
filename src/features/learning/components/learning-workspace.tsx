@@ -15,6 +15,7 @@ import {
   Timer,
   Trash2,
 } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +75,8 @@ export function LearningWorkspace({
 }: {
   initialOverview: { paths: PathSummary[]; courses: CourseSummary[] };
 }) {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const queryClient = useQueryClient();
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(
     initialOverview.courses[0]?.id ?? null
@@ -121,7 +124,14 @@ export function LearningWorkspace({
   };
 
   const handleDeletePath = async (id: string, title: string) => {
-    if (!window.confirm(`Delete learning path "${title}"? Courses inside it will be kept.`)) {
+    if (
+      !window.confirm(
+        tr(
+          `Delete learning path "${title}"? Courses inside it will be kept.`,
+          `Excluir a trilha de aprendizado "${title}"? Os cursos dentro dela serão mantidos.`
+        )
+      )
+    ) {
       return;
     }
     const res = await fetch(`/api/learning/paths/${id}`, { method: "DELETE" });
@@ -131,7 +141,14 @@ export function LearningWorkspace({
   };
 
   const handleDeleteCourse = async (id: string, title: string) => {
-    if (!window.confirm(`Delete course "${title}" and all its modules and lessons?`)) {
+    if (
+      !window.confirm(
+        tr(
+          `Delete course "${title}" and all its modules and lessons?`,
+          `Excluir o curso "${title}" e todos os seus módulos e aulas?`
+        )
+      )
+    ) {
       return;
     }
     const res = await fetch(`/api/learning/courses/${id}`, { method: "DELETE" });
@@ -143,12 +160,25 @@ export function LearningWorkspace({
     }
   };
 
+  const sessionStatusLabel = (status: string) => {
+    if (status === "completed") return tr("completed", "concluída");
+    if (status === "running") return tr("running", "em andamento");
+    if (status === "paused") return tr("paused", "pausada");
+    if (status === "discarded") return tr("discarded", "descartada");
+    return status;
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Learning Hub</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {tr("Learning Hub", "Central de Aprendizado")}
+        </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Organize Learning Paths, Courses, Modules, and Lessons with linked Notes, Flashcards, and Focus sessions.
+          {tr(
+            "Organize Learning Paths, Courses, Modules, and Lessons with linked Notes, Flashcards, and Focus sessions.",
+            "Organize Trilhas de Aprendizado, Cursos, Módulos e Aulas com Notas, Flashcards e sessões de Foco vinculados."
+          )}
         </p>
       </div>
 
@@ -156,7 +186,9 @@ export function LearningWorkspace({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">New Learning Path</CardTitle>
+            <CardTitle className="text-sm">
+              {tr("New Learning Path", "Nova Trilha de Aprendizado")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form
@@ -176,12 +208,15 @@ export function LearningWorkspace({
               }}
             >
               <Input
-                placeholder="e.g. Offensive Security, Music Theory..."
+                placeholder={tr(
+                  "e.g. Offensive Security, Music Theory...",
+                  "ex.: Segurança Ofensiva, Teoria Musical..."
+                )}
                 value={newPathTitle}
                 onChange={(e) => setNewPathTitle(e.target.value)}
               />
               <Button type="submit" size="sm">
-                <Plus className="h-4 w-4" /> Add
+                <Plus className="h-4 w-4" /> {tr("Add", "Adicionar")}
               </Button>
             </form>
           </CardContent>
@@ -189,7 +224,7 @@ export function LearningWorkspace({
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">New Course</CardTitle>
+            <CardTitle className="text-sm">{tr("New Course", "Novo Curso")}</CardTitle>
           </CardHeader>
           <CardContent>
             <form
@@ -215,7 +250,7 @@ export function LearningWorkspace({
             >
               <Input
                 className="flex-1 min-w-[160px]"
-                placeholder="Course title..."
+                placeholder={tr("Course title...", "Título do curso...")}
                 value={newCourseTitle}
                 onChange={(e) => setNewCourseTitle(e.target.value)}
               />
@@ -224,7 +259,7 @@ export function LearningWorkspace({
                 onChange={(e) => setNewCoursePathId(e.target.value)}
                 className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
               >
-                <option value="">No path</option>
+                <option value="">{tr("No path", "Sem trilha")}</option>
                 {overview.paths.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.title}
@@ -232,7 +267,7 @@ export function LearningWorkspace({
                 ))}
               </select>
               <Button type="submit" size="sm">
-                <Plus className="h-4 w-4" /> Add
+                <Plus className="h-4 w-4" /> {tr("Add", "Adicionar")}
               </Button>
             </form>
           </CardContent>
@@ -246,7 +281,7 @@ export function LearningWorkspace({
           {overview.paths.length > 0 && (
             <div className="space-y-2">
               <div className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                Learning Paths
+                {tr("Learning Paths", "Trilhas de Aprendizado")}
               </div>
               {overview.paths.map((p) => (
                 <div
@@ -260,8 +295,11 @@ export function LearningWorkspace({
                       <button
                         type="button"
                         onClick={() => handleDeletePath(p.id, p.title)}
-                        title="Delete learning path"
-                        aria-label={`Delete learning path ${p.title}`}
+                        title={tr("Delete learning path", "Excluir trilha de aprendizado")}
+                        aria-label={tr(
+                          `Delete learning path ${p.title}`,
+                          `Excluir trilha de aprendizado ${p.title}`
+                        )}
                         className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -269,7 +307,7 @@ export function LearningWorkspace({
                     </div>
                   </div>
                   <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                    {p.courses.length} courses
+                    {p.courses.length} {tr("courses", "cursos")}
                   </div>
                 </div>
               ))}
@@ -278,12 +316,12 @@ export function LearningWorkspace({
 
           <div className="space-y-2">
             <div className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-              Courses
+              {tr("Courses", "Cursos")}
             </div>
             {overview.courses.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-xs text-[var(--muted-foreground)]">
-                  No courses yet. Create one above!
+                  {tr("No courses yet. Create one above!", "Nenhum curso ainda. Crie um acima!")}
                 </CardContent>
               </Card>
             ) : (
@@ -310,9 +348,11 @@ export function LearningWorkspace({
                   </div>
                   <div className="mt-1.5 flex items-center justify-between text-[11px] text-[var(--muted-foreground)]">
                     <span>
-                      {c.completedLessons}/{c.totalLessons} lessons
+                      {c.completedLessons}/{c.totalLessons} {tr("lessons", "aulas")}
                     </span>
-                    <span>{c.studyMinutes}m studied</span>
+                    <span>
+                      {c.studyMinutes}m {tr("studied", "estudados")}
+                    </span>
                   </div>
                 </button>
               ))
@@ -326,7 +366,10 @@ export function LearningWorkspace({
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center text-sm text-[var(--muted-foreground)]">
                 <GraduationCap className="mb-2 h-8 w-8 opacity-60" />
-                Select a course to manage modules, lessons, and study materials.
+                {tr(
+                  "Select a course to manage modules, lessons, and study materials.",
+                  "Selecione um curso para gerenciar módulos, aulas e materiais de estudo."
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -338,15 +381,18 @@ export function LearningWorkspace({
                     <div className="mt-1 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
                       <span>
                         {courseDetail.course.completedLessons}/{courseDetail.course.totalLessons}{" "}
-                        lessons ({courseDetail.course.progress}%)
+                        {tr("lessons", "aulas")} ({courseDetail.course.progress}%)
                       </span>
-                      <span>· {courseDetail.course.studyMinutes} min studied</span>
+                      <span>
+                        · {courseDetail.course.studyMinutes} {tr("min studied", "min estudados")}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Link href={`/focus?courseId=${courseDetail.course.id}`}>
                       <Button size="sm">
-                        <Timer className="h-3.5 w-3.5" /> Start Study Focus
+                        <Timer className="h-3.5 w-3.5" />{" "}
+                        {tr("Start Study Focus", "Iniciar Foco de Estudo")}
                       </Button>
                     </Link>
                     <Button
@@ -355,8 +401,11 @@ export function LearningWorkspace({
                       onClick={() =>
                         handleDeleteCourse(courseDetail.course.id, courseDetail.course.title)
                       }
-                      title="Delete course"
-                      aria-label={`Delete course ${courseDetail.course.title}`}
+                      title={tr("Delete course", "Excluir curso")}
+                      aria-label={tr(
+                        `Delete course ${courseDetail.course.title}`,
+                        `Excluir curso ${courseDetail.course.title}`
+                      )}
                       className="text-red-500 hover:bg-red-500/10 hover:text-red-500"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -367,10 +416,19 @@ export function LearningWorkspace({
                 <div className="mt-4 flex flex-wrap gap-1">
                   {(
                     [
-                      { id: "curriculum", label: "Curriculum" },
-                      { id: "notes", label: `Notes (${courseDetail.linkedNotes.length})` },
-                      { id: "flashcards", label: `Flashcards (${courseDetail.decks.length})` },
-                      { id: "sessions", label: `Sessions (${courseDetail.sessions.length})` },
+                      { id: "curriculum", label: tr("Curriculum", "Currículo") },
+                      {
+                        id: "notes",
+                        label: `${tr("Notes", "Notas")} (${courseDetail.linkedNotes.length})`,
+                      },
+                      {
+                        id: "flashcards",
+                        label: `${tr("Flashcards", "Flashcards")} (${courseDetail.decks.length})`,
+                      },
+                      {
+                        id: "sessions",
+                        label: `${tr("Sessions", "Sessões")} (${courseDetail.sessions.length})`,
+                      },
                     ] as const
                   ).map((t) => (
                     <button
@@ -412,18 +470,21 @@ export function LearningWorkspace({
                       }}
                     >
                       <Input
-                        placeholder="Add module..."
+                        placeholder={tr("Add module...", "Adicionar módulo...")}
                         value={newModuleTitle}
                         onChange={(e) => setNewModuleTitle(e.target.value)}
                       />
                       <Button type="submit" size="sm">
-                        <Plus className="h-4 w-4" /> Module
+                        <Plus className="h-4 w-4" /> {tr("Module", "Módulo")}
                       </Button>
                     </form>
 
                     {courseDetail.modules.length === 0 ? (
                       <p className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                        No modules yet. Add your first module above!
+                        {tr(
+                          "No modules yet. Add your first module above!",
+                          "Nenhum módulo ainda. Adicione seu primeiro módulo acima!"
+                        )}
                       </p>
                     ) : (
                       <div className="space-y-4">
@@ -512,7 +573,7 @@ export function LearningWorkspace({
                               }}
                             >
                               <Input
-                                placeholder="Add lesson..."
+                                placeholder={tr("Add lesson...", "Adicionar aula...")}
                                 className="h-8 text-xs"
                                 value={newLessonTitleByMod[mod.id] ?? ""}
                                 onChange={(e) =>
@@ -523,7 +584,7 @@ export function LearningWorkspace({
                                 }
                               />
                               <Button type="submit" size="sm" variant="outline">
-                                Add
+                                {tr("Add", "Adicionar")}
                               </Button>
                             </form>
                           </div>
@@ -561,18 +622,24 @@ export function LearningWorkspace({
                       }}
                     >
                       <Input
-                        placeholder="Create study note for this course..."
+                        placeholder={tr(
+                          "Create study note for this course...",
+                          "Criar nota de estudo para este curso..."
+                        )}
                         value={newNoteTitle}
                         onChange={(e) => setNewNoteTitle(e.target.value)}
                       />
                       <Button type="submit" size="sm">
-                        <Plus className="h-4 w-4" /> Note
+                        <Plus className="h-4 w-4" /> {tr("Note", "Nota")}
                       </Button>
                     </form>
 
                     {courseDetail.linkedNotes.length === 0 ? (
                       <p className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                        No notes linked to this course yet.
+                        {tr(
+                          "No notes linked to this course yet.",
+                          "Nenhuma nota vinculada a este curso ainda."
+                        )}
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -587,7 +654,7 @@ export function LearningWorkspace({
                               {n.title}
                             </span>
                             <span className="text-xs text-[var(--muted-foreground)]">
-                              Open →
+                              {tr("Open →", "Abrir →")}
                             </span>
                           </Link>
                         ))}
@@ -601,13 +668,17 @@ export function LearningWorkspace({
                     <div className="flex justify-end">
                       <Link href="/flashcards">
                         <Button size="sm" variant="outline">
-                          <Layers className="h-3.5 w-3.5" /> Open Flashcards
+                          <Layers className="h-3.5 w-3.5" />{" "}
+                          {tr("Open Flashcards", "Abrir Flashcards")}
                         </Button>
                       </Link>
                     </div>
                     {courseDetail.decks.length === 0 ? (
                       <p className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                        No flashcard decks linked to this course yet.
+                        {tr(
+                          "No flashcard decks linked to this course yet.",
+                          "Nenhum baralho de flashcards vinculado a este curso ainda."
+                        )}
                       </p>
                     ) : (
                       courseDetail.decks.map((d) => (
@@ -627,7 +698,10 @@ export function LearningWorkspace({
                   <div className="space-y-2">
                     {courseDetail.sessions.length === 0 ? (
                       <p className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                        No focus sessions recorded for this course yet.
+                        {tr(
+                          "No focus sessions recorded for this course yet.",
+                          "Nenhuma sessão de foco registrada para este curso ainda."
+                        )}
                       </p>
                     ) : (
                       courseDetail.sessions.map((s) => (
@@ -635,9 +709,10 @@ export function LearningWorkspace({
                           key={s.id}
                           className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-xs"
                         >
-                          <span>{new Date(s.startedAt).toLocaleString()}</span>
+                          <span>{new Date(s.startedAt).toLocaleString(locale)}</span>
                           <Badge variant="outline">
-                            {Math.round(s.actualDurationSeconds / 60)} min · {s.status}
+                            {Math.round(s.actualDurationSeconds / 60)} min ·{" "}
+                            {sessionStatusLabel(s.status)}
                           </Badge>
                         </div>
                       ))

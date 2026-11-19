@@ -15,7 +15,7 @@ const postSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("generate"),
     planDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    workStartMinute: z.number().int().min(0).max(1380).optional(),
+    workStartMinute: z.number().int().min(0).max(1435).optional(),
     workEndMinute: z.number().int().min(60).max(1440).optional(),
   }),
   z.object({

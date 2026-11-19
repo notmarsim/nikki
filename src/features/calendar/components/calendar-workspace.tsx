@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 type CalendarView = "month" | "week" | "day" | "agenda";
 
@@ -51,7 +52,37 @@ export function CalendarWorkspace({
   tasks: TaskRecord[];
   timezone: string;
 }) {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const queryClient = useQueryClient();
+
+  const viewLabel = (v: CalendarView) => {
+    switch (v) {
+      case "day":
+        return tr("Day", "Dia");
+      case "week":
+        return tr("Week", "Semana");
+      case "month":
+        return tr("Month", "Mês");
+      case "agenda":
+        return tr("Agenda", "Agenda");
+    }
+  };
+
+  const priorityLabel = (priority: string) => {
+    switch (priority) {
+      case "urgent":
+        return tr("Urgent", "Urgente");
+      case "high":
+        return tr("High", "Alta");
+      case "medium":
+        return tr("Medium", "Média");
+      case "low":
+        return tr("Low", "Baixa");
+      default:
+        return priority;
+    }
+  };
   const [view, setView] = useState<CalendarView>("week");
   const [anchorDate, setAnchorDate] = useState<Date>(() => new Date());
   const [showNewModal, setShowNewModal] = useState(false);
@@ -192,9 +223,12 @@ export function CalendarWorkspace({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Calendar</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{tr("Calendar", "Calendário")}</h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Schedule events, recurring blocks, and drag tasks into time blocks ({timezone}).
+            {tr(
+              `Schedule events, recurring blocks, and drag tasks into time blocks (${timezone}).`,
+              `Agende eventos, blocos recorrentes e arraste tarefas para blocos de horário (${timezone}).`
+            )}
           </p>
         </div>
 
@@ -205,29 +239,39 @@ export function CalendarWorkspace({
                 key={v}
                 type="button"
                 onClick={() => setView(v)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize ${
+                className={`rounded-md px-2.5 py-1 text-xs font-medium ${
                   view === v
                     ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
                     : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 }`}
               >
-                {v}
+                {viewLabel(v)}
               </button>
             ))}
           </div>
 
-          <Button variant="outline" size="icon" onClick={() => shiftAnchor(-1)} aria-label="Previous">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => shiftAnchor(-1)}
+            aria-label={tr("Previous", "Anterior")}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => setAnchorDate(new Date())}>
-            Today
+            {tr("Today", "Hoje")}
           </Button>
-          <Button variant="outline" size="icon" onClick={() => shiftAnchor(1)} aria-label="Next">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => shiftAnchor(1)}
+            aria-label={tr("Next", "Próximo")}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
 
           <Button size="sm" onClick={() => setShowNewModal(true)}>
-            <Plus className="h-4 w-4" /> New Event
+            <Plus className="h-4 w-4" /> {tr("New Event", "Novo Evento")}
           </Button>
         </div>
       </div>
@@ -238,18 +282,23 @@ export function CalendarWorkspace({
           {isLoading ? (
             <Card>
               <CardContent className="py-12 text-center text-sm text-[var(--muted-foreground)]">
-                Loading calendar...
+                {tr("Loading calendar...", "Carregando calendário...")}
               </CardContent>
             </Card>
           ) : view === "agenda" ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Upcoming 30 Days</CardTitle>
+                <CardTitle className="text-base">
+                  {tr("Upcoming 30 Days", "Próximos 30 Dias")}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {occurrences.length === 0 ? (
                   <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">
-                    No events scheduled in the next 30 days.
+                    {tr(
+                      "No events scheduled in the next 30 days.",
+                      "Nenhum evento agendado nos próximos 30 dias."
+                    )}
                   </p>
                 ) : (
                   occurrences.map((occ) => (
@@ -268,14 +317,14 @@ export function CalendarWorkspace({
                             {occ.isRecurring && <Repeat className="h-3 w-3 opacity-60" />}
                             {occ.hasConflict && (
                               <Badge variant="warning" className="gap-1">
-                                <AlertTriangle className="h-3 w-3" /> Conflict
+                                <AlertTriangle className="h-3 w-3" /> {tr("Conflict", "Conflito")}
                               </Badge>
                             )}
                           </div>
                           <div className="text-xs text-[var(--muted-foreground)]">
                             {occ.isAllDay
-                              ? `${occ.allDayDate} · All day`
-                              : `${new Date(occ.startsAt).toLocaleString()} – ${new Date(occ.endsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                              ? `${occ.allDayDate} · ${tr("All day", "Dia inteiro")}`
+                              : `${new Date(occ.startsAt).toLocaleString(locale)} – ${new Date(occ.endsAt).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}`}
                           </div>
                         </div>
                       </div>
@@ -285,7 +334,11 @@ export function CalendarWorkspace({
                         onClick={() =>
                           handleDeleteOccurrence(occ, occ.isRecurring ? "single" : "series")
                         }
-                        title={occ.isRecurring ? "Cancel this occurrence" : "Delete event"}
+                        title={
+                          occ.isRecurring
+                            ? tr("Cancel this occurrence", "Cancelar esta ocorrência")
+                            : tr("Delete event", "Excluir evento")
+                        }
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
@@ -340,7 +393,7 @@ export function CalendarWorkspace({
                               : ""
                           }
                         >
-                          {day.toLocaleDateString("en-US", {
+                          {day.toLocaleDateString(locale, {
                             weekday: view === "month" ? undefined : "short",
                             day: "numeric",
                             month: view === "day" ? "long" : "short",
@@ -348,7 +401,7 @@ export function CalendarWorkspace({
                         </span>
                         {isToday && (
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]">
-                            Today
+                            {tr("Today", "Hoje")}
                           </span>
                         )}
                       </span>
@@ -359,7 +412,7 @@ export function CalendarWorkspace({
                           setShowNewModal(true);
                         }}
                         className="rounded p-0.5 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)]"
-                        title="Add event on this day"
+                        title={tr("Add event on this day", "Adicionar evento neste dia")}
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -385,7 +438,7 @@ export function CalendarWorkspace({
                                 )
                               }
                               className="opacity-0 group-hover:opacity-100 text-red-500"
-                              title="Delete"
+                              title={tr("Delete", "Excluir")}
                             >
                               ×
                             </button>
@@ -393,15 +446,15 @@ export function CalendarWorkspace({
                           <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[var(--muted-foreground)]">
                             <Clock className="h-2.5 w-2.5" />
                             {occ.isAllDay
-                              ? "All day"
-                              : new Date(occ.startsAt).toLocaleTimeString([], {
+                              ? tr("All day", "Dia inteiro")
+                              : new Date(occ.startsAt).toLocaleTimeString(locale, {
                                   hour: "2-digit",
                                   minute: "2-digit",
                                 })}
                             {occ.hasConflict && (
                               <AlertTriangle
                                 className="h-2.5 w-2.5 text-amber-500"
-                                aria-label="Time conflict"
+                                aria-label={tr("Time conflict", "Conflito de horário")}
                               />
                             )}
                           </div>
@@ -410,7 +463,7 @@ export function CalendarWorkspace({
                               href={`/tasks?taskId=${occ.linkedTask.id}`}
                               className="mt-0.5 block truncate text-[10px] text-[var(--accent)] hover:underline"
                             >
-                              Task: {occ.linkedTask.title}
+                              {tr("Task", "Tarefa")}: {occ.linkedTask.title}
                             </Link>
                           )}
                         </div>
@@ -429,13 +482,13 @@ export function CalendarWorkspace({
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-1.5">
                 <CalendarIcon className="h-4 w-4 text-[var(--accent)]" />
-                Drag Tasks to Schedule
+                {tr("Drag Tasks to Schedule", "Arraste Tarefas para Agendar")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 max-h-[540px] overflow-y-auto">
               {openTasks.length === 0 ? (
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  No open tasks to schedule.
+                  {tr("No open tasks to schedule.", "Nenhuma tarefa aberta para agendar.")}
                 </p>
               ) : (
                 openTasks.map((t) => (
@@ -447,13 +500,13 @@ export function CalendarWorkspace({
                   >
                     <div className="font-medium truncate">{t.title}</div>
                     <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--muted-foreground)]">
-                      <span>{t.priority}</span>
+                      <span>{priorityLabel(t.priority)}</span>
                       <button
                         type="button"
                         onClick={() => handleScheduleTaskOnDate(t.id, anchorDate)}
                         className="text-[var(--accent)] hover:underline"
                       >
-                        + Block 1h
+                        {tr("+ Block 1h", "+ Bloquear 1h")}
                       </button>
                     </div>
                   </div>
@@ -474,11 +527,13 @@ export function CalendarWorkspace({
             className="w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-base font-semibold">New Calendar Event</h2>
+            <h2 className="text-base font-semibold">
+              {tr("New Calendar Event", "Novo Evento no Calendário")}
+            </h2>
             <form onSubmit={handleCreateEvent} className="mt-4 space-y-3">
               <Input
                 required
-                placeholder="Event title..."
+                placeholder={tr("Event title...", "Título do evento...")}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -498,12 +553,13 @@ export function CalendarWorkspace({
                     onChange={(e) => setIsAllDay(e.target.checked)}
                   />
                   <label htmlFor="all-day" className="text-xs">
-                    All day
+                    {tr("All day", "Dia inteiro")}
                   </label>
                   <input
                     type="color"
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
+                    aria-label={tr("Event color", "Cor do evento")}
                     className="ml-auto h-7 w-10 rounded border border-[var(--border)]"
                   />
                 </div>
@@ -512,7 +568,9 @@ export function CalendarWorkspace({
               {!isAllDay && (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <label className="text-[11px] text-[var(--muted-foreground)]">Start</label>
+                    <label className="text-[11px] text-[var(--muted-foreground)]">
+                      {tr("Start", "Início")}
+                    </label>
                     <Input
                       type="time"
                       value={startTime}
@@ -521,7 +579,9 @@ export function CalendarWorkspace({
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] text-[var(--muted-foreground)]">End</label>
+                    <label className="text-[11px] text-[var(--muted-foreground)]">
+                      {tr("End", "Fim")}
+                    </label>
                     <Input
                       type="time"
                       value={endTime}
@@ -540,10 +600,10 @@ export function CalendarWorkspace({
                   }
                   className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
                 >
-                  <option value="">Does not repeat</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
+                  <option value="">{tr("Does not repeat", "Não se repete")}</option>
+                  <option value="daily">{tr("Daily", "Diariamente")}</option>
+                  <option value="weekly">{tr("Weekly", "Semanalmente")}</option>
+                  <option value="monthly">{tr("Monthly", "Mensalmente")}</option>
                 </select>
 
                 <select
@@ -551,7 +611,7 @@ export function CalendarWorkspace({
                   onChange={(e) => setLinkedTaskId(e.target.value)}
                   className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
                 >
-                  <option value="">Link task (optional)</option>
+                  <option value="">{tr("Link task (optional)", "Vincular tarefa (opcional)")}</option>
                   {openTasks.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.title}
@@ -562,10 +622,10 @@ export function CalendarWorkspace({
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setShowNewModal(false)}>
-                  Cancel
+                  {tr("Cancel", "Cancelar")}
                 </Button>
                 <Button type="submit" disabled={creating}>
-                  {creating ? "Saving..." : "Save Event"}
+                  {creating ? tr("Saving...", "Salvando...") : tr("Save Event", "Salvar Evento")}
                 </Button>
               </div>
             </form>

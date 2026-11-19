@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   ALL_SEARCH_TYPES,
   type GlobalSearchResult,
@@ -56,6 +57,8 @@ function TypeIcon({ type }: { type: SearchEntityType }) {
 }
 
 export function SearchWorkspace() {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [debouncedQuery, setDebouncedQuery] = useState(query);
@@ -63,6 +66,35 @@ export function SearchWorkspace() {
   const [tagFilter, setTagFilter] = useState<string>("");
   const [offset, setOffset] = useState(0);
   const limit = 20;
+
+  const typeLabel = (type: SearchEntityType) => {
+    switch (type) {
+      case "note":
+        return tr("Note", "Nota");
+      case "task":
+        return tr("Task", "Tarefa");
+      case "project":
+        return tr("Project", "Projeto");
+      case "course":
+        return tr("Course", "Curso");
+      case "lesson":
+        return tr("Lesson", "Aula");
+      case "event":
+        return tr("Event", "Evento");
+      case "deck":
+        return tr("Deck", "Baralho");
+      case "habit":
+        return tr("Habit", "Hábito");
+      case "bookmark":
+        return tr("Bookmark", "Favorito");
+      case "snippet":
+        return tr("Snippet", "Snippet");
+      case "command":
+        return tr("Command", "Comando");
+      case "reference":
+        return tr("Reference", "Referência");
+    }
+  };
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -95,10 +127,13 @@ export function SearchWorkspace() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Search className="h-6 w-6 text-[var(--accent)]" />
-          Advanced Global Search
+          {tr("Advanced Global Search", "Busca Global Avançada")}
         </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Full-text and fuzzy trigram search across Notes, Tasks, Projects, Courses, Bookmarks, Snippets, and Commands.
+          {tr(
+            "Full-text and fuzzy trigram search across Notes, Tasks, Projects, Courses, Bookmarks, Snippets, and Commands.",
+            "Busca textual completa e aproximada em Notas, Tarefas, Projetos, Cursos, Favoritos, Snippets e Comandos."
+          )}
         </p>
       </div>
 
@@ -110,7 +145,7 @@ export function SearchWorkspace() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search anything across Nikki..."
+                placeholder={tr("Search anything across Nikki...", "Buscar qualquer coisa no Nikki...")}
                 className="pl-9"
                 autoFocus
               />
@@ -123,10 +158,10 @@ export function SearchWorkspace() {
               }}
               className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 text-sm"
             >
-              <option value="">All types</option>
+              <option value="">{tr("All types", "Todos os tipos")}</option>
               {ALL_SEARCH_TYPES.map((t) => (
                 <option key={t} value={t}>
-                  {t}
+                  {typeLabel(t)}
                 </option>
               ))}
             </select>
@@ -136,7 +171,7 @@ export function SearchWorkspace() {
                 setTagFilter(e.target.value);
                 setOffset(0);
               }}
-              placeholder="Filter by #tag"
+              placeholder={tr("Filter by #tag", "Filtrar por #tag")}
               className="w-40"
             />
           </div>
@@ -146,19 +181,22 @@ export function SearchWorkspace() {
       {!debouncedQuery.trim() ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-[var(--muted-foreground)]">
-            Type a keyword, title, code token, or tag to search across your entire workspace.
+            {tr(
+              "Type a keyword, title, code token, or tag to search across your entire workspace.",
+              "Digite uma palavra-chave, título, código ou tag para buscar em todo o seu espaço de trabalho."
+            )}
           </CardContent>
         </Card>
       ) : isFetching && results.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-[var(--muted-foreground)]">
-            Searching...
+            {tr("Searching...", "Buscando...")}
           </CardContent>
         </Card>
       ) : results.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-[var(--muted-foreground)]">
-            No results found for &ldquo;{debouncedQuery}&rdquo;.
+            {tr("No results found for", "Nenhum resultado encontrado para")} &ldquo;{debouncedQuery}&rdquo;.
           </CardContent>
         </Card>
       ) : (
@@ -174,8 +212,8 @@ export function SearchWorkspace() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-sm truncate">{r.title}</span>
-                        <Badge variant="outline" className="text-[10px] capitalize">
-                          {r.type}
+                        <Badge variant="outline" className="text-[10px]">
+                          {typeLabel(r.type)}
                         </Badge>
                         {r.context && (
                           <Badge variant="outline" className="text-[10px]">
@@ -197,7 +235,7 @@ export function SearchWorkspace() {
                     </div>
                   </div>
                   <span className="shrink-0 text-[11px] text-[var(--muted-foreground)]">
-                    {new Date(r.updatedAt).toLocaleDateString()}
+                    {new Date(r.updatedAt).toLocaleDateString(locale)}
                   </span>
                 </CardContent>
               </Card>
@@ -211,7 +249,7 @@ export function SearchWorkspace() {
               disabled={offset === 0}
               onClick={() => setOffset((o) => Math.max(0, o - limit))}
             >
-              Previous
+              {tr("Previous", "Anterior")}
             </Button>
             <Button
               variant="outline"
@@ -219,7 +257,7 @@ export function SearchWorkspace() {
               disabled={results.length < limit}
               onClick={() => setOffset((o) => o + limit)}
             >
-              Next
+              {tr("Next", "Próxima")}
             </Button>
           </div>
         </div>

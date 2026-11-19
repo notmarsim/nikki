@@ -16,6 +16,6 @@ describe("Settings Preference Registry", () => {
 
   it("falls back safely when invalid preference values are stored", () => {
     const fallback = mergeUserPreferences({ language: "invalid-lang" });
-    expect(fallback.language).toBe("pt-BR");
+    expect(fallback.language).toBe("en-US");
   });
 });

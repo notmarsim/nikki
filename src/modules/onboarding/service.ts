@@ -89,6 +89,9 @@ export interface ContextualSuggestion {
   title: string;
   description: string;
   actionLabel: string;
+  titlePt?: string;
+  descriptionPt?: string;
+  actionLabelPt?: string;
   href: string;
   priority: number;
 }
@@ -152,9 +155,12 @@ export async function getContextualSuggestions(
     if (overdueCount >= 2) {
       suggestions.push({
         id: `ctx-recovery-${overdueCount}`,
-        title: `Existem ${overdueCount} tarefas atrasadas`,
-        description: "Deseja reorganizar seu planejamento sem perder nada?",
-        actionLabel: "Abrir Recovery",
+        title: `${overdueCount} overdue task(s)`,
+        description: "Reorganize your schedule without losing track of anything.",
+        actionLabel: "Open Recovery",
+        titlePt: `Existem ${overdueCount} tarefas atrasadas`,
+        descriptionPt: "Deseja reorganizar seu planejamento sem perder nada?",
+        actionLabelPt: "Abrir Recovery",
         href: "/day-planner?recovery=1",
         priority: 100,
       });
@@ -164,9 +170,12 @@ export async function getContextualSuggestions(
       const sub = upcomingSubs[0]!;
       suggestions.push({
         id: `ctx-sub-${sub.id}-${sub.nextBillingDate}`,
-        title: `Assinatura "${sub.name}" renova em breve (${sub.nextBillingDate})`,
-        description: "Confira suas próximas cobranças ou pause se não estiver usando.",
-        actionLabel: "Ver Assinaturas",
+        title: `Subscription "${sub.name}" renews soon (${sub.nextBillingDate})`,
+        description: "Review upcoming charges or pause if you are not using it.",
+        actionLabel: "View Subscriptions",
+        titlePt: `Assinatura "${sub.name}" renova em breve (${sub.nextBillingDate})`,
+        descriptionPt: "Confira suas próximas cobranças ou pause se não estiver usando.",
+        actionLabelPt: "Ver Assinaturas",
         href: "/subscriptions",
         priority: 85,
       });
@@ -175,9 +184,12 @@ export async function getContextualSuggestions(
     if (openTasks.length > 0) {
       suggestions.push({
         id: `ctx-planner-${todayStr}`,
-        title: "Organize seu dia em blocos de tempo",
-        description: `Você tem ${openTasks.length} tarefa(s) pendente(s) que podem ser distribuídas hoje.`,
-        actionLabel: "Abrir Day Planner",
+        title: "Organize your day into time blocks",
+        description: `You have ${openTasks.length} pending task(s) ready to schedule today.`,
+        actionLabel: "Open Day Planner",
+        titlePt: "Organize seu dia em blocos de tempo",
+        descriptionPt: `Você tem ${openTasks.length} tarefa(s) pendente(s) que podem ser distribuídas hoje.`,
+        actionLabelPt: "Abrir Planejador do Dia",
         href: "/day-planner",
         priority: 70,
       });
@@ -187,9 +199,12 @@ export async function getContextualSuggestions(
       const trip = upcomingTrips[0]!;
       suggestions.push({
         id: `ctx-trip-${trip.id}`,
-        title: `Viagem próxima: ${trip.name} (${trip.startDate})`,
-        description: "Revise seu roteiro, reservas e checklist de bagagem.",
-        actionLabel: "Abrir Viagem",
+        title: `Upcoming trip: ${trip.name} (${trip.startDate})`,
+        description: "Review your itinerary, bookings, and packing checklist.",
+        actionLabel: "Open Trip",
+        titlePt: `Viagem próxima: ${trip.name} (${trip.startDate})`,
+        descriptionPt: "Revise seu roteiro, reservas e checklist de bagagem.",
+        actionLabelPt: "Abrir Viagem",
         href: "/trips",
         priority: 65,
       });
@@ -198,9 +213,12 @@ export async function getContextualSuggestions(
     if (activeLists.length > 0) {
       suggestions.push({
         id: `ctx-shopping-${activeLists[0]!.id}`,
-        title: `Lista de compras ativa: ${activeLists[0]!.name}`,
-        description: "Acompanhe itens pendentes e registre o valor final ao concluir.",
-        actionLabel: "Abrir Compras",
+        title: `Active shopping list: ${activeLists[0]!.name}`,
+        description: "Track pending items and log the final total when done.",
+        actionLabel: "Open Shopping",
+        titlePt: `Lista de compras ativa: ${activeLists[0]!.name}`,
+        descriptionPt: "Acompanhe itens pendentes e registre o valor final ao concluir.",
+        actionLabelPt: "Abrir Compras",
         href: "/shopping",
         priority: 50,
       });

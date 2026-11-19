@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, Menu, Monitor, Moon, PanelLeftOpen, Plus, Search, Sun } from "lucide-react";
 import { useTheme, type ThemeMode } from "@/components/providers/theme-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -20,6 +21,7 @@ const NEXT_THEME: Record<ThemeMode, ThemeMode> = {
 
 export function Topbar({ userName, userEmail }: TopbarProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const { theme, setTheme } = useTheme();
   const {
     sidebarCollapsed,
@@ -79,7 +81,7 @@ export function Topbar({ userName, userEmail }: TopbarProps) {
         >
           <span className="flex items-center gap-2">
             <Search className="h-3.5 w-3.5" />
-            <span>Search modules & commands...</span>
+            <span>{t("topbar.searchPlaceholder")}</span>
           </span>
           <kbd className="hidden sm:inline-flex items-center rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-mono">
             Ctrl+K

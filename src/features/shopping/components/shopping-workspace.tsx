@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Copy, Plus, ShoppingBag, Sparkles, Wallet } from "lucide-react";
 import { formatCents, parseMoneyToCents } from "@/modules/finances/money";
 
@@ -34,6 +35,7 @@ interface Suggestion {
 }
 
 export function ShoppingWorkspace() {
+  const { t, tr } = useI18n();
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -94,10 +96,10 @@ export function ShoppingWorkspace() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
             <ShoppingBag className="h-6 w-6 text-[var(--accent)]" />
-            Smart Shopping Lists
+            {t("shopping.title")}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Listas compartilhadas por Space, sugestões baseadas no seu histórico e lançamento confirmado em Finanças.
+            {t("shopping.subtitle")}
           </p>
         </div>
         {feedback && <span className="text-xs text-amber-500">{feedback}</span>}
@@ -114,11 +116,11 @@ export function ShoppingWorkspace() {
             }}
             className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <h2 className="text-sm font-semibold">Nova Lista</h2>
+            <h2 className="text-sm font-semibold">{tr("New List", "Nova Lista")}</h2>
             <input
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
-              placeholder="Ex: Mercado do Mês"
+              placeholder={tr("e.g. Monthly Groceries", "Ex: Mercado do Mês")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               required
             />
@@ -126,12 +128,12 @@ export function ShoppingWorkspace() {
               type="submit"
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
             >
-              <Plus className="h-4 w-4" /> Criar Lista
+              <Plus className="h-4 w-4" /> {tr("Create List", "Criar Lista")}
             </button>
           </form>
 
           <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-            <h2 className="text-sm font-semibold">Suas Listas ({lists.length})</h2>
+            <h2 className="text-sm font-semibold">{tr("Your Lists", "Suas Listas")} ({lists.length})</h2>
             {lists.map((l) => (
               <div
                 key={l.id}
@@ -148,7 +150,7 @@ export function ShoppingWorkspace() {
                 >
                   <div className="font-medium">{l.name}</div>
                   <div className="text-xs text-[var(--muted-foreground)]">
-                    Est: {formatCents(l.totalEstimatedCents, "BRL")} · Real:{" "}
+                    {tr("Est:", "Est:")} {formatCents(l.totalEstimatedCents, "BRL")} · {tr("Actual:", "Real:")}{" "}
                     {formatCents(l.totalActualCents, "BRL")}
                   </div>
                 </button>
@@ -156,7 +158,7 @@ export function ShoppingWorkspace() {
                   type="button"
                   onClick={() => void postAction({ action: "duplicate_list", listId: l.id })}
                   className="rounded p-1 text-xs"
-                  title="Duplicar lista"
+                  title={tr("Duplicate list", "Duplicar lista")}
                 >
                   <Copy className="h-3.5 w-3.5" />
                 </button>
@@ -172,7 +174,7 @@ export function ShoppingWorkspace() {
                 <div>
                   <h2 className="text-lg font-semibold">{activeList.name}</h2>
                   <div className="text-xs text-[var(--muted-foreground)]">
-                    Estimado: {formatCents(activeList.totalEstimatedCents, "BRL")} · Comprado:{" "}
+                    {tr("Estimated:", "Estimado:")} {formatCents(activeList.totalEstimatedCents, "BRL")} · {tr("Purchased:", "Comprado:")}{" "}
                     {formatCents(activeList.totalActualCents, "BRL")}
                   </div>
                 </div>
@@ -192,7 +194,7 @@ export function ShoppingWorkspace() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (!window.confirm("Registrar o total desta compra como despesa em Finanças?")) return;
+                        if (!window.confirm(tr("Record this shopping total as an expense in Finances?", "Registrar o total desta compra como despesa em Finanças?"))) return;
                         void postAction({
                           action: "log_finances",
                           listId: activeList.id,
@@ -201,7 +203,7 @@ export function ShoppingWorkspace() {
                       }}
                       className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white"
                     >
-                      <Wallet className="h-3.5 w-3.5" /> Registrar em Finanças
+                      <Wallet className="h-3.5 w-3.5" /> {tr("Log to Finances", "Registrar em Finanças")}
                     </button>
                   </div>
                 )}
@@ -226,28 +228,28 @@ export function ShoppingWorkspace() {
                 <input
                   value={newItemName}
                   onChange={(e) => setNewItemName(e.target.value)}
-                  placeholder="Adicionar item..."
+                  placeholder={tr("Add item...", "Adicionar item...")}
                   className="flex-1 rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
                   required
                 />
                 <input
                   value={newItemEst}
                   onChange={(e) => setNewItemEst(e.target.value)}
-                  placeholder="Preço est. (ex: 15,00)"
+                  placeholder={tr("Est. price (e.g. 15.00)", "Preço est. (ex: 15,00)")}
                   className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm sm:w-40"
                 />
                 <button
                   type="submit"
                   className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
                 >
-                  Adicionar
+                  {tr("Add", "Adicionar")}
                 </button>
               </form>
 
               {suggestions.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
                   <span className="inline-flex items-center gap-1 text-[var(--muted-foreground)]">
-                    <Sparkles className="h-3.5 w-3.5" /> Sugestões frequentes:
+                    <Sparkles className="h-3.5 w-3.5" /> {tr("Frequent suggestions:", "Sugestões frequentes:")}
                   </span>
                   {suggestions.map((s) => (
                     <button
@@ -303,7 +305,7 @@ export function ShoppingWorkspace() {
             </div>
           ) : (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-              Crie ou selecione uma lista de compras.
+              {tr("Create or select a shopping list.", "Crie ou selecione uma lista de compras.")}
             </div>
           )}
         </div>

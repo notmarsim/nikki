@@ -29,6 +29,7 @@ import {
   SUPPORTED_COMMAND_PLATFORMS,
   SUPPORTED_SNIPPET_LANGUAGES,
 } from "@/modules/developer-hub/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { CodeHighlight } from "./code-highlight";
 
 export interface DeveloperOverviewPayload {
@@ -107,6 +108,8 @@ export function DeveloperHubWorkspace({
   initialOverview: DeveloperOverviewPayload;
   initialTab?: DevTab;
 }) {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const router = useRouter();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<DevTab>(initialTab);
@@ -303,7 +306,9 @@ export function DeveloperHubWorkspace({
 
   const handleCreateTechNote = async (docKind: "cheatsheet" | "documentation") => {
     const title =
-      docKind === "cheatsheet" ? "Untitled Cheatsheet" : "Untitled Technical Doc";
+      docKind === "cheatsheet"
+        ? tr("Untitled Cheatsheet", "Cheatsheet sem título")
+        : tr("Untitled Technical Doc", "Documento Técnico sem título");
     const res = await fetch("/api/notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -329,12 +334,24 @@ export function DeveloperHubWorkspace({
     });
     const json = await res.json();
     if (!res.ok) {
-      setGhError(json?.error?.message ?? "Failed to connect GitHub");
+      setGhError(json?.error?.message ?? tr("Failed to connect GitHub", "Falha ao conectar o GitHub"));
       return;
     }
     setGhToken("");
     refresh();
   };
+
+  const tabs = [
+    { id: "overview" as const, label: tr("Overview", "Visão Geral") },
+    { id: "snippets" as const, label: `${tr("Snippets", "Snippets")} (${overview.snippets.length})` },
+    { id: "commands" as const, label: `${tr("Commands", "Comandos")} (${overview.commands.length})` },
+    { id: "cheatsheets" as const, label: `${tr("Cheatsheets", "Cheatsheets")} (${overview.cheatsheets.length})` },
+    {
+      id: "documentation" as const,
+      label: `${tr("Documentation", "Documentação")} (${overview.references.length + overview.internalDocs.length})`,
+    },
+    { id: "github" as const, label: "GitHub" },
+  ];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -342,10 +359,13 @@ export function DeveloperHubWorkspace({
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Code2 className="h-6 w-6 text-[var(--accent)]" />
-            Developer Hub
+            {tr("Developer Hub", "Dev Hub")}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Snippets, parameterized CLI commands, cheatsheets, technical docs, and GitHub overview.
+            {tr(
+              "Snippets, parameterized CLI commands, cheatsheets, technical docs, and GitHub overview.",
+              "Snippets, comandos CLI parametrizados, cheatsheets, docs técnicos e visão geral do GitHub."
+            )}
           </p>
         </div>
 
@@ -354,7 +374,7 @@ export function DeveloperHubWorkspace({
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter snippets & commands..."
+            placeholder={tr("Filter snippets & commands...", "Filtrar snippets e comandos...")}
             className="pl-8 h-9 text-xs"
           />
         </div>
@@ -362,19 +382,7 @@ export function DeveloperHubWorkspace({
 
       {/* Navigation Tabs */}
       <div className="flex flex-wrap gap-1 border-b border-[var(--border)] pb-2">
-        {(
-          [
-            { id: "overview", label: "Overview" },
-            { id: "snippets", label: `Snippets (${overview.snippets.length})` },
-            { id: "commands", label: `Commands (${overview.commands.length})` },
-            { id: "cheatsheets", label: `Cheatsheets (${overview.cheatsheets.length})` },
-            {
-              id: "documentation",
-              label: `Documentation (${overview.references.length + overview.internalDocs.length})`,
-            },
-            { id: "github", label: "GitHub" },
-          ] as const
-        ).map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -396,25 +404,33 @@ export function DeveloperHubWorkspace({
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <Card className="cursor-pointer" onClick={() => setTab("snippets")}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-[var(--muted-foreground)]">Snippets</CardTitle>
+                <CardTitle className="text-xs text-[var(--muted-foreground)]">
+                  {tr("Snippets", "Snippets")}
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-bold">{overview.snippets.length}</CardContent>
             </Card>
             <Card className="cursor-pointer" onClick={() => setTab("commands")}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-[var(--muted-foreground)]">Commands</CardTitle>
+                <CardTitle className="text-xs text-[var(--muted-foreground)]">
+                  {tr("Commands", "Comandos")}
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-bold">{overview.commands.length}</CardContent>
             </Card>
             <Card className="cursor-pointer" onClick={() => setTab("cheatsheets")}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-[var(--muted-foreground)]">Cheatsheets</CardTitle>
+                <CardTitle className="text-xs text-[var(--muted-foreground)]">
+                  {tr("Cheatsheets", "Cheatsheets")}
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-bold">{overview.cheatsheets.length}</CardContent>
             </Card>
             <Card className="cursor-pointer" onClick={() => setTab("github")}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-[var(--muted-foreground)]">Linked Repos</CardTitle>
+                <CardTitle className="text-xs text-[var(--muted-foreground)]">
+                  {tr("Linked Repos", "Repos Vinculados")}
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-bold">
                 {overview.linkedRepositories.length}
@@ -425,13 +441,15 @@ export function DeveloperHubWorkspace({
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Recent Snippets</CardTitle>
+                <CardTitle className="text-base">
+                  {tr("Recent Snippets", "Snippets Recentes")}
+                </CardTitle>
                 <button
                   type="button"
                   onClick={() => setTab("snippets")}
                   className="text-xs text-[var(--accent)] hover:underline"
                 >
-                  View all →
+                  {tr("View all →", "Ver todos →")}
                 </button>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -445,20 +463,24 @@ export function DeveloperHubWorkspace({
                   </div>
                 ))}
                 {overview.snippets.length === 0 && (
-                  <p className="text-xs text-[var(--muted-foreground)]">No snippets yet.</p>
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    {tr("No snippets yet.", "Nenhum snippet ainda.")}
+                  </p>
                 )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Linked Repositories</CardTitle>
+                <CardTitle className="text-base">
+                  {tr("Linked Repositories", "Repositórios Vinculados")}
+                </CardTitle>
                 <button
                   type="button"
                   onClick={() => setTab("github")}
                   className="text-xs text-[var(--accent)] hover:underline"
                 >
-                  Manage →
+                  {tr("Manage →", "Gerenciar →")}
                 </button>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -477,7 +499,7 @@ export function DeveloperHubWorkspace({
                         {r.repositoryIdentifier}
                       </a>
                       <span className="ml-2 text-[var(--muted-foreground)]">
-                        → {projectMap.get(r.projectId) ?? "Project"}
+                        → {projectMap.get(r.projectId) ?? tr("Project", "Projeto")}
                       </span>
                     </div>
                     <Badge variant="outline">{r.defaultBranch}</Badge>
@@ -485,7 +507,10 @@ export function DeveloperHubWorkspace({
                 ))}
                 {overview.linkedRepositories.length === 0 && (
                   <p className="text-xs text-[var(--muted-foreground)]">
-                    No repositories linked to projects yet.
+                    {tr(
+                      "No repositories linked to projects yet.",
+                      "Nenhum repositório vinculado a projetos ainda."
+                    )}
                   </p>
                 )}
               </CardContent>
@@ -499,7 +524,9 @@ export function DeveloperHubWorkspace({
         <div className="space-y-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">New Code Snippet</CardTitle>
+              <CardTitle className="text-base">
+                {tr("New Code Snippet", "Novo Snippet de Código")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateSnippet} className="space-y-3">
@@ -507,7 +534,7 @@ export function DeveloperHubWorkspace({
                   <Input
                     value={snipTitle}
                     onChange={(e) => setSnipTitle(e.target.value)}
-                    placeholder="Snippet title"
+                    placeholder={tr("Snippet title", "Título do snippet")}
                     required
                   />
                   <select
@@ -526,7 +553,7 @@ export function DeveloperHubWorkspace({
                     onChange={(e) => setSnipProj(e.target.value)}
                     className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-sm"
                   >
-                    <option value="">No project</option>
+                    <option value="">{tr("No project", "Sem projeto")}</option>
                     {overview.projects.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -536,24 +563,24 @@ export function DeveloperHubWorkspace({
                   <Input
                     value={snipTags}
                     onChange={(e) => setSnipTags(e.target.value)}
-                    placeholder="tags, csv"
+                    placeholder={tr("tags, csv", "tags, separadas")}
                   />
                 </div>
                 <Input
                   value={snipDesc}
                   onChange={(e) => setSnipDesc(e.target.value)}
-                  placeholder="Optional description"
+                  placeholder={tr("Optional description", "Descrição opcional")}
                 />
                 <textarea
                   rows={5}
                   value={snipCode}
                   onChange={(e) => setSnipCode(e.target.value)}
-                  placeholder="Paste code here..."
+                  placeholder={tr("Paste code here...", "Cole o código aqui...")}
                   required
                   className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] p-2.5 font-mono text-xs"
                 />
                 <Button type="submit" size="sm">
-                  <Plus className="h-4 w-4" /> Save Snippet
+                  <Plus className="h-4 w-4" /> {tr("Save Snippet", "Salvar Snippet")}
                 </Button>
               </form>
             </CardContent>
@@ -565,7 +592,7 @@ export function DeveloperHubWorkspace({
               onChange={(e) => setLangFilter(e.target.value)}
               className="h-8 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
             >
-              <option value="">All languages</option>
+              <option value="">{tr("All languages", "Todas as linguagens")}</option>
               {SUPPORTED_SNIPPET_LANGUAGES.map((l) => (
                 <option key={l} value={l}>
                   {l}
@@ -578,7 +605,7 @@ export function DeveloperHubWorkspace({
                 checked={showLineNumbers}
                 onChange={(e) => setShowLineNumbers(e.target.checked)}
               />
-              Line numbers
+              {tr("Line numbers", "Números de linha")}
             </label>
           </div>
 
@@ -599,13 +626,13 @@ export function DeveloperHubWorkspace({
                       {s.projectId && (
                         <Link href={`/projects?id=${s.projectId}`}>
                           <Badge variant="outline">
-                            {projectMap.get(s.projectId) ?? "Project"}
+                            {projectMap.get(s.projectId) ?? tr("Project", "Projeto")}
                           </Badge>
                         </Link>
                       )}
                       {s.sourceNoteId && (
                         <Link href={`/notes?id=${s.sourceNoteId}`}>
-                          <Badge variant="outline">Source Note</Badge>
+                          <Badge variant="outline">{tr("Source Note", "Nota de Origem")}</Badge>
                         </Link>
                       )}
                       <button
@@ -665,7 +692,10 @@ export function DeveloperHubWorkspace({
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
-                New CLI Command (supports {"{param}"} placeholders)
+                {tr(
+                  "New CLI Command (supports {param} placeholders)",
+                  "Novo Comando CLI (suporta placeholders {param})"
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -674,7 +704,10 @@ export function DeveloperHubWorkspace({
                   <Input
                     value={cmdTitle}
                     onChange={(e) => setCmdTitle(e.target.value)}
-                    placeholder="Command title (e.g. SSH Tunnel)"
+                    placeholder={tr(
+                      "Command title (e.g. SSH Tunnel)",
+                      "Título do comando (ex: Túnel SSH)"
+                    )}
                     required
                   />
                   <select
@@ -691,7 +724,7 @@ export function DeveloperHubWorkspace({
                   <Input
                     value={cmdDesc}
                     onChange={(e) => setCmdDesc(e.target.value)}
-                    placeholder="Short description"
+                    placeholder={tr("Short description", "Descrição curta")}
                   />
                 </div>
                 <Input
@@ -702,7 +735,7 @@ export function DeveloperHubWorkspace({
                   className="font-mono text-xs"
                 />
                 <Button type="submit" size="sm">
-                  <Plus className="h-4 w-4" /> Save Command
+                  <Plus className="h-4 w-4" /> {tr("Save Command", "Salvar Comando")}
                 </Button>
               </form>
             </CardContent>
@@ -713,7 +746,7 @@ export function DeveloperHubWorkspace({
             onChange={(e) => setPlatformFilter(e.target.value)}
             className="h-8 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
           >
-            <option value="">All platforms</option>
+            <option value="">{tr("All platforms", "Todas as plataformas")}</option>
             {SUPPORTED_COMMAND_PLATFORMS.map((p) => (
               <option key={p} value={p}>
                 {p}
@@ -785,7 +818,7 @@ export function DeveloperHubWorkspace({
                           setTimeout(() => setCopiedCmdId(null), 1500);
                         }}
                         className="shrink-0 text-white/70 hover:text-white"
-                        title="Copy command"
+                        title={tr("Copy command", "Copiar comando")}
                       >
                         {copiedCmdId === c.id ? (
                           <Check className="h-3.5 w-3.5 text-emerald-400" />
@@ -807,10 +840,13 @@ export function DeveloperHubWorkspace({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-[var(--muted-foreground)]">
-              Cheatsheets reuse Nikki&apos;s block editor with full Markdown, tables, code blocks, and backlinks.
+              {tr(
+                "Cheatsheets reuse Nikki's block editor with full Markdown, tables, code blocks, and backlinks.",
+                "Cheatsheets reutilizam o editor de blocos do Nikki com Markdown completo, tabelas, blocos de código e backlinks."
+              )}
             </p>
             <Button size="sm" onClick={() => handleCreateTechNote("cheatsheet")}>
-              <Plus className="h-4 w-4" /> New Cheatsheet
+              <Plus className="h-4 w-4" /> {tr("New Cheatsheet", "Novo Cheatsheet")}
             </Button>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -824,7 +860,7 @@ export function DeveloperHubWorkspace({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="text-xs text-[var(--muted-foreground)] line-clamp-3">
-                    {ch.contentText || "Open in Notes editor..."}
+                    {ch.contentText || tr("Open in Notes editor...", "Abrir no editor de Notas...")}
                   </CardContent>
                 </Card>
               </Link>
@@ -839,9 +875,11 @@ export function DeveloperHubWorkspace({
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Internal Technical Docs</CardTitle>
+                <CardTitle className="text-base">
+                  {tr("Internal Technical Docs", "Docs Técnicos Internos")}
+                </CardTitle>
                 <Button size="sm" onClick={() => handleCreateTechNote("documentation")}>
-                  <Plus className="h-3.5 w-3.5" /> New Doc
+                  <Plus className="h-3.5 w-3.5" /> {tr("New Doc", "Novo Doc")}
                 </Button>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -853,13 +891,13 @@ export function DeveloperHubWorkspace({
                   >
                     <span className="font-medium truncate">{d.title}</span>
                     <span className="text-[var(--muted-foreground)]">
-                      {new Date(d.updatedAt).toLocaleDateString()}
+                      {new Date(d.updatedAt).toLocaleDateString(locale)}
                     </span>
                   </Link>
                 ))}
                 {overview.internalDocs.length === 0 && (
                   <p className="text-xs text-[var(--muted-foreground)]">
-                    No internal technical docs yet.
+                    {tr("No internal technical docs yet.", "Nenhum documento técnico interno ainda.")}
                   </p>
                 )}
               </CardContent>
@@ -867,7 +905,9 @@ export function DeveloperHubWorkspace({
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Add External Documentation</CardTitle>
+                <CardTitle className="text-base">
+                  {tr("Add External Documentation", "Adicionar Documentação Externa")}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateReference} className="space-y-2.5">
@@ -875,13 +915,13 @@ export function DeveloperHubWorkspace({
                     <Input
                       value={refTitle}
                       onChange={(e) => setRefTitle(e.target.value)}
-                      placeholder="Title (e.g. PostgreSQL Docs)"
+                      placeholder={tr("Title (e.g. PostgreSQL Docs)", "Título (ex: Docs do PostgreSQL)")}
                       required
                     />
                     <Input
                       value={refTech}
                       onChange={(e) => setRefTech(e.target.value)}
-                      placeholder="Technology (e.g. PostgreSQL)"
+                      placeholder={tr("Technology (e.g. PostgreSQL)", "Tecnologia (ex: PostgreSQL)")}
                       required
                     />
                   </div>
@@ -896,16 +936,16 @@ export function DeveloperHubWorkspace({
                     <Input
                       value={refVer}
                       onChange={(e) => setRefVer(e.target.value)}
-                      placeholder="Version (e.g. 16)"
+                      placeholder={tr("Version (e.g. 16)", "Versão (ex: 16)")}
                     />
                   </div>
                   <Input
                     value={refDesc}
                     onChange={(e) => setRefDesc(e.target.value)}
-                    placeholder="Description"
+                    placeholder={tr("Description", "Descrição")}
                   />
                   <Button type="submit" size="sm">
-                    <Plus className="h-3.5 w-3.5" /> Save Reference
+                    <Plus className="h-3.5 w-3.5" /> {tr("Save Reference", "Salvar Referência")}
                   </Button>
                 </form>
               </CardContent>
@@ -962,23 +1002,26 @@ export function DeveloperHubWorkspace({
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <GitBranch className="h-4 w-4 text-[var(--accent)]" />
-                  Connect GitHub (Read-Only)
+                  {tr("Connect GitHub (Read-Only)", "Conectar GitHub (Somente Leitura)")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  Enter a GitHub Personal Access Token (read-only repo scope). Your token is encrypted with AES-256-GCM on the server and never exposed to the client.
+                  {tr(
+                    "Enter a GitHub Personal Access Token (read-only repo scope). Your token is encrypted with AES-256-GCM on the server and never exposed to the client.",
+                    "Insira um Personal Access Token do GitHub (escopo repo somente leitura). Seu token é criptografado com AES-256-GCM no servidor e nunca exposto ao cliente."
+                  )}
                 </p>
                 <form onSubmit={handleConnectGithub} className="flex gap-2">
                   <Input
                     type="password"
                     value={ghToken}
                     onChange={(e) => setGhToken(e.target.value)}
-                    placeholder="ghp_... or github_pat_..."
+                    placeholder={tr("ghp_... or github_pat_...", "ghp_... ou github_pat_...")}
                     required
                   />
                   <Button type="submit" size="sm">
-                    Connect
+                    {tr("Connect", "Conectar")}
                   </Button>
                 </form>
                 {ghError && <p className="text-xs text-red-500">{ghError}</p>}
@@ -999,10 +1042,16 @@ export function DeveloperHubWorkspace({
                     )}
                     <div>
                       <div className="text-sm font-semibold">
-                        Connected as @{overview.githubConnection.accountLogin}
+                        {tr(
+                          `Connected as @${overview.githubConnection.accountLogin}`,
+                          `Conectado como @${overview.githubConnection.accountLogin}`
+                        )}
                       </div>
                       <div className="text-xs text-[var(--muted-foreground)]">
-                        Read-only repository integration active
+                        {tr(
+                          "Read-only repository integration active",
+                          "Integração de repositórios somente leitura ativa"
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1015,7 +1064,7 @@ export function DeveloperHubWorkspace({
                       refresh();
                     }}
                   >
-                    <Unlink className="h-3.5 w-3.5" /> Disconnect
+                    <Unlink className="h-3.5 w-3.5" /> {tr("Disconnect", "Desconectar")}
                   </Button>
                 </CardContent>
               </Card>
@@ -1031,10 +1080,12 @@ export function DeveloperHubWorkspace({
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
                 <div className="space-y-2 lg:col-span-5">
                   <div className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                    Repositories
+                    {tr("Repositories", "Repositórios")}
                   </div>
                   {loadingRepos ? (
-                    <p className="text-xs text-[var(--muted-foreground)]">Loading repositories...</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      {tr("Loading repositories...", "Carregando repositórios...")}
+                    </p>
                   ) : (
                     (ghReposData ?? []).map((repo) => (
                       <div
@@ -1053,7 +1104,9 @@ export function DeveloperHubWorkspace({
                           >
                             {repo.fullName}
                           </button>
-                          <Badge variant="outline">{repo.language ?? "Repo"}</Badge>
+                          <Badge variant="outline">
+                            {repo.language ?? tr("Repo", "Repo")}
+                          </Badge>
                         </div>
                         {repo.description && (
                           <p className="mt-1 text-[var(--muted-foreground)] line-clamp-2">
@@ -1066,7 +1119,9 @@ export function DeveloperHubWorkspace({
                             onChange={(e) => setLinkProjectId(e.target.value)}
                             className="h-7 flex-1 rounded border border-[var(--border)] bg-[var(--background)] px-1.5 text-[11px]"
                           >
-                            <option value="">Link to project...</option>
+                            <option value="">
+                              {tr("Link to project...", "Vincular ao projeto...")}
+                            </option>
                             {overview.projects.map((p) => (
                               <option key={p.id} value={p.id}>
                                 {p.name}
@@ -1094,7 +1149,7 @@ export function DeveloperHubWorkspace({
                               refresh();
                             }}
                           >
-                            Link
+                            {tr("Link", "Vincular")}
                           </Button>
                         </div>
                       </div>
@@ -1106,7 +1161,10 @@ export function DeveloperHubWorkspace({
                   {!selectedRepo || !repoDetail ? (
                     <Card>
                       <CardContent className="py-12 text-center text-xs text-[var(--muted-foreground)]">
-                        Select a repository to inspect issues, pull requests, releases, and recent commits.
+                        {tr(
+                          "Select a repository to inspect issues, pull requests, releases, and recent commits.",
+                          "Selecione um repositório para inspecionar issues, pull requests, releases e commits recentes."
+                        )}
                       </CardContent>
                     </Card>
                   ) : (
@@ -1126,7 +1184,9 @@ export function DeveloperHubWorkspace({
                       </CardHeader>
                       <CardContent className="pt-4 space-y-4 text-xs">
                         <div>
-                          <div className="font-semibold mb-1">Recent Commits</div>
+                          <div className="font-semibold mb-1">
+                            {tr("Recent Commits", "Commits Recentes")}
+                          </div>
                           <div className="space-y-1">
                             {repoDetail.commits.map((c) => (
                               <a
@@ -1148,7 +1208,7 @@ export function DeveloperHubWorkspace({
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                           <div>
                             <div className="font-semibold mb-1">
-                              Open Issues ({repoDetail.issues.length})
+                              {tr("Open Issues", "Issues Abertas")} ({repoDetail.issues.length})
                             </div>
                             <div className="space-y-1">
                               {repoDetail.issues.map((i) => (
@@ -1166,7 +1226,7 @@ export function DeveloperHubWorkspace({
                           </div>
                           <div>
                             <div className="font-semibold mb-1">
-                              Open Pull Requests ({repoDetail.pulls.length})
+                              {tr("Open Pull Requests", "Pull Requests Abertos")} ({repoDetail.pulls.length})
                             </div>
                             <div className="space-y-1">
                               {repoDetail.pulls.map((pr) => (

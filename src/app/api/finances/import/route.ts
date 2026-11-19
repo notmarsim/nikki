@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file");
     const accountId = formData.get("accountId");
+    const expenseSign = formData.get("expenseSign") === "positive" ? "positive" : "negative";
 
     if (!(file instanceof File) || typeof accountId !== "string") {
       return apiError(400, "VALIDATION_ERROR", "CSV file and accountId are required");
@@ -57,7 +58,14 @@ export async function POST(request: NextRequest) {
             date: dateRaw,
             description: (descRaw || "Imported").replace(/[\x00-\x1f\x7f]/g, "").slice(0, 200),
             amountCents: Math.abs(cents),
-            type: cents >= 0 ? "income" : "expense",
+            type:
+              expenseSign === "positive"
+                ? cents >= 0
+                  ? "expense"
+                  : "income"
+                : cents >= 0
+                  ? "income"
+                  : "expense",
           });
         } catch {
           // skip invalid numeric row

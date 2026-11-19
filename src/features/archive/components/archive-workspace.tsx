@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   Archive,
   CheckCircle2,
@@ -56,6 +57,7 @@ interface ProjectOption {
 
 export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks" | "projects" | "trash" }) {
   const queryClient = useQueryClient();
+  const { t, tr } = useI18n();
   const [tab, setTab] = useState<"tasks" | "projects" | "trash">(initialTab);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -170,10 +172,10 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
             <Archive className="h-6 w-6 text-[var(--accent)]" />
-            Arquivo &amp; Histórico
+            {t("archive.title")}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Consulte, restaure ou gerencie tarefas concluídas arquivadas, projetos e itens na Lixeira.
+            {t("archive.subtitle")}
           </p>
         </div>
         {feedback && (
@@ -186,9 +188,9 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
       <div className="flex flex-wrap items-center gap-2">
         {(
           [
-            ["tasks", "Tasks", CheckCircle2],
-            ["projects", "Projetos", FolderKanban],
-            ["trash", "Lixeira (30 dias)", Trash2],
+            ["tasks", tr("Tasks", "Tarefas"), CheckCircle2],
+            ["projects", tr("Projects", "Projetos"), FolderKanban],
+            ["trash", tr("Trash (30 days)", "Lixeira (30 dias)"), Trash2],
           ] as const
         ).map(([id, label, Icon]) => (
           <button
@@ -220,7 +222,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                 setQ(e.target.value);
                 setPage(1);
               }}
-              placeholder="Pesquisar por nome ou descrição..."
+              placeholder={tr("Search by name or description...", "Pesquisar por nome ou descrição...")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent py-1.5 pl-8 pr-3 text-sm"
             />
           </div>
@@ -234,7 +236,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                 }}
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs"
               >
-                <option value="">Todos os projetos</option>
+                <option value="">{tr("All projects", "Todos os projetos")}</option>
                 {projectsList.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -249,7 +251,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                 }}
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs"
               >
-                <option value="">Todas as prioridades</option>
+                <option value="">{tr("All priorities", "Todas as prioridades")}</option>
                 <option value="urgent">Urgent</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
@@ -268,8 +270,8 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                 onChange={(e) => setSortBy(e.target.value as "archivedAt" | "completedAt")}
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs"
               >
-                <option value="archivedAt">Ordenar: Arquivamento</option>
-                <option value="completedAt">Ordenar: Conclusão</option>
+                <option value="archivedAt">{tr("Sort: Archived", "Ordenar: Arquivamento")}</option>
+                <option value="completedAt">{tr("Sort: Completed", "Ordenar: Conclusão")}</option>
               </select>
             </>
           )}
@@ -278,32 +280,34 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
 
       {tab === "tasks" && selectedTaskIds.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/10 p-3 text-xs">
-          <span className="font-medium">{selectedTaskIds.length} tarefa(s) selecionada(s)</span>
+          <span className="font-medium">
+            {selectedTaskIds.length} {tr("task(s) selected", "tarefa(s) selecionada(s)")}
+          </span>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() =>
                 void runAction(
                   { action: "restore_tasks", ids: selectedTaskIds },
-                  "Tarefas restauradas com sucesso."
+                  tr("Tasks restored successfully.", "Tarefas restauradas com sucesso.")
                 )
               }
               className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 font-medium"
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Restaurar selecionadas
+              <RotateCcw className="h-3.5 w-3.5" /> {tr("Restore selected", "Restaurar selecionadas")}
             </button>
             <button
               type="button"
               onClick={() => {
-                if (!window.confirm("Mover as tarefas selecionadas para a Lixeira?")) return;
+                if (!window.confirm(tr("Move selected tasks to Trash?", "Mover as tarefas selecionadas para a Lixeira?"))) return;
                 void runAction(
                   { action: "trash_tasks", ids: selectedTaskIds },
-                  "Tarefas movidas para a Lixeira."
+                  tr("Tasks moved to Trash.", "Tarefas movidas para a Lixeira.")
                 );
               }}
               className="inline-flex items-center gap-1 rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1 font-medium text-red-500"
             >
-              <Trash2 className="h-3.5 w-3.5" /> Enviar para Lixeira
+              <Trash2 className="h-3.5 w-3.5" /> {tr("Move to Trash", "Enviar para Lixeira")}
             </button>
           </div>
         </div>
@@ -317,12 +321,12 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
 
       {loading ? (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-          Carregando registros...
+          {tr("Loading records...", "Carregando registros...")}
         </div>
       ) : tab === "tasks" ? (
         tasks.length === 0 ? (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-            Nenhuma tarefa arquivada encontrada para os filtros atuais.
+            {tr("No archived tasks found for the current filters.", "Nenhuma tarefa arquivada encontrada para os filtros atuais.")}
           </div>
         ) : (
           <div className="space-y-2">
@@ -358,8 +362,8 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                         </span>
                       </div>
                       <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                        Concluída em:{" "}
-                        {t.completedAt ? new Date(t.completedAt).toLocaleString() : "—"} · Arquivada em:{" "}
+                        {tr("Completed:", "Concluída em:")}{" "}
+                        {t.completedAt ? new Date(t.completedAt).toLocaleString() : "—"} · {tr("Archived:", "Arquivada em:")}{" "}
                         {t.archivedAt ? new Date(t.archivedAt).toLocaleString() : "—"}
                       </div>
                     </div>
@@ -370,24 +374,24 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                       onClick={() =>
                         void runAction(
                           { action: "restore_tasks", ids: [t.id] },
-                          "Tarefa restaurada."
+                          tr("Task restored.", "Tarefa restaurada.")
                         )
                       }
                       className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium"
                     >
-                      <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+                      <RotateCcw className="h-3.5 w-3.5" /> {tr("Restore", "Restaurar")}
                     </button>
                     <button
                       type="button"
                       onClick={() =>
                         void runAction(
                           { action: "trash_tasks", ids: [t.id] },
-                          "Tarefa enviada para a Lixeira."
+                          tr("Task moved to Trash.", "Tarefa enviada para a Lixeira.")
                         )
                       }
                       className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-red-500"
                     >
-                      <Trash2 className="h-3.5 w-3.5" /> Lixeira
+                      <Trash2 className="h-3.5 w-3.5" /> {tr("Trash", "Lixeira")}
                     </button>
                   </div>
                 </div>
@@ -398,7 +402,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
       ) : tab === "projects" ? (
         archivedProjects.length === 0 ? (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-            Nenhum projeto arquivado encontrado.
+            {tr("No archived projects found.", "Nenhum projeto arquivado encontrado.")}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -417,7 +421,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                       {p.name}
                     </button>
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      {p.description || "Sem descrição"}
+                      {p.description || tr("No description", "Sem descrição")}
                     </p>
                   </div>
                   <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs">
@@ -425,7 +429,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                   </span>
                 </div>
                 <div className="text-xs text-[var(--muted-foreground)]">
-                  {p.completedTasks}/{p.totalTasks} tarefas concluídas · Arquivado em{" "}
+                  {p.completedTasks}/{p.totalTasks} {tr("tasks completed", "tarefas concluídas")} · {tr("Archived on", "Arquivado em")}{" "}
                   {p.archivedAt ? new Date(p.archivedAt).toLocaleDateString() : "—"}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -434,19 +438,19 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                     onClick={() => void inspectProject(p.id)}
                     className="rounded-lg border border-[var(--border)] px-2.5 py-1 text-xs"
                   >
-                    Ver histórico
+                    {tr("View history", "Ver histórico")}
                   </button>
                   <button
                     type="button"
                     onClick={() =>
                       void runAction(
                         { action: "restore_projects", ids: [p.id] },
-                        "Projeto restaurado para Projetos ativos."
+                        tr("Project restored to Active Projects.", "Projeto restaurado para Projetos ativos.")
                       )
                     }
                     className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1 text-xs font-medium"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+                    <RotateCcw className="h-3.5 w-3.5" /> {tr("Restore", "Restaurar")}
                   </button>
                 </div>
               </div>
@@ -457,18 +461,18 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
             <div className="text-xs text-[var(--muted-foreground)]">
-              Itens excluídos permanecem na Lixeira por 30 dias antes da exclusão definitiva.
+              {tr("Deleted items remain in Trash for 30 days before permanent deletion.", "Itens excluídos permanecem na Lixeira por 30 dias antes da exclusão definitiva.")}
             </div>
             {(trashTasks.length > 0 || trashProjects.length > 0) && (
               <button
                 type="button"
                 onClick={() => {
-                  if (!window.confirm("Esvaziar toda a Lixeira? Esta ação é irreversível.")) return;
-                  void runAction({ action: "empty_trash" }, "Lixeira esvaziada definitivamente.");
+                  if (!window.confirm(tr("Empty the entire Trash? This action cannot be undone.", "Esvaziar toda a Lixeira? Esta ação é irreversível."))) return;
+                  void runAction({ action: "empty_trash" }, tr("Trash emptied permanently.", "Lixeira esvaziada definitivamente."));
                 }}
                 className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-500"
               >
-                Esvaziar Lixeira
+                {tr("Empty Trash", "Esvaziar Lixeira")}
               </button>
             )}
           </div>
@@ -480,32 +484,32 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                 onClick={() =>
                   void runAction(
                     { action: "restore_tasks", ids: selectedTrashTaskIds, fromTrash: true },
-                    "Tarefas restauradas da Lixeira."
+                    tr("Tasks restored from Trash.", "Tarefas restauradas da Lixeira.")
                   )
                 }
                 className="rounded border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1"
               >
-                Restaurar selecionadas ({selectedTrashTaskIds.length})
+                {tr("Restore selected", "Restaurar selecionadas")} ({selectedTrashTaskIds.length})
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  if (!window.confirm("Excluir definitivamente as tarefas selecionadas?")) return;
+                  if (!window.confirm(tr("Permanently delete selected tasks?", "Excluir definitivamente as tarefas selecionadas?"))) return;
                   void runAction(
                     { action: "delete_tasks_permanent", ids: selectedTrashTaskIds },
-                    "Tarefas excluídas definitivamente."
+                    tr("Tasks permanently deleted.", "Tarefas excluídas definitivamente.")
                   );
                 }}
                 className="rounded border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-red-500"
               >
-                Excluir definitivamente
+                {tr("Delete permanently", "Excluir definitivamente")}
               </button>
             </div>
           )}
 
           {trashTasks.length === 0 && trashProjects.length === 0 ? (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-              A Lixeira está vazia.
+              {tr("Trash is empty.", "A Lixeira está vazia.")}
             </div>
           ) : (
             <div className="space-y-2">
@@ -515,10 +519,10 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                   className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm"
                 >
                   <div>
-                    <div className="font-medium">[Projeto] {p.name}</div>
+                    <div className="font-medium">[{tr("Project", "Projeto")}] {p.name}</div>
                     <div className="text-xs text-[var(--muted-foreground)]">
-                      Excluído em {p.deletedAt ? new Date(p.deletedAt).toLocaleDateString() : "—"} ·{" "}
-                      {p.daysRemaining} dias restantes
+                      {tr("Deleted on", "Excluído em")} {p.deletedAt ? new Date(p.deletedAt).toLocaleDateString() : "—"} ·{" "}
+                      {p.daysRemaining} {tr("days left", "dias restantes")}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -527,25 +531,25 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                       onClick={() =>
                         void runAction(
                           { action: "restore_projects", ids: [p.id], fromTrash: true },
-                          "Projeto restaurado da Lixeira."
+                          tr("Project restored from Trash.", "Projeto restaurado da Lixeira.")
                         )
                       }
                       className="rounded-lg border border-[var(--border)] px-2.5 py-1 text-xs"
                     >
-                      Restaurar
+                      {tr("Restore", "Restaurar")}
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        if (!window.confirm("Excluir este projeto definitivamente?")) return;
+                        if (!window.confirm(tr("Permanently delete this project?", "Excluir este projeto definitivamente?"))) return;
                         void runAction(
                           { action: "delete_projects_permanent", ids: [p.id] },
-                          "Projeto excluído definitivamente."
+                          tr("Project permanently deleted.", "Projeto excluído definitivamente.")
                         );
                       }}
                       className="rounded-lg border border-red-500/40 px-2.5 py-1 text-xs text-red-500"
                     >
-                      Excluir definitivamente
+                      {tr("Delete permanently", "Excluir definitivamente")}
                     </button>
                   </div>
                 </div>
@@ -571,8 +575,8 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                       <div>
                         <div className="font-medium">{t.title}</div>
                         <div className="text-xs text-[var(--muted-foreground)]">
-                          Excluída em {t.deletedAt ? new Date(t.deletedAt).toLocaleDateString() : "—"} ·{" "}
-                          {t.daysRemaining} dias restantes
+                          {tr("Deleted on", "Excluída em")} {t.deletedAt ? new Date(t.deletedAt).toLocaleDateString() : "—"} ·{" "}
+                          {t.daysRemaining} {tr("days left", "dias restantes")}
                         </div>
                       </div>
                     </div>
@@ -582,25 +586,25 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
                         onClick={() =>
                           void runAction(
                             { action: "restore_tasks", ids: [t.id], fromTrash: true },
-                            "Tarefa restaurada da Lixeira."
+                            tr("Task restored from Trash.", "Tarefa restaurada da Lixeira.")
                           )
                         }
                         className="rounded-lg border border-[var(--border)] px-2.5 py-1 text-xs"
                       >
-                        Restaurar
+                        {tr("Restore", "Restaurar")}
                       </button>
                       <button
                         type="button"
                         onClick={() => {
-                          if (!window.confirm("Excluir definitivamente esta tarefa?")) return;
+                          if (!window.confirm(tr("Permanently delete this task?", "Excluir definitivamente esta tarefa?"))) return;
                           void runAction(
                             { action: "delete_tasks_permanent", ids: [t.id] },
-                            "Tarefa excluída definitivamente."
+                            tr("Task permanently deleted.", "Tarefa excluída definitivamente.")
                           );
                         }}
                         className="rounded-lg border border-red-500/40 px-2.5 py-1 text-xs text-red-500"
                       >
-                        Excluir definitivamente
+                        {tr("Delete permanently", "Excluir definitivamente")}
                       </button>
                     </div>
                   </div>
@@ -614,7 +618,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
       {tab !== "trash" && totalPages > 1 && (
         <div className="flex items-center justify-between text-xs">
           <span>
-            Página {page} de {totalPages}
+            {tr("Page", "Página")} {page} {tr("of", "de")} {totalPages}
           </span>
           <div className="flex gap-2">
             <button
@@ -623,7 +627,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               className="rounded border border-[var(--border)] px-3 py-1 disabled:opacity-40"
             >
-              Anterior
+              {tr("Previous", "Anterior")}
             </button>
             <button
               type="button"
@@ -631,7 +635,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               className="rounded border border-[var(--border)] px-3 py-1 disabled:opacity-40"
             >
-              Próxima
+              {tr("Next", "Próxima")}
             </button>
           </div>
         </div>
@@ -644,7 +648,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
               <div>
                 <h2 className="text-lg font-semibold">{inspectedProject.project.name}</h2>
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  {inspectedProject.project.description || "Sem descrição"}
+                  {inspectedProject.project.description || tr("No description", "Sem descrição")}
                 </p>
               </div>
               <button
@@ -657,7 +661,7 @@ export function ArchiveWorkspace({ initialTab = "tasks" }: { initialTab?: "tasks
             </div>
             <div className="space-y-1.5">
               <h3 className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
-                Tarefas Associadas ({inspectedProject.tasks.length})
+                {tr("Associated Tasks", "Tarefas Associadas")} ({inspectedProject.tasks.length})
               </h3>
               {inspectedProject.tasks.map((t) => (
                 <div

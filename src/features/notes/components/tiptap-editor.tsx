@@ -21,14 +21,20 @@ import { common, createLowlight } from "lowlight";
 import {
   Bold,
   CheckSquare,
+  ChevronDown,
   Code,
   Highlighter,
   Italic,
   Layers,
+  Link2,
   ListChecks,
+  Palette,
+  Radical,
+  RemoveFormatting,
   Strikethrough,
   Underline as UnderlineIcon,
 } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import type { NoteBlockDocument } from "@/db/schema";
 import { matchesKeybinding } from "@/lib/keybindings";
 import { useUiStore } from "@/stores/ui-store";
@@ -73,6 +79,7 @@ export function TiptapEditor({
   onCreateFlashcardFromSelection,
   onSaveSnippetFromCode,
 }: TiptapEditorProps) {
+  const { tr } = useI18n();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
   const keybindings = useUiStore((s) => s.keybindings);
@@ -81,6 +88,8 @@ export function TiptapEditor({
   const [wikiQuery, setWikiQuery] = useState<string | null>(null);
   const [wikiIndex, setWikiIndex] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [bubblePanel, setBubblePanel] = useState<"turnInto" | "color" | "link" | null>(null);
+  const [linkInput, setLinkInput] = useState("");
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -95,7 +104,7 @@ export function TiptapEditor({
         placeholder: "Type '/' for commands, '[[' to link a page...",
       }),
       Underline,
-      Highlight,
+      Highlight.configure({ multicolor: true }),
       TextStyle,
       Color,
       LinkExtension.configure({
@@ -172,10 +181,18 @@ export function TiptapEditor({
 
   useEffect(() => {
     if (!editor) return;
-    // Reset editor when switching to a different note
-    editor.commands.setContent(initialContent, false);
+    // Defer setContent to a microtask so TipTap NodeViews don't trigger flushSync during React commit
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled && !editor.isDestroyed) {
+        editor.commands.setContent(initialContent, false);
+      }
+    });
     setSlashQuery(null);
     setWikiQuery(null);
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteId, editor]);
 
@@ -465,111 +482,408 @@ export function TiptapEditor({
       {/* Floating BubbleMenu on Text Selection */}
       <BubbleMenu
         editor={editor}
-        tippyOptions={{ duration: 120 }}
-        className="flex flex-wrap items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl"
+        tippyOptions={{
+          duration: 120,
+          maxWidth: "none",
+          onHide: () => setBubblePanel(null),
+        }}
+        className="relative flex flex-col gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-2xl"
       >
-        {[
-          {
-            id: "bold",
-            label: "Bold",
-            shortcut: keybindings.bold,
-            active: editor.isActive("bold"),
-            icon: <Bold className="h-3.5 w-3.5" />,
-            run: () => editor.chain().focus().toggleBold().run(),
-          },
-          {
-            id: "italic",
-            label: "Italic",
-            shortcut: keybindings.italic,
-            active: editor.isActive("italic"),
-            icon: <Italic className="h-3.5 w-3.5" />,
-            run: () => editor.chain().focus().toggleItalic().run(),
-          },
-          {
-            id: "underline",
-            label: "Underline",
-            shortcut: keybindings.underline,
-            active: editor.isActive("underline"),
-            icon: <UnderlineIcon className="h-3.5 w-3.5" />,
-            run: () => editor.chain().focus().toggleUnderline().run(),
-          },
-          {
-            id: "strike",
-            label: "Strikethrough",
-            shortcut: keybindings.strike,
-            active: editor.isActive("strike"),
-            icon: <Strikethrough className="h-3.5 w-3.5" />,
-            run: () => editor.chain().focus().toggleStrike().run(),
-          },
-          {
-            id: "code",
-            label: "Inline Code",
-            shortcut: keybindings.code,
-            active: editor.isActive("code"),
-            icon: <Code className="h-3.5 w-3.5" />,
-            run: () => editor.chain().focus().toggleCode().run(),
-          },
-          {
-            id: "highlight",
-            label: "Highlight",
-            shortcut: keybindings.highlight,
-            active: editor.isActive("highlight"),
-            icon: <Highlighter className="h-3.5 w-3.5" />,
-            run: () => editor.chain().focus().toggleHighlight().run(),
-          },
-          {
-            id: "checklist",
-            label: "Checklist",
-            shortcut: keybindings.checklist,
-            active: editor.isActive("taskList"),
-            icon: <ListChecks className="h-3.5 w-3.5" />,
-            run: () => editor.chain().focus().toggleTaskList().run(),
-          },
-        ].map((btn) => (
+        <div className="flex flex-wrap items-center gap-0.5">
+          {/* Turn Into / Block Type Selector */}
           <button
-            key={btn.id}
             type="button"
-            onClick={btn.run}
-            title={`${btn.label} (${btn.shortcut})`}
-            aria-label={`${btn.label} (${btn.shortcut})`}
-            className={`group relative rounded p-1.5 hover:bg-[var(--surface-muted)] ${
-              btn.active ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""
+            onClick={() => setBubblePanel((p) => (p === "turnInto" ? null : "turnInto"))}
+            title={tr("Turn into", "Transformar em")}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-[var(--surface-muted)]"
+          >
+            <span>
+              {editor.isActive("heading", { level: 1 })
+                ? tr("H1", "T1")
+                : editor.isActive("heading", { level: 2 })
+                  ? tr("H2", "T2")
+                  : editor.isActive("heading", { level: 3 })
+                    ? tr("H3", "T3")
+                    : editor.isActive("bulletList")
+                      ? tr("List", "Lista")
+                      : editor.isActive("orderedList")
+                        ? tr("Numbered", "Numerada")
+                        : editor.isActive("blockquote")
+                          ? tr("Quote", "Citação")
+                          : tr("Text", "Texto")}
+            </span>
+            <ChevronDown className="h-3 w-3 opacity-70" />
+          </button>
+
+          <div className="mx-0.5 h-4 w-px bg-[var(--border)]" />
+
+          {[
+            {
+              id: "bold",
+              label: tr("Bold", "Negrito"),
+              shortcut: keybindings.bold,
+              active: editor.isActive("bold"),
+              icon: <Bold className="h-3.5 w-3.5" />,
+              run: () => editor.chain().focus().toggleBold().run(),
+            },
+            {
+              id: "italic",
+              label: tr("Italic", "Itálico"),
+              shortcut: keybindings.italic,
+              active: editor.isActive("italic"),
+              icon: <Italic className="h-3.5 w-3.5" />,
+              run: () => editor.chain().focus().toggleItalic().run(),
+            },
+            {
+              id: "underline",
+              label: tr("Underline", "Sublinhado"),
+              shortcut: keybindings.underline,
+              active: editor.isActive("underline"),
+              icon: <UnderlineIcon className="h-3.5 w-3.5" />,
+              run: () => editor.chain().focus().toggleUnderline().run(),
+            },
+            {
+              id: "strike",
+              label: tr("Strikethrough", "Tachado"),
+              shortcut: keybindings.strike,
+              active: editor.isActive("strike"),
+              icon: <Strikethrough className="h-3.5 w-3.5" />,
+              run: () => editor.chain().focus().toggleStrike().run(),
+            },
+            {
+              id: "code",
+              label: tr("Inline Code", "Código"),
+              shortcut: keybindings.code,
+              active: editor.isActive("code"),
+              icon: <Code className="h-3.5 w-3.5" />,
+              run: () => editor.chain().focus().toggleCode().run(),
+            },
+            {
+              id: "checklist",
+              label: tr("Checklist", "Lista de tarefas"),
+              shortcut: keybindings.checklist,
+              active: editor.isActive("taskList"),
+              icon: <ListChecks className="h-3.5 w-3.5" />,
+              run: () => editor.chain().focus().toggleTaskList().run(),
+            },
+          ].map((btn) => (
+            <button
+              key={btn.id}
+              type="button"
+              onClick={btn.run}
+              title={`${btn.label} (${btn.shortcut})`}
+              aria-label={`${btn.label} (${btn.shortcut})`}
+              className={`group relative rounded p-1.5 hover:bg-[var(--surface-muted)] ${
+                btn.active ? "bg-[var(--surface-muted)] text-[var(--accent)]" : ""
+              }`}
+            >
+              {btn.icon}
+              <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--foreground)] shadow-md group-hover:block">
+                {btn.label} <span className="ml-1 text-[var(--muted-foreground)] font-mono">{btn.shortcut}</span>
+              </span>
+            </button>
+          ))}
+
+          {/* Link */}
+          <button
+            type="button"
+            onClick={() => {
+              const prev = (editor.getAttributes("link").href as string | undefined) ?? "";
+              setLinkInput(prev);
+              setBubblePanel((p) => (p === "link" ? null : "link"));
+            }}
+            title={tr("Add / Edit Link", "Adicionar / Editar Link")}
+            aria-label={tr("Add / Edit Link", "Adicionar / Editar Link")}
+            className={`rounded p-1.5 hover:bg-[var(--surface-muted)] ${
+              editor.isActive("link") || bubblePanel === "link"
+                ? "bg-[var(--surface-muted)] text-[var(--accent)]"
+                : ""
             }`}
           >
-            {btn.icon}
-            <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--foreground)] shadow-md group-hover:block">
-              {btn.label} <span className="ml-1 text-[var(--muted-foreground)] font-mono">{btn.shortcut}</span>
-            </span>
+            <Link2 className="h-3.5 w-3.5" />
           </button>
-        ))}
 
-        <div className="mx-1 h-4 w-px bg-[var(--border)]" />
-
-        <button
-          type="button"
-          onClick={handleConvertToTask}
-          title={`Convert to Task (${keybindings.toTask})`}
-          aria-label={`Convert to Task (${keybindings.toTask})`}
-          className="group relative inline-flex items-center gap-1 rounded bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90"
-        >
-          <CheckSquare className="h-3.5 w-3.5" />
-          To Task
-          <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--foreground)] shadow-md group-hover:block">
-            To Task <span className="ml-1 text-[var(--muted-foreground)] font-mono">{keybindings.toTask}</span>
-          </span>
-        </button>
-
-        {onCreateFlashcardFromSelection && (
+          {/* Equation */}
           <button
             type="button"
-            onClick={handleCreateFlashcard}
-            title="Create Flashcard from selection"
-            aria-label="Create Flashcard from selection"
-            className="inline-flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-muted)] px-2 py-1 text-xs font-medium hover:bg-[var(--surface)]"
+            onClick={() => {
+              const { from, to } = editor.state.selection;
+              const selectedText = editor.state.doc.textBetween(from, to, " ").trim();
+              editor
+                .chain()
+                .focus()
+                .deleteRange({ from, to })
+                .insertContent({
+                  type: "mathBlock",
+                  attrs: { latex: selectedText || "E = mc^2" },
+                })
+                .run();
+              setBubblePanel(null);
+            }}
+            title={tr("Convert to Equation (LaTeX)", "Converter em Equação (LaTeX)")}
+            aria-label={tr("Convert to Equation (LaTeX)", "Converter em Equação (LaTeX)")}
+            className="rounded p-1.5 hover:bg-[var(--surface-muted)]"
           >
-            <Layers className="h-3.5 w-3.5" />
-            Flashcard
+            <Radical className="h-3.5 w-3.5" />
           </button>
+
+          {/* Text Color & Highlight Picker */}
+          <button
+            type="button"
+            onClick={() => setBubblePanel((p) => (p === "color" ? null : "color"))}
+            title={tr("Text Color & Highlight", "Cor do Texto e Destaque")}
+            aria-label={tr("Text Color & Highlight", "Cor do Texto e Destaque")}
+            className={`inline-flex items-center gap-0.5 rounded p-1.5 hover:bg-[var(--surface-muted)] ${
+              editor.isActive("highlight") || bubblePanel === "color"
+                ? "bg-[var(--surface-muted)] text-[var(--accent)]"
+                : ""
+            }`}
+          >
+            <Palette className="h-3.5 w-3.5" />
+            <Highlighter className="h-3 w-3 opacity-80" />
+          </button>
+
+          {/* Clear Formatting */}
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().unsetAllMarks().run()}
+            title={tr("Clear formatting", "Limpar formatação")}
+            aria-label={tr("Clear formatting", "Limpar formatação")}
+            className="rounded p-1.5 hover:bg-[var(--surface-muted)]"
+          >
+            <RemoveFormatting className="h-3.5 w-3.5" />
+          </button>
+
+          <div className="mx-1 h-4 w-px bg-[var(--border)]" />
+
+          <button
+            type="button"
+            onClick={handleConvertToTask}
+            title={`${tr("Convert to Task", "Converter em Tarefa")} (${keybindings.toTask})`}
+            aria-label={`${tr("Convert to Task", "Converter em Tarefa")} (${keybindings.toTask})`}
+            className="group relative inline-flex items-center gap-1 rounded bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90"
+          >
+            <CheckSquare className="h-3.5 w-3.5" />
+            {tr("To Task", "Tarefa")}
+          </button>
+
+          {onCreateFlashcardFromSelection && (
+            <button
+              type="button"
+              onClick={handleCreateFlashcard}
+              title={tr("Create Flashcard from selection", "Criar Flashcard da seleção")}
+              aria-label={tr("Create Flashcard from selection", "Criar Flashcard da seleção")}
+              className="inline-flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-muted)] px-2 py-1 text-xs font-medium hover:bg-[var(--surface)]"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              Flashcard
+            </button>
+          )}
+        </div>
+
+        {/* Turn Into Dropdown Panel */}
+        {bubblePanel === "turnInto" && (
+          <div className="grid grid-cols-2 gap-1 border-t border-[var(--border)] pt-1.5 text-xs">
+            {[
+              {
+                label: tr("Text", "Texto"),
+                run: () => editor.chain().focus().setParagraph().run(),
+              },
+              {
+                label: tr("Heading 1 (H1)", "Título 1 (H1)"),
+                run: () => editor.chain().focus().setHeading({ level: 1 }).run(),
+              },
+              {
+                label: tr("Heading 2 (H2)", "Título 2 (H2)"),
+                run: () => editor.chain().focus().setHeading({ level: 2 }).run(),
+              },
+              {
+                label: tr("Heading 3 (H3)", "Título 3 (H3)"),
+                run: () => editor.chain().focus().setHeading({ level: 3 }).run(),
+              },
+              {
+                label: tr("Bullet List", "Lista com marcadores"),
+                run: () => editor.chain().focus().toggleBulletList().run(),
+              },
+              {
+                label: tr("Numbered List", "Lista numerada"),
+                run: () => editor.chain().focus().toggleOrderedList().run(),
+              },
+              {
+                label: tr("To-do List", "Lista de tarefas"),
+                run: () => editor.chain().focus().toggleTaskList().run(),
+              },
+              {
+                label: tr("Quote", "Citação"),
+                run: () => editor.chain().focus().toggleBlockquote().run(),
+              },
+              {
+                label: tr("Code Block", "Bloco de código"),
+                run: () => editor.chain().focus().toggleCodeBlock().run(),
+              },
+              {
+                label: tr("Callout", "Frase de destaque"),
+                run: () => {
+                  const { from, to } = editor.state.selection;
+                  const txt = editor.state.doc.textBetween(from, to, " ").trim();
+                  editor
+                    .chain()
+                    .focus()
+                    .deleteRange({ from, to })
+                    .insertContent({
+                      type: "callout",
+                      content: [{ type: "paragraph", content: [{ type: "text", text: txt || "Note..." }] }],
+                    })
+                    .run();
+                },
+              },
+              {
+                label: tr("Block Equation", "Equação em bloco"),
+                run: () => {
+                  const { from, to } = editor.state.selection;
+                  const txt = editor.state.doc.textBetween(from, to, " ").trim();
+                  editor
+                    .chain()
+                    .focus()
+                    .deleteRange({ from, to })
+                    .insertContent({
+                      type: "mathBlock",
+                      attrs: { latex: txt || "E = mc^2" },
+                    })
+                    .run();
+                },
+              },
+            ].map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => {
+                  item.run();
+                  setBubblePanel(null);
+                }}
+                className="rounded px-2 py-1 text-left hover:bg-[var(--surface-muted)]"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Color & Highlight Picker Panel */}
+        {bubblePanel === "color" && (
+          <div className="space-y-2 border-t border-[var(--border)] pt-2 text-xs">
+            <div>
+              <div className="mb-1 font-medium text-[var(--muted-foreground)]">
+                {tr("Text color", "Cor do texto")}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => editor.chain().focus().unsetColor().run()}
+                  className="rounded border border-[var(--border)] px-2 py-0.5 text-[11px] hover:bg-[var(--surface-muted)]"
+                >
+                  {tr("Default", "Padrão")}
+                </button>
+                {[
+                  { name: tr("Gray", "Cinza"), value: "#9ca3af" },
+                  { name: tr("Brown", "Marrom"), value: "#d97706" },
+                  { name: tr("Orange", "Laranja"), value: "#f97316" },
+                  { name: tr("Yellow", "Amarelo"), value: "#eab308" },
+                  { name: tr("Green", "Verde"), value: "#22c55e" },
+                  { name: tr("Blue", "Azul"), value: "#3b82f6" },
+                  { name: tr("Purple", "Roxo"), value: "#a855f7" },
+                  { name: tr("Pink", "Rosa"), value: "#ec4899" },
+                  { name: tr("Red", "Vermelho"), value: "#ef4444" },
+                ].map((c) => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    title={c.name}
+                    onClick={() => editor.chain().focus().setColor(c.value).run()}
+                    className="flex h-6 w-6 items-center justify-center rounded border border-[var(--border)] font-bold hover:scale-110 transition-transform"
+                    style={{ color: c.value }}
+                  >
+                    A
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="mb-1 font-medium text-[var(--muted-foreground)]">
+                {tr("Highlight color", "Cor do destaque")}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => editor.chain().focus().unsetHighlight().run()}
+                  className="rounded border border-[var(--border)] px-2 py-0.5 text-[11px] hover:bg-[var(--surface-muted)]"
+                >
+                  {tr("None", "Nenhum")}
+                </button>
+                {[
+                  { name: tr("Yellow", "Amarelo"), value: "rgba(250, 204, 21, 0.35)" },
+                  { name: tr("Green", "Verde"), value: "rgba(34, 197, 94, 0.3)" },
+                  { name: tr("Blue", "Azul"), value: "rgba(59, 130, 246, 0.3)" },
+                  { name: tr("Purple", "Roxo"), value: "rgba(168, 85, 247, 0.3)" },
+                  { name: tr("Pink", "Rosa"), value: "rgba(236, 72, 153, 0.3)" },
+                  { name: tr("Red", "Vermelho"), value: "rgba(239, 68, 68, 0.3)" },
+                  { name: tr("Orange", "Laranja"), value: "rgba(249, 115, 22, 0.3)" },
+                  { name: tr("Gray", "Cinza"), value: "rgba(156, 163, 175, 0.3)" },
+                ].map((h) => (
+                  <button
+                    key={h.value}
+                    type="button"
+                    title={h.name}
+                    onClick={() =>
+                      editor.chain().focus().setHighlight({ color: h.value }).run()
+                    }
+                    className="h-6 w-6 rounded border border-[var(--border)] hover:scale-110 transition-transform"
+                    style={{ backgroundColor: h.value }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Link Input Panel */}
+        {bubblePanel === "link" && (
+          <div className="flex items-center gap-1.5 border-t border-[var(--border)] pt-2 text-xs">
+            <input
+              type="url"
+              value={linkInput}
+              onChange={(e) => setLinkInput(e.target.value)}
+              placeholder="https://..."
+              className="flex-1 rounded border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const url = linkInput.trim();
+                if (!url) {
+                  editor.chain().focus().extendMarkRange("link").unsetLink().run();
+                } else {
+                  editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+                }
+                setBubblePanel(null);
+              }}
+              className="rounded bg-[var(--accent)] px-2.5 py-1 font-medium text-white"
+            >
+              {tr("Apply", "Aplicar")}
+            </button>
+            {editor.isActive("link") && (
+              <button
+                type="button"
+                onClick={() => {
+                  editor.chain().focus().extendMarkRange("link").unsetLink().run();
+                  setBubblePanel(null);
+                }}
+                className="rounded border border-[var(--border)] px-2 py-1 text-red-500"
+              >
+                {tr("Remove", "Remover")}
+              </button>
+            )}
+          </div>
         )}
       </BubbleMenu>
 

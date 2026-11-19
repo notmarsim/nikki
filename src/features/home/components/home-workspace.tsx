@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckSquare, Home, Package, Plus, ShoppingCart, Utensils } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface HomeOverview {
   lists: Array<{ id: string; name: string }>;
@@ -12,6 +13,7 @@ interface HomeOverview {
 }
 
 export function HomeWorkspace() {
+  const { tr } = useI18n();
   const [data, setData] = useState<HomeOverview>({
     lists: [],
     items: [],
@@ -68,34 +70,53 @@ export function HomeWorkspace() {
 
   const lowStock = data.inventory.filter((i) => i.quantity <= i.minQuantity);
 
+  const mealSlotLabel = (slot: string) => {
+    switch (slot) {
+      case "breakfast":
+        return tr("Breakfast", "Café da manhã");
+      case "lunch":
+        return tr("Lunch", "Almoço");
+      case "dinner":
+        return tr("Dinner", "Jantar");
+      case "snack":
+        return tr("Snack", "Lanche");
+      default:
+        return slot;
+    }
+  };
+
+  const tabs = [
+    { id: "shopping" as const, label: tr("Shopping Lists", "Listas de Compras"), Icon: ShoppingCart },
+    { id: "pantry" as const, label: tr("Pantry", "Despensa"), Icon: Package },
+    { id: "meals" as const, label: tr("Meal Plan", "Plano de Refeições"), Icon: Utensils },
+    { id: "recipes" as const, label: tr("Recipes", "Receitas"), Icon: CheckSquare },
+  ];
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
             <Home className="h-6 w-6 text-[var(--accent)]" />
-            Nikki Home
+            {tr("Nikki Home", "Nikki Casa")}
           </h1>
           <p className="text-sm text-[var(--muted)]">
-            Shared shopping lists, pantry inventory alerts, recipes, and weekly meal planning.
+            {tr(
+              "Shared shopping lists, pantry inventory alerts, recipes, and weekly meal planning.",
+              "Listas de compras compartilhadas, alertas de despensa, receitas e planejamento semanal de refeições."
+            )}
           </p>
         </div>
         {lowStock.length > 0 && (
           <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs text-amber-400">
-            <AlertTriangle className="h-3.5 w-3.5" /> {lowStock.length} low-stock item(s)
+            <AlertTriangle className="h-3.5 w-3.5" />{" "}
+            {tr(`${lowStock.length} low-stock item(s)`, `${lowStock.length} item(ns) com estoque baixo`)}
           </div>
         )}
       </header>
 
       <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ["shopping", "Shopping Lists", ShoppingCart],
-            ["pantry", "Pantry", Package],
-            ["meals", "Meal Plan", Utensils],
-            ["recipes", "Recipes", CheckSquare],
-          ] as const
-        ).map(([id, label, Icon]) => (
+        {tabs.map(({ id, label, Icon }) => (
           <button
             key={id}
             type="button"
@@ -120,11 +141,11 @@ export function HomeWorkspace() {
             }}
             className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <h2 className="text-sm font-semibold">New Shopping List</h2>
+            <h2 className="text-sm font-semibold">{tr("New Shopping List", "Nova Lista de Compras")}</h2>
             <input
               value={listName}
               onChange={(e) => setListName(e.target.value)}
-              placeholder="e.g. Weekly Groceries"
+              placeholder={tr("e.g. Weekly Groceries", "ex: Compras da Semana")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               required
             />
@@ -132,7 +153,7 @@ export function HomeWorkspace() {
               type="submit"
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
             >
-              <Plus className="h-4 w-4" /> Create List
+              <Plus className="h-4 w-4" /> {tr("Create List", "Criar Lista")}
             </button>
             <div className="space-y-1.5 pt-2">
               {data.lists.map((l) => (
@@ -165,7 +186,11 @@ export function HomeWorkspace() {
               <input
                 value={itemName}
                 onChange={(e) => setItemName(e.target.value)}
-                placeholder={selectedListId ? "Add item to list..." : "Create or select a list first"}
+                placeholder={
+                  selectedListId
+                    ? tr("Add item to list...", "Adicionar item à lista...")
+                    : tr("Create or select a list first", "Crie ou selecione uma lista primeiro")
+                }
                 disabled={!selectedListId}
                 className="flex-1 rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               />
@@ -174,7 +199,7 @@ export function HomeWorkspace() {
                 disabled={!selectedListId}
                 className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
-                Add
+                {tr("Add", "Adicionar")}
               </button>
             </form>
 
@@ -223,7 +248,7 @@ export function HomeWorkspace() {
             <input
               value={pantryName}
               onChange={(e) => setPantryName(e.target.value)}
-              placeholder="Item (e.g. Rice, Coffee)"
+              placeholder={tr("Item (e.g. Rice, Coffee)", "Item (ex: Arroz, Café)")}
               className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm sm:col-span-2"
               required
             />
@@ -232,14 +257,14 @@ export function HomeWorkspace() {
               min={0}
               value={pantryQty}
               onChange={(e) => setPantryQty(e.target.value)}
-              placeholder="Qty"
+              placeholder={tr("Qty", "Qtd")}
               className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
             />
             <button
               type="submit"
               className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
             >
-              Add to Pantry
+              {tr("Add to Pantry", "Adicionar à Despensa")}
             </button>
           </form>
 
@@ -255,7 +280,7 @@ export function HomeWorkspace() {
                 >
                   <div className="font-medium">{inv.name}</div>
                   <div className="text-xs text-[var(--muted)]">
-                    Stock: {inv.quantity} {inv.unit} (min {inv.minQuantity})
+                    {tr("Stock:", "Estoque:")} {inv.quantity} {inv.unit} ({tr("min", "mín")} {inv.minQuantity})
                   </div>
                 </div>
               );
@@ -291,15 +316,15 @@ export function HomeWorkspace() {
               onChange={(e) => setMealSlot(e.target.value)}
               className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
             >
-              <option value="breakfast">Breakfast</option>
-              <option value="lunch">Lunch</option>
-              <option value="dinner">Dinner</option>
-              <option value="snack">Snack</option>
+              <option value="breakfast">{tr("Breakfast", "Café da manhã")}</option>
+              <option value="lunch">{tr("Lunch", "Almoço")}</option>
+              <option value="dinner">{tr("Dinner", "Jantar")}</option>
+              <option value="snack">{tr("Snack", "Lanche")}</option>
             </select>
             <input
               value={mealTitle}
               onChange={(e) => setMealTitle(e.target.value)}
-              placeholder="Meal title"
+              placeholder={tr("Meal title", "Nome da refeição")}
               className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               required
             />
@@ -307,7 +332,7 @@ export function HomeWorkspace() {
               type="submit"
               className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
             >
-              Plan Meal
+              {tr("Plan Meal", "Planejar Refeição")}
             </button>
           </form>
 
@@ -318,8 +343,8 @@ export function HomeWorkspace() {
                 className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
               >
                 <span className="font-medium">{m.title}</span>
-                <span className="text-xs capitalize text-[var(--muted)]">
-                  {m.planDate} · {m.mealSlot}
+                <span className="text-xs text-[var(--muted)]">
+                  {m.planDate} · {mealSlotLabel(m.mealSlot)}
                 </span>
               </div>
             ))}
@@ -347,7 +372,7 @@ export function HomeWorkspace() {
             <input
               value={recipeName}
               onChange={(e) => setRecipeName(e.target.value)}
-              placeholder="Recipe name"
+              placeholder={tr("Recipe name", "Nome da receita")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               required
             />
@@ -355,14 +380,14 @@ export function HomeWorkspace() {
               rows={3}
               value={recipeInstructions}
               onChange={(e) => setRecipeInstructions(e.target.value)}
-              placeholder="Preparation instructions..."
+              placeholder={tr("Preparation instructions...", "Instruções de preparo...")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent p-3 text-sm"
             />
             <button
               type="submit"
               className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
             >
-              Save Recipe
+              {tr("Save Recipe", "Salvar Receita")}
             </button>
           </form>
 
@@ -371,7 +396,7 @@ export function HomeWorkspace() {
               <div key={r.id} className="rounded-lg border border-[var(--border)] p-3 text-sm">
                 <div className="font-semibold">{r.name}</div>
                 <p className="mt-1 whitespace-pre-wrap text-xs text-[var(--muted)]">
-                  {r.instructions || "No instructions provided."}
+                  {r.instructions || tr("No instructions provided.", "Nenhuma instrução fornecida.")}
                 </p>
               </div>
             ))}

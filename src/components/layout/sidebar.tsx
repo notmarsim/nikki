@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { ModuleIcon } from "@/components/ui/module-icon";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface SidebarProps {
   workspaceName: string;
@@ -34,6 +35,7 @@ const SECTION_ORDER: ModuleSection[] = [
 
 export function Sidebar({ workspaceName }: SidebarProps) {
   const pathname = usePathname();
+  const { t, moduleName, sectionName } = useI18n();
   const {
     sidebarCollapsed,
     toggleSidebar,
@@ -57,10 +59,15 @@ export function Sidebar({ workspaceName }: SidebarProps) {
     "settings",
   ]);
 
+  const [mounted, setMounted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
   >({});
   const [spaces, setSpaces] = useState<Array<{ id: string; name: string; spaceType: string }>>([]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     void (async () => {
@@ -90,8 +97,11 @@ export function Sidebar({ workspaceName }: SidebarProps) {
     setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
+  const effectiveHidden = mounted ? hiddenModuleIds : [];
+  const effectiveMode = mounted ? interfaceMode : "advanced";
+
   const pinnedModules = APP_MODULES.filter(
-    (m) => pinnedModuleIds.includes(m.id) && !hiddenModuleIds.includes(m.id)
+    (m) => pinnedModuleIds.includes(m.id) && !effectiveHidden.includes(m.id)
   );
 
   const renderNavContent = (isMobile = false) => {
@@ -172,7 +182,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
               className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs"
             >
               <option value="" disabled>
-                Space: {workspaceName}
+                {t("nav.space")}: {workspaceName}
               </option>
               {spaces.map((sp) => (
                 <option key={sp.id} value={sp.id}>
@@ -194,7 +204,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
             <div>
               <div className="mb-1 flex items-center gap-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                 <Pin className="h-3 w-3" />
-                <span>Pinned</span>
+                <span>{t("nav.pinned")}</span>
               </div>
               <div className="space-y-0.5">
                 {pinnedModules.map((mod) => {
@@ -213,7 +223,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
                       aria-current={isActive ? "page" : undefined}
                     >
                       <ModuleIcon name={mod.icon} className="h-4 w-4 shrink-0" />
-                      <span className="truncate flex-1">{mod.name}</span>
+                      <span className="truncate flex-1">{moduleName(mod.id, mod.name)}</span>
                     </Link>
                   );
                 })}
@@ -226,8 +236,8 @@ export function Sidebar({ workspaceName }: SidebarProps) {
             const sectionModules = APP_MODULES.filter(
               (m) =>
                 m.section === sectionKey &&
-                (m.id === "settings" || !hiddenModuleIds.includes(m.id)) &&
-                (interfaceMode !== "simple" || SIMPLE_MODE_SET.has(m.id))
+                (m.id === "settings" || !effectiveHidden.includes(m.id)) &&
+                (effectiveMode !== "simple" || SIMPLE_MODE_SET.has(m.id))
             );
             if (sectionModules.length === 0) return null;
             const isSectionCollapsed = collapsedSections[sectionKey] ?? false;
@@ -240,7 +250,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
                     onClick={() => toggleSection(sectionKey)}
                     className="mb-1 flex w-full items-center justify-between px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                   >
-                    <span>{MODULE_SECTIONS[sectionKey]}</span>
+                    <span>{sectionName(sectionKey, MODULE_SECTIONS[sectionKey])}</span>
                     <ChevronDown
                       className={cn(
                         "h-3 w-3 transition-transform",
@@ -278,7 +288,7 @@ export function Sidebar({ workspaceName }: SidebarProps) {
                             />
                             {!collapsed && (
                               <>
-                                <span className="truncate flex-1">{mod.name}</span>
+                                <span className="truncate flex-1">{moduleName(mod.id, mod.name)}</span>
                                 {mod.status === "planned" && (
                                   <span className="text-[10px] rounded px-1.5 py-0.5 bg-[var(--surface-muted)] text-[var(--muted-foreground)]">
                                     P{mod.phase}

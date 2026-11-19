@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Calendar, CheckSquare, MapPin, Plane, Plus, Trash2 } from "lucide-react";
 import { formatCents, parseMoneyToCents } from "@/modules/finances/money";
 
@@ -35,6 +36,7 @@ interface ChecklistItem {
 }
 
 export function TripsWorkspace() {
+  const { t, tr } = useI18n();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
@@ -83,10 +85,10 @@ export function TripsWorkspace() {
       <header>
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           <Plane className="h-6 w-6 text-[var(--accent)]" />
-          Trip Planner
+          {t("trips.title")}
         </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Organize viagens, roteiro por dia, bagagem e integre atividades diretamente ao seu Calendar.
+          {t("trips.subtitle")}
         </p>
       </header>
 
@@ -111,18 +113,18 @@ export function TripsWorkspace() {
             }}
             className="space-y-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <h2 className="text-sm font-semibold">Nova Viagem</h2>
+            <h2 className="text-sm font-semibold">{tr("New Trip", "Nova Viagem")}</h2>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nome da viagem"
+              placeholder={tr("Trip name", "Nome da viagem")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               required
             />
             <input
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
-              placeholder="Destino"
+              placeholder={tr("Destination", "Destino")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               required
             />
@@ -143,19 +145,19 @@ export function TripsWorkspace() {
             <input
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
-              placeholder="Orçamento (ex: 3000,00)"
+              placeholder={tr("Budget (e.g. 3000.00)", "Orçamento (ex: 3000,00)")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
             />
             <button
               type="submit"
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
             >
-              <Plus className="h-4 w-4" /> Criar Viagem
+              <Plus className="h-4 w-4" /> {tr("Create Trip", "Criar Viagem")}
             </button>
           </form>
 
           <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-            <h2 className="text-sm font-semibold">Viagens ({trips.length})</h2>
+            <h2 className="text-sm font-semibold">{tr("Trips", "Viagens")} ({trips.length})</h2>
             {trips.map((t) => (
               <div
                 key={t.id}
@@ -199,14 +201,14 @@ export function TripsWorkspace() {
                   {activeTrip.destination}
                 </h2>
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  {activeTrip.startDate} até {activeTrip.endDate} · Orçamento:{" "}
+                  {activeTrip.startDate} {tr("to", "até")} {activeTrip.endDate} · {tr("Budget:", "Orçamento:")}{" "}
                   {formatCents(activeTrip.budgetCents, "BRL")}
                 </p>
               </div>
 
               <div className="space-y-3">
                 <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-                  <Calendar className="h-4 w-4 text-[var(--accent)]" /> Itinerário
+                  <Calendar className="h-4 w-4 text-[var(--accent)]" /> {tr("Itinerary", "Itinerário")}
                 </h3>
                 <form
                   onSubmit={async (e) => {
@@ -228,7 +230,7 @@ export function TripsWorkspace() {
                   <input
                     value={actTitle}
                     onChange={(e) => setActTitle(e.target.value)}
-                    placeholder="Atividade (ex: Check-in, Passeio)"
+                    placeholder={tr("Activity (e.g. Check-in, Tour)", "Atividade (ex: Check-in, Passeio)")}
                     className="flex-1 rounded-lg border border-[var(--border)] bg-transparent px-3 py-1.5 text-sm"
                     required
                   />
@@ -250,7 +252,7 @@ export function TripsWorkspace() {
                     type="submit"
                     className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white"
                   >
-                    Adicionar
+                    {tr("Add", "Adicionar")}
                   </button>
                 </form>
 
@@ -267,7 +269,7 @@ export function TripsWorkspace() {
                         </span>
                         {item.calendarEventId && (
                           <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px]">
-                            No Calendar
+                            {tr("In Calendar", "No Calendar")}
                           </span>
                         )}
                       </div>
@@ -277,7 +279,7 @@ export function TripsWorkspace() {
 
               <div className="space-y-3 border-t border-[var(--border)] pt-4">
                 <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-                  <CheckSquare className="h-4 w-4 text-[var(--accent)]" /> Checklist de Bagagem &amp; Preparação
+                  <CheckSquare className="h-4 w-4 text-[var(--accent)]" /> {tr("Packing & Preparation Checklist", "Checklist de Bagagem & Preparação")}
                 </h3>
                 <form
                   onSubmit={async (e) => {
@@ -296,14 +298,14 @@ export function TripsWorkspace() {
                   <input
                     value={packTitle}
                     onChange={(e) => setPackTitle(e.target.value)}
-                    placeholder="Item da bagagem ou preparo..."
+                    placeholder={tr("Packing or prep item...", "Item da bagagem ou preparo...")}
                     className="flex-1 rounded-lg border border-[var(--border)] bg-transparent px-3 py-1.5 text-sm"
                   />
                   <button
                     type="submit"
                     className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium"
                   >
-                    Adicionar
+                    {tr("Add", "Adicionar")}
                   </button>
                 </form>
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -333,7 +335,7 @@ export function TripsWorkspace() {
             </div>
           ) : (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-              Crie ou selecione uma viagem ao lado.
+              {tr("Create or select a trip on the side.", "Crie ou selecione uma viagem ao lado.")}
             </div>
           )}
         </div>

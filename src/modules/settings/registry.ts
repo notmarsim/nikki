@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const userPreferencesSchema = z.object({
   // Language & Region
-  language: z.enum(["pt-BR", "en-US"]).default("pt-BR"),
+  language: z.enum(["en-US", "pt-BR"]).default("en-US"),
   dateFormat: z.enum(["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"]).default("DD/MM/YYYY"),
   timeFormat: z.enum(["24h", "12h"]).default("24h"),
   weekStartsOn: z.enum(["sunday", "monday", "saturday"]).default("monday"),
@@ -76,28 +76,28 @@ export function mergeUserPreferences(raw: unknown): UserPreferences {
 }
 
 export const DASHBOARD_WIDGETS = [
-  { id: "overview", label: "Overview Summary Cards" },
-  { id: "quick_capture", label: "Quick Capture" },
-  { id: "learning_overview", label: "Learning, Focus & Habits Summary" },
-  { id: "tasks_today", label: "Tasks Today" },
-  { id: "active_projects", label: "Active Projects" },
-  { id: "recent_notes", label: "Recent Notes" },
-  { id: "recent_activity", label: "Recent Activity" },
-  { id: "upcoming_events", label: "Upcoming Events" },
-  { id: "recent_bookmarks", label: "Recent Bookmarks" },
-  { id: "developer_snippets", label: "Developer Hub Snippets" },
-  { id: "finances", label: "Personal Finances" },
+  { id: "overview", label: "Cards de Resumo Geral" },
+  { id: "quick_capture", label: "Captura Rápida" },
+  { id: "learning_overview", label: "Resumo de Estudos, Foco e Hábitos" },
+  { id: "tasks_today", label: "Tarefas de Hoje" },
+  { id: "active_projects", label: "Projetos Ativos" },
+  { id: "recent_notes", label: "Notas Recentes" },
+  { id: "recent_activity", label: "Atividade Recente" },
+  { id: "upcoming_events", label: "Próximos Eventos" },
+  { id: "recent_bookmarks", label: "Favoritos Recentes" },
+  { id: "developer_snippets", label: "Snippets do Dev Hub" },
+  { id: "finances", label: "Finanças Pessoais" },
 ] as const;
 
 export const SETTINGS_CATEGORIES = [
-  { id: "general", label: "General & Profile", keywords: "name bio language timezone currency date" },
-  { id: "appearance", label: "Appearance & Accessibility", keywords: "theme dark light accent density font contrast" },
-  { id: "productivity", label: "Productivity & Modules", keywords: "tasks calendar notes pomodoro habits learning flashcards" },
-  { id: "navigation", label: "Navigation & Shortcuts", keywords: "sidebar hide modules keybindings shortcuts" },
-  { id: "finances", label: "Finances & Privacy", keywords: "privacy hide values cents budget analytics" },
-  { id: "notifications", label: "Notifications", keywords: "quiet hours alerts reminders" },
+  { id: "general", label: "Geral e Perfil", keywords: "name bio language timezone currency date nome idioma fuso" },
+  { id: "appearance", label: "Aparência e Acessibilidade", keywords: "theme dark light accent density font contrast tema claro escuro" },
+  { id: "productivity", label: "Produtividade e Módulos", keywords: "tasks calendar notes pomodoro habits learning flashcards tarefas" },
+  { id: "navigation", label: "Navegação e Atalhos", keywords: "sidebar hide modules keybindings shortcuts simple advanced tour" },
+  { id: "finances", label: "Finanças e Privacidade", keywords: "privacy hide values cents budget analytics privacidade" },
+  { id: "notifications", label: "Notificações", keywords: "quiet hours alerts reminders silencio alertas" },
   { id: "devices", label: "Aplicativo e Dispositivos", keywords: "pwa android ios capacitor offline cache push" },
   { id: "data", label: "Dados e Armazenamento", keywords: "export backup json csv reset archive retention trash lixeira historico" },
-  { id: "tutorials", label: "Help & Tutorials", keywords: "onboarding tour guide help tutorial walkthrough" },
-  { id: "diagnostics", label: "Help & Diagnostics", keywords: "diagnostics health support bug report logs" },
+  { id: "tutorials", label: "Ajuda e Tutoriais", keywords: "onboarding tour guide help tutorial walkthrough ajuda" },
+  { id: "diagnostics", label: "Ajuda e Diagnóstico", keywords: "diagnostics health support bug report logs diagnostico" },
 ] as const;

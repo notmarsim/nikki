@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface InboxWorkspaceProps {
   initialItems: InboxItemRecord[];
@@ -24,6 +25,8 @@ interface InboxWorkspaceProps {
 }
 
 export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"pending" | "processed" | "archived">("pending");
   const [type, setType] = useState<"note" | "idea" | "link" | "task" | "quick_note">("note");
@@ -147,19 +150,52 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
 
   const filtered = items.filter((item) => item.status === filter);
 
+  const typeLabel = (itemType: string) => {
+    switch (itemType) {
+      case "note":
+        return tr("Note", "Nota");
+      case "idea":
+        return tr("Idea", "Ideia");
+      case "task":
+        return tr("Task", "Tarefa");
+      case "link":
+        return tr("Link", "Link");
+      case "quick_note":
+        return tr("Quick note", "Nota rápida");
+      default:
+        return itemType.replace("_", " ");
+    }
+  };
+
+  const tabLabel = (tab: "pending" | "processed" | "archived") => {
+    switch (tab) {
+      case "pending":
+        return tr("Pending", "Pendentes");
+      case "processed":
+        return tr("Processed", "Processados");
+      case "archived":
+        return tr("Archived", "Arquivados");
+    }
+  };
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Universal Inbox</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {tr("Universal Inbox", "Caixa de Entrada Universal")}
+        </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Capture thoughts, links, and tasks immediately, then triage them into Notes, Tasks, or Projects.
+          {tr(
+            "Capture thoughts, links, and tasks immediately, then triage them into Notes, Tasks, or Projects.",
+            "Capture ideias, links e tarefas imediatamente e depois organize em Notas, Tarefas ou Projetos."
+          )}
         </p>
       </div>
 
       {/* Quick Capture Form */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Quick Capture</CardTitle>
+          <CardTitle className="text-base">{tr("Quick Capture", "Captura Rápida")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCapture} className="space-y-3">
@@ -175,14 +211,14 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                       : "bg-[var(--surface-muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                   }`}
                 >
-                  {t.replace("_", " ")}
+                  {typeLabel(t)}
                 </button>
               ))}
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Input
-                placeholder="Title (optional)..."
+                placeholder={tr("Title (optional)...", "Título (opcional)...")}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -201,14 +237,16 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
               required
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Write anything to capture..."
+              placeholder={tr("Write anything to capture...", "Escreva qualquer coisa para capturar...")}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             />
 
             <div className="flex justify-end">
               <Button type="submit" disabled={submitting}>
                 <Plus className="h-4 w-4" />
-                {submitting ? "Capturing..." : "Add to Inbox"}
+                {submitting
+                  ? tr("Capturing...", "Capturando...")
+                  : tr("Add to Inbox", "Adicionar à Caixa de Entrada")}
               </Button>
             </div>
           </form>
@@ -230,7 +268,7 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                   : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)} ({count})
+              {tabLabel(tab)} ({count})
             </button>
           );
         })}
@@ -241,9 +279,18 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Inbox className="mb-3 h-8 w-8 text-[var(--muted-foreground)]" />
-            <p className="text-sm font-medium">No {filter} items in your Inbox</p>
+            <p className="text-sm font-medium">
+              {filter === "pending"
+                ? tr("No pending items in your Inbox", "Nenhum item pendente na sua Caixa de Entrada")
+                : filter === "processed"
+                  ? tr("No processed items in your Inbox", "Nenhum item processado na sua Caixa de Entrada")
+                  : tr("No archived items in your Inbox", "Nenhum item arquivado na sua Caixa de Entrada")}
+            </p>
             <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-              Use the capture form above or press Ctrl+Shift+I from anywhere in Nikki.
+              {tr(
+                "Use the capture form above or press Ctrl+Shift+I from anywhere in Nikki.",
+                "Use o formulário acima ou pressione Ctrl+Shift+I de qualquer lugar no Nikki."
+              )}
             </p>
           </CardContent>
         </Card>
@@ -255,12 +302,12 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1 flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">{item.type.replace("_", " ")}</Badge>
+                      <Badge variant="outline">{typeLabel(item.type)}</Badge>
                       {item.title && (
                         <span className="text-sm font-semibold truncate">{item.title}</span>
                       )}
                       <span className="text-xs text-[var(--muted-foreground)]">
-                        {new Date(item.createdAt).toLocaleDateString()}
+                        {new Date(item.createdAt).toLocaleDateString(locale)}
                       </span>
                     </div>
 
@@ -278,14 +325,14 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                             onClick={() => handleSaveEdit(item.id)}
                             disabled={busyId === item.id}
                           >
-                            Save
+                            {tr("Save", "Salvar")}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setEditingId(null)}
                           >
-                            Cancel
+                            {tr("Cancel", "Cancelar")}
                           </Button>
                         </div>
                       </div>
@@ -296,7 +343,7 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                           setEditingId(item.id);
                           setEditContent(item.content);
                         }}
-                        title="Click to edit"
+                        title={tr("Click to edit", "Clique para editar")}
                       >
                         {item.content}
                       </p>
@@ -322,8 +369,8 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                         size="icon"
                         onClick={() => handleArchive(item.id)}
                         disabled={busyId === item.id}
-                        title="Archive"
-                        aria-label="Archive inbox item"
+                        title={tr("Archive", "Arquivar")}
+                        aria-label={tr("Archive inbox item", "Arquivar item da caixa de entrada")}
                       >
                         <Archive className="h-4 w-4" />
                       </Button>
@@ -333,8 +380,8 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                       size="icon"
                       onClick={() => handleDelete(item.id)}
                       disabled={busyId === item.id}
-                      title="Delete"
-                      aria-label="Delete inbox item"
+                      title={tr("Delete", "Excluir")}
+                      aria-label={tr("Delete inbox item", "Excluir item da caixa de entrada")}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
@@ -352,9 +399,9 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                         }))
                       }
                       className="h-8 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-                      aria-label="Associate with project"
+                      aria-label={tr("Associate with project", "Associar a um projeto")}
                     >
-                      <option value="">No project</option>
+                      <option value="">{tr("No project", "Sem projeto")}</option>
                       {projects.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
@@ -370,7 +417,7 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                         onClick={() => handleConvert(item.id, "note")}
                       >
                         <FileText className="h-3.5 w-3.5" />
-                        Convert to Note
+                        {tr("Convert to Note", "Converter em Nota")}
                       </Button>
                       <Button
                         size="sm"
@@ -378,7 +425,7 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                         onClick={() => handleConvert(item.id, "task")}
                       >
                         <CheckSquare className="h-3.5 w-3.5" />
-                        Convert to Task
+                        {tr("Convert to Task", "Converter em Tarefa")}
                       </Button>
                       {(item.url || /https?:\/\/\S+/.test(item.content)) && (
                         <Button
@@ -387,7 +434,7 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                           disabled={busyId === item.id}
                           onClick={() => handleConvert(item.id, "bookmark")}
                         >
-                          Save as Bookmark
+                          {tr("Save as Bookmark", "Salvar como Favorito")}
                         </Button>
                       )}
                     </div>
@@ -396,7 +443,7 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
 
                 {item.status === "processed" && item.convertedToId && (
                   <div className="border-t border-[var(--border)] pt-2 text-xs text-[var(--muted-foreground)]">
-                    Converted to{" "}
+                    {tr("Converted to", "Convertido em")}{" "}
                     <Link
                       href={
                         item.convertedToType === "note"
@@ -407,7 +454,11 @@ export function InboxWorkspace({ initialItems, projects }: InboxWorkspaceProps) 
                       }
                       className="font-medium text-[var(--accent)] hover:underline"
                     >
-                      {item.convertedToType === "note" ? "Note →" : "Task →"}
+                      {item.convertedToType === "note"
+                        ? tr("Note →", "Nota →")
+                        : item.convertedToType === "bookmark"
+                          ? tr("Bookmark →", "Favorito →")
+                          : tr("Task →", "Tarefa →")}
                     </Link>
                   </div>
                 )}

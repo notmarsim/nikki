@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Pause, Play, Plus, Radio, Users } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface FocusRoom {
   id: string;
@@ -19,6 +20,7 @@ interface RoomDetails {
 }
 
 export function FocusRoomsWorkspace() {
+  const { tr } = useI18n();
   const [rooms, setRooms] = useState<FocusRoom[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [details, setDetails] = useState<RoomDetails | null>(null);
@@ -67,7 +69,7 @@ export function FocusRoomsWorkspace() {
     });
     if (res.ok) {
       setName("");
-      setMsg("Focus room created.");
+      setMsg(tr("Focus room created.", "Sala de foco criada."));
       await loadRooms();
     }
   }
@@ -82,10 +84,10 @@ export function FocusRoomsWorkspace() {
     });
     if (res.ok) {
       setInviteCode("");
-      setMsg("Joined focus room.");
+      setMsg(tr("Joined focus room.", "Você entrou na sala de foco."));
       await loadRooms();
     } else {
-      setMsg("Invalid invite code.");
+      setMsg(tr("Invalid invite code.", "Código de convite inválido."));
     }
   }
 
@@ -100,16 +102,33 @@ export function FocusRoomsWorkspace() {
     await loadRooms();
   }
 
+  const roomStatusLabel = (status: string) => {
+    if (status === "idle") return tr("idle", "ociosa");
+    if (status === "running") return tr("running", "em andamento");
+    if (status === "paused") return tr("paused", "pausada");
+    if (status === "break") return tr("break", "pausa");
+    if (status === "ended") return tr("ended", "encerrada");
+    return status;
+  };
+
+  const roomModeLabel = (roomMode: FocusRoom["mode"]) =>
+    roomMode === "synchronized"
+      ? tr("Synchronized", "Sincronizada")
+      : tr("Independent", "Independente");
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
             <Radio className="h-6 w-6 text-[var(--accent)]" />
-            Focus Rooms
+            {tr("Focus Rooms", "Salas de Foco")}
           </h1>
           <p className="text-sm text-[var(--muted)]">
-            Shared study and co-working rooms with synchronized Pomodoro timers.
+            {tr(
+              "Shared study and co-working rooms with synchronized Pomodoro timers.",
+              "Salas compartilhadas de estudo e coworking com cronômetros Pomodoro sincronizados."
+            )}
           </p>
         </div>
         {msg && <span className="rounded border border-[var(--border)] px-3 py-1 text-xs">{msg}</span>}
@@ -121,11 +140,14 @@ export function FocusRoomsWorkspace() {
             onSubmit={handleCreate}
             className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <h2 className="text-sm font-semibold">Create Focus Room</h2>
+            <h2 className="text-sm font-semibold">{tr("Create Focus Room", "Criar Sala de Foco")}</h2>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Room name (e.g. Deep Work Sprint)"
+              placeholder={tr(
+                "Room name (e.g. Deep Work Sprint)",
+                "Nome da sala (ex.: Sprint de Trabalho Profundo)"
+              )}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               required
             />
@@ -135,8 +157,8 @@ export function FocusRoomsWorkspace() {
                 onChange={(e) => setMode(e.target.value as "synchronized" | "independent")}
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
               >
-                <option value="synchronized">Synchronized</option>
-                <option value="independent">Independent</option>
+                <option value="synchronized">{tr("Synchronized", "Sincronizada")}</option>
+                <option value="independent">{tr("Independent", "Independente")}</option>
               </select>
               <input
                 type="number"
@@ -151,7 +173,7 @@ export function FocusRoomsWorkspace() {
               type="submit"
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
             >
-              <Plus className="h-4 w-4" /> Create Room
+              <Plus className="h-4 w-4" /> {tr("Create Room", "Criar Sala")}
             </button>
           </form>
 
@@ -159,25 +181,29 @@ export function FocusRoomsWorkspace() {
             onSubmit={handleJoin}
             className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <h2 className="text-sm font-semibold">Join by Invite Code</h2>
+            <h2 className="text-sm font-semibold">
+              {tr("Join by Invite Code", "Entrar com Código de Convite")}
+            </h2>
             <div className="flex gap-2">
               <input
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                placeholder="ROOM-CODE"
+                placeholder={tr("ROOM-CODE", "CODIGO-SALA")}
                 className="flex-1 rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm uppercase"
               />
               <button
                 type="submit"
                 className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium"
               >
-                Join
+                {tr("Join", "Entrar")}
               </button>
             </div>
           </form>
 
           <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-            <h2 className="text-sm font-semibold">Your Rooms ({rooms.length})</h2>
+            <h2 className="text-sm font-semibold">
+              {tr("Your Rooms", "Suas Salas")} ({rooms.length})
+            </h2>
             {rooms.map((r) => (
               <button
                 key={r.id}
@@ -191,7 +217,7 @@ export function FocusRoomsWorkspace() {
               >
                 <div className="font-medium">{r.name}</div>
                 <div className="text-xs text-[var(--muted)]">
-                  Code: {r.inviteCode} · {r.status}
+                  {tr("Code", "Código")}: {r.inviteCode} · {roomStatusLabel(r.status)}
                 </div>
               </button>
             ))}
@@ -205,8 +231,9 @@ export function FocusRoomsWorkspace() {
                 <div>
                   <h2 className="text-lg font-semibold">{details.room.name}</h2>
                   <p className="text-xs text-[var(--muted)]">
-                    Invite Code: <span className="font-mono">{details.room.inviteCode}</span> ·{" "}
-                    {details.room.mode} · {details.room.focusMinutes} min
+                    {tr("Invite Code:", "Código de Convite:")}{" "}
+                    <span className="font-mono">{details.room.inviteCode}</span> ·{" "}
+                    {roomModeLabel(details.room.mode)} · {details.room.focusMinutes} min
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -215,22 +242,22 @@ export function FocusRoomsWorkspace() {
                     onClick={() => setRoomState("running")}
                     className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white"
                   >
-                    <Play className="h-3.5 w-3.5" /> Start Cycle
+                    <Play className="h-3.5 w-3.5" /> {tr("Start Cycle", "Iniciar Ciclo")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setRoomState("paused")}
                     className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs"
                   >
-                    <Pause className="h-3.5 w-3.5" /> Pause
+                    <Pause className="h-3.5 w-3.5" /> {tr("Pause", "Pausar")}
                   </button>
                 </div>
               </div>
 
               <div>
                 <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
-                  <Users className="h-4 w-4 text-[var(--accent)]" /> Participants (
-                  {details.participants.length})
+                  <Users className="h-4 w-4 text-[var(--accent)]" />{" "}
+                  {tr("Participants", "Participantes")} ({details.participants.length})
                 </h3>
                 <div className="space-y-2">
                   {details.participants.map((p) => (
@@ -240,7 +267,9 @@ export function FocusRoomsWorkspace() {
                     >
                       <span>{p.name}</span>
                       <span className="text-xs text-[var(--muted)]">
-                        {p.shareActivity ? "Activity visible" : "Private activity"}
+                        {p.shareActivity
+                          ? tr("Activity visible", "Atividade visível")
+                          : tr("Private activity", "Atividade privada")}
                       </span>
                     </div>
                   ))}
@@ -249,7 +278,10 @@ export function FocusRoomsWorkspace() {
             </div>
           ) : (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted)]">
-              Create or select a focus room to start a shared session.
+              {tr(
+                "Create or select a focus room to start a shared session.",
+                "Crie ou selecione uma sala de foco para iniciar uma sessão compartilhada."
+              )}
             </div>
           )}
         </div>

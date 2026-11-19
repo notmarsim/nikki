@@ -19,6 +19,7 @@ import {
   type GraphNode,
   type GraphPayload,
 } from "@/modules/graph/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { GraphCanvas, NODE_CATEGORY_STYLE } from "./graph-canvas";
 
 const ALL_CATEGORIES = [
@@ -37,6 +38,7 @@ export function KnowledgeGraphWorkspace({
 }: {
   initialGraph: GraphPayload;
 }) {
+  const { tr } = useI18n();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
@@ -136,16 +138,65 @@ export function KnowledgeGraphWorkspace({
     });
   };
 
+  const categoryLabel = (cat: string) => {
+    switch (cat) {
+      case "note":
+        return tr("Notes", "Notas");
+      case "project":
+        return tr("Projects", "Projetos");
+      case "course":
+        return tr("Courses", "Cursos");
+      case "lesson":
+        return tr("Lessons", "Aulas");
+      case "bookmark":
+        return tr("Bookmarks", "Favoritos");
+      case "snippet":
+        return tr("Snippets", "Snippets");
+      case "reference":
+        return tr("Docs", "Docs");
+      case "task":
+        return tr("Tasks", "Tarefas");
+      default:
+        return NODE_CATEGORY_STYLE[cat]?.label ?? cat;
+    }
+  };
+
+  const entityTypeLabel = (entityType: string) => {
+    switch (entityType) {
+      case "note":
+        return tr("Note", "Nota");
+      case "project":
+        return tr("Project", "Projeto");
+      case "course":
+        return tr("Course", "Curso");
+      case "lesson":
+        return tr("Lesson", "Aula");
+      case "bookmark":
+        return tr("Bookmark", "Favorito");
+      case "snippet":
+        return tr("Snippet", "Snippet");
+      case "reference":
+        return tr("Doc", "Doc");
+      case "task":
+        return tr("Task", "Tarefa");
+      default:
+        return entityType;
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Network className="h-6 w-6 text-[var(--accent)]" />
-            Knowledge Graph
+            {tr("Knowledge Graph", "Grafo de Conhecimento")}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Explore real connections across Notes, Projects, Courses, Bookmarks, and Snippets.
+            {tr(
+              "Explore real connections across Notes, Projects, Courses, Bookmarks, and Snippets.",
+              "Explore conexões reais entre Notas, Projetos, Cursos, Favoritos e Snippets."
+            )}
           </p>
         </div>
 
@@ -156,18 +207,18 @@ export function KnowledgeGraphWorkspace({
               size="sm"
               onClick={() => setFocusedCenterKey(null)}
             >
-              Exit Focus Mode
+              {tr("Exit Focus Mode", "Sair do Modo Foco")}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={handleResetLayout}>
-            <RotateCcw className="h-3.5 w-3.5" /> Reset Layout
+            <RotateCcw className="h-3.5 w-3.5" /> {tr("Reset Layout", "Redefinir Layout")}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleSavePrefs(includeTasks)}
           >
-            Save Preferences
+            {tr("Save Preferences", "Salvar Preferências")}
           </Button>
         </div>
       </div>
@@ -181,7 +232,7 @@ export function KnowledgeGraphWorkspace({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search nodes..."
+                placeholder={tr("Search nodes...", "Buscar nós...")}
                 className="pl-8 h-8 text-xs"
               />
             </div>
@@ -192,7 +243,7 @@ export function KnowledgeGraphWorkspace({
                 onChange={(e) => setSelectedTag(e.target.value)}
                 className="h-8 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
               >
-                <option value="">All tags</option>
+                <option value="">{tr("All tags", "Todas as tags")}</option>
                 {graph.availableTags.map((t) => (
                   <option key={t} value={t}>
                     #{t}
@@ -210,11 +261,11 @@ export function KnowledgeGraphWorkspace({
                   : "border-[var(--border)] text-[var(--muted-foreground)]"
               }`}
             >
-              <Star className="h-3.5 w-3.5" /> Favorites
+              <Star className="h-3.5 w-3.5" /> {tr("Favorites", "Favoritos")}
             </button>
 
             <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)] ml-auto">
-              <span>Force</span>
+              <span>{tr("Force", "Força")}</span>
               <input
                 type="range"
                 min={80}
@@ -223,7 +274,7 @@ export function KnowledgeGraphWorkspace({
                 onChange={(e) => setChargeStrength(Number(e.target.value))}
                 className="w-20"
               />
-              <span>Distance</span>
+              <span>{tr("Distance", "Distância")}</span>
               <input
                 type="range"
                 min={40}
@@ -257,13 +308,14 @@ export function KnowledgeGraphWorkspace({
                   >
                     {style?.glyph ?? "?"}
                   </span>
-                  {style?.label ?? cat}
+                  {categoryLabel(cat)}
                 </button>
               );
             })}
             <span className="ml-auto text-xs text-[var(--muted-foreground)]">
-              {displayed.nodes.length} nodes · {displayed.edges.length} edges
-              {graph.truncated ? " (limit reached)" : ""}
+              {displayed.nodes.length} {tr("nodes", "nós")} · {displayed.edges.length}{" "}
+              {tr("edges", "arestas")}
+              {graph.truncated ? tr(" (limit reached)", " (limite atingido)") : ""}
             </span>
           </div>
         </CardContent>
@@ -275,7 +327,10 @@ export function KnowledgeGraphWorkspace({
           {displayed.nodes.length === 0 ? (
             <Card>
               <CardContent className="py-20 text-center text-sm text-[var(--muted-foreground)]">
-                No nodes match the current filters. Create Notes, Projects, Bookmarks, or Snippets and link them together.
+                {tr(
+                  "No nodes match the current filters. Create Notes, Projects, Bookmarks, or Snippets and link them together.",
+                  "Nenhum nó corresponde aos filtros atuais. Crie Notas, Projetos, Favoritos ou Snippets e conecte-os entre si."
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -309,8 +364,8 @@ export function KnowledgeGraphWorkspace({
             <CardHeader className="border-b border-[var(--border)] pb-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <Badge variant="outline" className="mb-1.5 capitalize">
-                    {selectedNode.entityType}
+                  <Badge variant="outline" className="mb-1.5">
+                    {entityTypeLabel(selectedNode.entityType)}
                   </Badge>
                   <CardTitle className="text-base break-words">
                     {selectedNode.title}
@@ -318,7 +373,7 @@ export function KnowledgeGraphWorkspace({
                 </div>
                 <Link href={selectedNode.href}>
                   <Button size="sm">
-                    <ExternalLink className="h-3.5 w-3.5" /> Open
+                    <ExternalLink className="h-3.5 w-3.5" /> {tr("Open", "Abrir")}
                   </Button>
                 </Link>
               </div>
@@ -343,18 +398,22 @@ export function KnowledgeGraphWorkspace({
               <div className="grid grid-cols-2 gap-2 rounded-lg border border-[var(--border)] p-2.5 text-center">
                 <div>
                   <div className="text-lg font-bold">{selectedConnections.incoming.length}</div>
-                  <div className="text-[11px] text-[var(--muted-foreground)]">Incoming</div>
+                  <div className="text-[11px] text-[var(--muted-foreground)]">
+                    {tr("Incoming", "Entradas")}
+                  </div>
                 </div>
                 <div>
                   <div className="text-lg font-bold">{selectedConnections.outgoing.length}</div>
-                  <div className="text-[11px] text-[var(--muted-foreground)]">Outgoing</div>
+                  <div className="text-[11px] text-[var(--muted-foreground)]">
+                    {tr("Outgoing", "Saídas")}
+                  </div>
                 </div>
               </div>
 
               {selectedConnections.incoming.length > 0 && (
                 <div>
                   <div className="mb-1.5 font-semibold uppercase tracking-wider text-[10px] text-[var(--muted-foreground)]">
-                    Incoming Connections
+                    {tr("Incoming Connections", "Conexões de Entrada")}
                   </div>
                   <div className="space-y-1 max-h-40 overflow-y-auto">
                     {selectedConnections.incoming.map((n) => (
@@ -365,8 +424,8 @@ export function KnowledgeGraphWorkspace({
                         className="flex w-full items-center justify-between rounded border border-[var(--border)] px-2.5 py-1.5 text-left hover:bg-[var(--surface-muted)]"
                       >
                         <span className="truncate font-medium">{n.title}</span>
-                        <span className="ml-2 shrink-0 text-[10px] text-[var(--muted-foreground)] capitalize">
-                          {n.entityType}
+                        <span className="ml-2 shrink-0 text-[10px] text-[var(--muted-foreground)]">
+                          {entityTypeLabel(n.entityType)}
                         </span>
                       </button>
                     ))}
@@ -377,7 +436,7 @@ export function KnowledgeGraphWorkspace({
               {selectedConnections.outgoing.length > 0 && (
                 <div>
                   <div className="mb-1.5 font-semibold uppercase tracking-wider text-[10px] text-[var(--muted-foreground)]">
-                    Outgoing Connections
+                    {tr("Outgoing Connections", "Conexões de Saída")}
                   </div>
                   <div className="space-y-1 max-h-40 overflow-y-auto">
                     {selectedConnections.outgoing.map((n) => (
@@ -388,8 +447,8 @@ export function KnowledgeGraphWorkspace({
                         className="flex w-full items-center justify-between rounded border border-[var(--border)] px-2.5 py-1.5 text-left hover:bg-[var(--surface-muted)]"
                       >
                         <span className="truncate font-medium">{n.title}</span>
-                        <span className="ml-2 shrink-0 text-[10px] text-[var(--muted-foreground)] capitalize">
-                          {n.entityType}
+                        <span className="ml-2 shrink-0 text-[10px] text-[var(--muted-foreground)]">
+                          {entityTypeLabel(n.entityType)}
                         </span>
                       </button>
                     ))}
@@ -404,14 +463,14 @@ export function KnowledgeGraphWorkspace({
                   className="flex-1"
                   onClick={() => setFocusedCenterKey(selectedNode.key)}
                 >
-                  Focus Neighborhood
+                  {tr("Focus Neighborhood", "Focar Vizinhança")}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setSelectedNode(null)}
                 >
-                  Close
+                  {tr("Close", "Fechar")}
                 </Button>
               </div>
             </CardContent>

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, Layers, Play, Plus, Trash2 } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,8 @@ export function FlashcardsWorkspace({
     };
   };
 }) {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -131,13 +134,24 @@ export function FlashcardsWorkspace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reviewMode, revealed, currentDueCard?.id, submittingReview]);
 
+  const noteTypeLabel = (type: "basic" | "basic_reversed" | "cloze") => {
+    if (type === "basic") return tr("basic", "básico");
+    if (type === "basic_reversed") return tr("basic reversed", "básico invertido");
+    return tr("cloze", "lacuna (cloze)");
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Flashcards</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {tr("Flashcards", "Flashcards")}
+          </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Smart spaced repetition that schedules reviews right before you forget.
+            {tr(
+              "Smart spaced repetition that schedules reviews right before you forget.",
+              "Repetição espaçada inteligente que agenda revisões logo antes de você esquecer."
+            )}
           </p>
         </div>
       </div>
@@ -146,25 +160,33 @@ export function FlashcardsWorkspace({
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-[var(--muted-foreground)]">Due Now</div>
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {tr("Due Now", "Pendentes Agora")}
+            </div>
             <div className="text-2xl font-bold">{overview.stats.totalDue}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-[var(--muted-foreground)]">New Cards</div>
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {tr("New Cards", "Novos Cartões")}
+            </div>
             <div className="text-2xl font-bold">{overview.stats.totalNew}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-[var(--muted-foreground)]">Reviewed Today</div>
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {tr("Reviewed Today", "Revisados Hoje")}
+            </div>
             <div className="text-2xl font-bold">{overview.stats.reviewedToday}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-[var(--muted-foreground)]">Observed Retention</div>
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {tr("Observed Retention", "Retenção Observada")}
+            </div>
             <div className="text-2xl font-bold">
               {overview.stats.retentionRate !== null
                 ? `${overview.stats.retentionRate}%`
@@ -181,21 +203,28 @@ export function FlashcardsWorkspace({
             <div>
               <CardTitle className="text-base">{deckDetail.deck.title}</CardTitle>
               <p className="text-xs text-[var(--muted-foreground)]">
-                {deckDetail.dueCards.length} cards remaining
+                {deckDetail.dueCards.length} {tr("cards remaining", "cartões restantes")}
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={() => setReviewMode(false)}>
-              Exit Review
+              {tr("Exit Review", "Sair da Revisão")}
             </Button>
           </CardHeader>
           <CardContent className="p-6">
             {!currentDueCard ? (
               <div className="py-10 text-center space-y-3">
-                <p className="text-base font-semibold">Session complete!</p>
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  All due cards in this deck have been reviewed.
+                <p className="text-base font-semibold">
+                  {tr("Session complete!", "Sessão concluída!")}
                 </p>
-                <Button onClick={() => setReviewMode(false)}>Back to Deck</Button>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {tr(
+                    "All due cards in this deck have been reviewed.",
+                    "Todos os cartões pendentes deste baralho foram revisados."
+                  )}
+                </p>
+                <Button onClick={() => setReviewMode(false)}>
+                  {tr("Back to Deck", "Voltar ao Baralho")}
+                </Button>
               </div>
             ) : (
               <div className="space-y-6">
@@ -214,7 +243,8 @@ export function FlashcardsWorkspace({
                 {!revealed ? (
                   <div className="flex justify-center">
                     <Button onClick={() => setRevealed(true)}>
-                      <Eye className="h-4 w-4" /> Reveal Answer (Space)
+                      <Eye className="h-4 w-4" />{" "}
+                      {tr("Reveal Answer (Space)", "Revelar Resposta (Espaço)")}
                     </Button>
                   </div>
                 ) : (
@@ -225,14 +255,14 @@ export function FlashcardsWorkspace({
                       onClick={() => submitReview(1)}
                       className="border-red-500/40 text-red-500"
                     >
-                      1 · Again
+                      {tr("1 · Again", "1 · De novo")}
                     </Button>
                     <Button
                       variant="outline"
                       disabled={submittingReview}
                       onClick={() => submitReview(2)}
                     >
-                      2 · Hard
+                      {tr("2 · Hard", "2 · Difícil")}
                     </Button>
                     <Button
                       variant="outline"
@@ -240,7 +270,7 @@ export function FlashcardsWorkspace({
                       onClick={() => submitReview(3)}
                       className="border-blue-500/40 text-blue-500"
                     >
-                      3 · Good
+                      {tr("3 · Good", "3 · Bom")}
                     </Button>
                     <Button
                       variant="outline"
@@ -248,7 +278,7 @@ export function FlashcardsWorkspace({
                       onClick={() => submitReview(4)}
                       className="border-emerald-500/40 text-emerald-500"
                     >
-                      4 · Easy
+                      {tr("4 · Easy", "4 · Fácil")}
                     </Button>
                   </div>
                 )}
@@ -279,11 +309,11 @@ export function FlashcardsWorkspace({
               }}
             >
               <Input
-                placeholder="New deck name..."
+                placeholder={tr("New deck name...", "Nome do novo baralho...")}
                 value={newDeckTitle}
                 onChange={(e) => setNewDeckTitle(e.target.value)}
               />
-              <Button type="submit" size="sm">
+              <Button type="submit" size="sm" aria-label={tr("Create deck", "Criar baralho")}>
                 <Plus className="h-4 w-4" />
               </Button>
             </form>
@@ -291,7 +321,10 @@ export function FlashcardsWorkspace({
             {overview.decks.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-xs text-[var(--muted-foreground)]">
-                  No decks yet. Create your first deck above!
+                  {tr(
+                    "No decks yet. Create your first deck above!",
+                    "Nenhum baralho ainda. Crie seu primeiro baralho acima!"
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -309,11 +342,11 @@ export function FlashcardsWorkspace({
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-sm">{d.title}</span>
                     <Badge variant={d.dueCount > 0 ? "accent" : "outline"}>
-                      {d.dueCount} due
+                      {d.dueCount} {tr("due", "pendentes")}
                     </Badge>
                   </div>
                   <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                    {d.totalCards} cards · {d.newCount} new
+                    {d.totalCards} {tr("cards", "cartões")} · {d.newCount} {tr("new", "novos")}
                   </div>
                 </button>
               ))
@@ -326,7 +359,10 @@ export function FlashcardsWorkspace({
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-16 text-center text-sm text-[var(--muted-foreground)]">
                   <Layers className="mb-2 h-8 w-8 opacity-60" />
-                  Select a deck to add or review flashcards.
+                  {tr(
+                    "Select a deck to add or review flashcards.",
+                    "Selecione um baralho para adicionar ou revisar flashcards."
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -335,7 +371,8 @@ export function FlashcardsWorkspace({
                   <div>
                     <CardTitle className="text-lg">{deckDetail.deck.title}</CardTitle>
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      {deckDetail.dueCards.length} due for review
+                      {deckDetail.dueCards.length}{" "}
+                      {tr("due for review", "pendentes para revisão")}
                     </p>
                   </div>
                   <Button
@@ -346,7 +383,7 @@ export function FlashcardsWorkspace({
                       setReviewMode(true);
                     }}
                   >
-                    <Play className="h-4 w-4" /> Start Review
+                    <Play className="h-4 w-4" /> {tr("Start Review", "Iniciar Revisão")}
                   </Button>
                 </CardHeader>
 
@@ -375,7 +412,9 @@ export function FlashcardsWorkspace({
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold">Add Card:</span>
+                      <span className="text-xs font-semibold">
+                        {tr("Add Card:", "Adicionar Cartão:")}
+                      </span>
                       {(["basic", "basic_reversed", "cloze"] as const).map((t) => (
                         <button
                           key={t}
@@ -387,7 +426,7 @@ export function FlashcardsWorkspace({
                               : "bg-[var(--surface-muted)] text-[var(--muted-foreground)]"
                           }`}
                         >
-                          {t.replace("_", " ")}
+                          {noteTypeLabel(t)}
                         </button>
                       ))}
                     </div>
@@ -399,8 +438,11 @@ export function FlashcardsWorkspace({
                       onChange={(e) => setFront(e.target.value)}
                       placeholder={
                         noteType === "cloze"
-                          ? "Use {{c1::answer}} syntax for cloze deletions..."
-                          : "Front (question)..."
+                          ? tr(
+                              "Use {{c1::answer}} syntax for cloze deletions...",
+                              "Use a sintaxe {{c1::resposta}} para omissões cloze..."
+                            )
+                          : tr("Front (question)...", "Frente (pergunta)...")
                       }
                       className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
                     />
@@ -411,14 +453,14 @@ export function FlashcardsWorkspace({
                         required
                         value={back}
                         onChange={(e) => setBack(e.target.value)}
-                        placeholder="Back (answer)..."
+                        placeholder={tr("Back (answer)...", "Verso (resposta)...")}
                         className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
                       />
                     )}
 
                     <div className="flex justify-end">
                       <Button type="submit" size="sm">
-                        <Plus className="h-4 w-4" /> Add Card
+                        <Plus className="h-4 w-4" /> {tr("Add Card", "Adicionar Cartão")}
                       </Button>
                     </div>
                   </form>
@@ -435,11 +477,12 @@ export function FlashcardsWorkspace({
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <Badge variant="outline">
-                            Due {new Date(c.dueAt).toLocaleDateString()}
+                            {tr("Due", "Vence em")} {new Date(c.dueAt).toLocaleDateString(locale)}
                           </Badge>
                           <Button
                             size="icon"
                             variant="ghost"
+                            aria-label={tr("Delete card", "Excluir cartão")}
                             onClick={async () => {
                               await fetch(`/api/flashcards/cards/${c.id}`, {
                                 method: "DELETE",

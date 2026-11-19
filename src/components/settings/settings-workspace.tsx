@@ -20,6 +20,8 @@ import {
   type UserPreferences,
 } from "@/modules/settings/registry";
 import { useTheme } from "@/components/providers/theme-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
+import type { I18nKey } from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +47,8 @@ export function SettingsWorkspace({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { setTheme } = useTheme();
+  const { t, tr, language, setLanguage, moduleName } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const setInterfaceMode = useUiStore((s) => s.setInterfaceMode);
   const [platform, setPlatform] = useState<NikkiPlatform>("desktop-web");
   const [iosSafariPrompt, setIosSafariPrompt] = useState(false);
@@ -105,11 +109,88 @@ export function SettingsWorkspace({
     const q = search.trim().toLowerCase();
     if (!q) return SETTINGS_CATEGORIES;
     return SETTINGS_CATEGORIES.filter(
-      (c) => c.label.toLowerCase().includes(q) || c.keywords.toLowerCase().includes(q)
+      (c) =>
+        c.label.toLowerCase().includes(q) ||
+        c.keywords.toLowerCase().includes(q) ||
+        t(`settings.cat.${c.id}` as I18nKey).toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [search, t]);
+
+  const widgetLabel = (id: string, fallback: string) => {
+    switch (id) {
+      case "overview":
+        return tr("Overview Summary Cards", "Cards de Resumo Geral");
+      case "quick_capture":
+        return tr("Quick Capture", "Captura Rápida");
+      case "learning_overview":
+        return tr("Learning, Focus & Habits Summary", "Resumo de Estudos, Foco e Hábitos");
+      case "tasks_today":
+        return tr("Today's Tasks", "Tarefas de Hoje");
+      case "active_projects":
+        return tr("Active Projects", "Projetos Ativos");
+      case "recent_notes":
+        return tr("Recent Notes", "Notas Recentes");
+      case "recent_activity":
+        return tr("Recent Activity", "Atividade Recente");
+      case "upcoming_events":
+        return tr("Upcoming Events", "Próximos Eventos");
+      case "recent_bookmarks":
+        return tr("Recent Bookmarks", "Favoritos Recentes");
+      case "developer_snippets":
+        return tr("Dev Hub Snippets", "Snippets do Dev Hub");
+      case "finances":
+        return tr("Personal Finances", "Finanças Pessoais");
+      default:
+        return fallback;
+    }
+  };
+
+  const keybindingLabel = (key: keyof KeybindingsConfig, fallback: string) => {
+    switch (key) {
+      case "bold":
+        return tr("Bold", "Negrito");
+      case "italic":
+        return tr("Italic", "Itálico");
+      case "underline":
+        return tr("Underline", "Sublinhado");
+      case "strike":
+        return tr("Strikethrough", "Tachado");
+      case "code":
+        return tr("Inline Code", "Código em Linha");
+      case "highlight":
+        return tr("Highlight", "Destaque");
+      case "checklist":
+        return tr("Checklist", "Lista de Tarefas");
+      case "toTask":
+        return tr("Convert Selection to Task", "Converter Seleção em Tarefa");
+      case "commandPalette":
+        return tr("Command Palette / Search", "Paleta de Comandos / Busca");
+      case "quickCapture":
+        return tr("Quick Capture (Inbox)", "Captura Rápida (Caixa de Entrada)");
+      default:
+        return fallback;
+    }
+  };
+
+  const permissionLabel = (perm: string) => {
+    switch (perm) {
+      case "granted":
+        return tr("Granted", "Permitida");
+      case "denied":
+        return tr("Denied", "Negada");
+      case "default":
+        return tr("Default", "Padrão");
+      case "unsupported":
+        return tr("Unsupported", "Não suportado");
+      default:
+        return perm;
+    }
+  };
 
   const updatePref = <K extends keyof UserPreferences>(key: K, val: UserPreferences[K]) => {
+    if (key === "language") {
+      setLanguage(val as "en-US" | "pt-BR");
+    }
     setPrefs((prev) => {
       const next = { ...prev, [key]: val };
       applyUserPreferences(next);
@@ -147,13 +228,13 @@ export function SettingsWorkspace({
         }),
       });
       if (!res.ok) {
-        setMessage("Failed to save settings.");
+        setMessage(tr("Failed to save settings.", "Falha ao salvar configurações."));
         return;
       }
       setTheme(themeChoice);
       setHiddenModuleIds(prefs.hiddenModuleIds);
       setInterfaceMode(prefs.interfaceMode);
-      setMessage("Settings saved.");
+      setMessage(t("settings.saved"));
       router.refresh();
     } finally {
       setSaving(false);
@@ -161,7 +242,14 @@ export function SettingsWorkspace({
   };
 
   const handleResetDefaults = async () => {
-    if (!window.confirm("Reset all preferences to defaults? Your productivity data will not be affected.")) {
+    if (
+      !window.confirm(
+        tr(
+          "Reset all preferences to defaults? Your productivity data will not be affected.",
+          "Restaurar todas as preferências para o padrão? Seus dados de produtividade não serão afetados."
+        )
+      )
+    ) {
       return;
     }
     const res = await fetch("/api/settings", { method: "DELETE" });
@@ -169,7 +257,7 @@ export function SettingsWorkspace({
       const json = await res.json();
       setPrefs(json.data.preferences);
       setHiddenModuleIds([]);
-      setMessage("Preferences restored to defaults.");
+      setMessage(tr("Preferences restored to defaults.", "Preferências restauradas para o padrão."));
       router.refresh();
     }
   };
@@ -189,17 +277,17 @@ export function SettingsWorkspace({
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <SettingsIcon className="h-6 w-6 text-[var(--accent)]" />
-            Settings &amp; Personalization
+            {t("settings.title")}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Configure profile, region, appearance, modules, financial privacy, and shortcuts.
+            {t("settings.subtitle")}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {message && <span className="text-xs text-emerald-500">{message}</span>}
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? t("settings.saving") : t("settings.save")}
           </Button>
         </div>
       </div>
@@ -212,7 +300,7 @@ export function SettingsWorkspace({
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search settings..."
+              placeholder={tr("Search settings...", "Buscar configurações...")}
               className="pl-8 h-9 text-xs"
             />
           </div>
@@ -229,7 +317,7 @@ export function SettingsWorkspace({
                     : "text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)]"
                 }`}
               >
-                {cat.label}
+                {t(`settings.cat.${cat.id}` as I18nKey)}
               </button>
             ))}
           </div>
@@ -240,37 +328,40 @@ export function SettingsWorkspace({
           {activeCat === "general" && (
             <Card>
               <CardHeader>
-                <CardTitle>Profile, Language &amp; Region</CardTitle>
+                <CardTitle>{tr("Profile, Language & Region", "Perfil, Idioma e Região")}</CardTitle>
                 <CardDescription>
-                  Personal identity and regional formatting preferences.
+                  {tr(
+                    "Personal identity and regional formatting preferences.",
+                    "Identidade pessoal e preferências de formatação regional."
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="text-xs font-medium">Display Name</label>
+                    <label className="text-xs font-medium">{tr("Display Name", "Nome de Exibição")}</label>
                     <Input value={name} onChange={(e) => setName(e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-xs font-medium">Email</label>
+                    <label className="text-xs font-medium">{tr("Email", "E-mail")}</label>
                     <Input value={initialEmail} disabled />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium">Bio</label>
+                  <label className="text-xs font-medium">{tr("Bio", "Bio")}</label>
                   <textarea
                     rows={2}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder="Short bio..."
+                    placeholder={tr("Short bio...", "Biografia curta...")}
                     className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] p-2 text-sm"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
-                    <label className="text-xs font-medium">Language</label>
+                    <label className="text-xs font-medium">{t("settings.language")}</label>
                     <select
                       value={prefs.language}
                       onChange={(e) =>
@@ -283,11 +374,11 @@ export function SettingsWorkspace({
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-medium">Timezone (IANA)</label>
+                    <label className="text-xs font-medium">{tr("Timezone (IANA)", "Fuso Horário (IANA)")}</label>
                     <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-xs font-medium">Default Currency</label>
+                    <label className="text-xs font-medium">{t("settings.currency")}</label>
                     <select
                       value={prefs.defaultCurrency}
                       onChange={(e) =>
@@ -304,7 +395,7 @@ export function SettingsWorkspace({
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
-                    <label className="text-xs font-medium">Date Format</label>
+                    <label className="text-xs font-medium">{t("settings.dateFormat")}</label>
                     <select
                       value={prefs.dateFormat}
                       onChange={(e) =>
@@ -321,7 +412,7 @@ export function SettingsWorkspace({
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-medium">Time Format</label>
+                    <label className="text-xs font-medium">{t("settings.timeFormat")}</label>
                     <select
                       value={prefs.timeFormat}
                       onChange={(e) =>
@@ -329,12 +420,12 @@ export function SettingsWorkspace({
                       }
                       className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                     >
-                      <option value="24h">24 hours</option>
-                      <option value="12h">12 hours</option>
+                      <option value="24h">{tr("24 hours", "24 horas")}</option>
+                      <option value="12h">{tr("12 hours", "12 horas")}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-medium">Week Starts On</label>
+                    <label className="text-xs font-medium">{t("settings.weekStartsOn")}</label>
                     <select
                       value={prefs.weekStartsOn}
                       onChange={(e) =>
@@ -345,9 +436,9 @@ export function SettingsWorkspace({
                       }
                       className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                     >
-                      <option value="monday">Monday</option>
-                      <option value="sunday">Sunday</option>
-                      <option value="saturday">Saturday</option>
+                      <option value="monday">{tr("Monday", "Segunda-feira")}</option>
+                      <option value="sunday">{tr("Sunday", "Domingo")}</option>
+                      <option value="saturday">{tr("Saturday", "Sábado")}</option>
                     </select>
                   </div>
                 </div>
@@ -358,33 +449,39 @@ export function SettingsWorkspace({
           {activeCat === "appearance" && (
             <Card>
               <CardHeader>
-                <CardTitle>Appearance &amp; Accessibility</CardTitle>
+                <CardTitle>{tr("Appearance & Accessibility", "Aparência e Acessibilidade")}</CardTitle>
                 <CardDescription>
-                  Customize theme, density, typography, and motion preferences.
+                  {tr(
+                    "Customize theme, density, typography, and motion preferences.",
+                    "Personalize tema, densidade, tipografia e preferências de movimento."
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <div className="flex gap-2">
-                  {(["light", "dark", "system"] as const).map((t) => (
+                  {(["light", "dark", "system"] as const).map((themeOpt) => (
                     <Button
-                      key={t}
+                      key={themeOpt}
                       type="button"
                       size="sm"
-                      variant={themeChoice === t ? "default" : "outline"}
+                      variant={themeChoice === themeOpt ? "default" : "outline"}
                       onClick={() => {
-                        setThemeChoice(t);
-                        setTheme(t);
+                        setThemeChoice(themeOpt);
+                        setTheme(themeOpt);
                       }}
-                      className="capitalize"
                     >
-                      {t}
+                      {themeOpt === "light"
+                        ? tr("Light", "Claro")
+                        : themeOpt === "dark"
+                          ? tr("Dark", "Escuro")
+                          : tr("System", "Sistema")}
                     </Button>
                   ))}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
-                    <label className="text-xs font-medium">Density</label>
+                    <label className="text-xs font-medium">{tr("Density", "Densidade")}</label>
                     <select
                       value={prefs.density}
                       onChange={(e) =>
@@ -392,12 +489,12 @@ export function SettingsWorkspace({
                       }
                       className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                     >
-                      <option value="comfortable">Comfortable</option>
-                      <option value="compact">Compact</option>
+                      <option value="comfortable">{tr("Comfortable", "Confortável")}</option>
+                      <option value="compact">{tr("Compact", "Compacta")}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-medium">Font Size</label>
+                    <label className="text-xs font-medium">{tr("Font Size", "Tamanho da Fonte")}</label>
                     <select
                       value={prefs.fontSize}
                       onChange={(e) =>
@@ -405,13 +502,13 @@ export function SettingsWorkspace({
                       }
                       className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                     >
-                      <option value="small">Small</option>
-                      <option value="default">Default</option>
-                      <option value="large">Large</option>
+                      <option value="small">{tr("Small", "Pequena")}</option>
+                      <option value="default">{tr("Default", "Padrão")}</option>
+                      <option value="large">{tr("Large", "Grande")}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-medium">Animations</label>
+                    <label className="text-xs font-medium">{tr("Animations", "Animações")}</label>
                     <select
                       value={prefs.animations}
                       onChange={(e) =>
@@ -422,9 +519,9 @@ export function SettingsWorkspace({
                       }
                       className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                     >
-                      <option value="enabled">Enabled</option>
-                      <option value="reduced">Reduced</option>
-                      <option value="disabled">Disabled</option>
+                      <option value="enabled">{tr("Enabled", "Ativadas")}</option>
+                      <option value="reduced">{tr("Reduced", "Reduzidas")}</option>
+                      <option value="disabled">{tr("Disabled", "Desativadas")}</option>
                     </select>
                   </div>
                 </div>
@@ -436,7 +533,10 @@ export function SettingsWorkspace({
                       checked={spellcheckEnabled}
                       onChange={(e) => setSpellcheckEnabled(e.target.checked)}
                     />
-                    Enable spellcheck underline in Notes editor
+                    {tr(
+                      "Enable spellcheck underline in Notes editor",
+                      "Ativar sublinhado de correção ortográfica no editor de Notas"
+                    )}
                   </label>
                   <label className="flex items-center gap-2 text-xs">
                     <input
@@ -444,7 +544,10 @@ export function SettingsWorkspace({
                       checked={prefs.highContrast}
                       onChange={(e) => updatePref("highContrast", e.target.checked)}
                     />
-                    High contrast UI borders and focus rings
+                    {tr(
+                      "High contrast UI borders and focus rings",
+                      "Bordas de alto contraste e indicadores de foco"
+                    )}
                   </label>
                   <label className="flex items-center gap-2 text-xs">
                     <input
@@ -452,7 +555,7 @@ export function SettingsWorkspace({
                       checked={prefs.showBreadcrumbs}
                       onChange={(e) => updatePref("showBreadcrumbs", e.target.checked)}
                     />
-                    Show page breadcrumbs
+                    {tr("Show page breadcrumbs", "Exibir trilha de navegação (breadcrumbs)")}
                   </label>
                 </div>
               </CardContent>
@@ -462,14 +565,17 @@ export function SettingsWorkspace({
           {activeCat === "productivity" && (
             <Card>
               <CardHeader>
-                <CardTitle>Productivity &amp; Module Defaults</CardTitle>
+                <CardTitle>{tr("Productivity & Module Defaults", "Produtividade e Padrões dos Módulos")}</CardTitle>
                 <CardDescription>
-                  Configure Tasks, Calendar, Focus, Habits, Learning, and Flashcards defaults.
+                  {tr(
+                    "Configure Tasks, Calendar, Focus, Habits, Learning, and Flashcards defaults.",
+                    "Configure padrões de Tarefas, Calendário, Foco, Hábitos, Estudos e Flashcards."
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-xs">
                 <div>
-                  <label className="font-medium">Default Task Priority</label>
+                  <label className="font-medium">{tr("Default Task Priority", "Prioridade Padrão de Tarefas")}</label>
                   <select
                     value={prefs.defaultTaskPriority}
                     onChange={(e) =>
@@ -480,15 +586,15 @@ export function SettingsWorkspace({
                     }
                     className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 mt-1"
                   >
-                    <option value="none">None</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
+                    <option value="none">{tr("None", "Nenhuma")}</option>
+                    <option value="low">{tr("Low", "Baixa")}</option>
+                    <option value="medium">{tr("Medium", "Média")}</option>
+                    <option value="high">{tr("High", "Alta")}</option>
+                    <option value="urgent">{tr("Urgent", "Urgente")}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="font-medium">Calendar Default View</label>
+                  <label className="font-medium">{tr("Calendar Default View", "Visualização Padrão do Calendário")}</label>
                   <select
                     value={prefs.calendarDefaultView}
                     onChange={(e) =>
@@ -499,14 +605,14 @@ export function SettingsWorkspace({
                     }
                     className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 mt-1"
                   >
-                    <option value="day">Day</option>
-                    <option value="week">Week</option>
-                    <option value="month">Month</option>
-                    <option value="agenda">Agenda</option>
+                    <option value="day">{tr("Day", "Dia")}</option>
+                    <option value="week">{tr("Week", "Semana")}</option>
+                    <option value="month">{tr("Month", "Mês")}</option>
+                    <option value="agenda">{tr("Agenda", "Agenda")}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="font-medium">Pomodoro Focus (min)</label>
+                  <label className="font-medium">{tr("Pomodoro Focus (min)", "Foco Pomodoro (min)")}</label>
                   <Input
                     type="number"
                     min={5}
@@ -518,7 +624,7 @@ export function SettingsWorkspace({
                   />
                 </div>
                 <div>
-                  <label className="font-medium">Time Block Duration (min)</label>
+                  <label className="font-medium">{tr("Time Block Duration (min)", "Duração do Bloco de Tempo (min)")}</label>
                   <Input
                     type="number"
                     min={15}
@@ -530,7 +636,7 @@ export function SettingsWorkspace({
                   />
                 </div>
                 <div>
-                  <label className="font-medium">Daily Study Goal (min)</label>
+                  <label className="font-medium">{tr("Daily Study Goal (min)", "Meta Diária de Estudos (min)")}</label>
                   <Input
                     type="number"
                     min={10}
@@ -542,7 +648,7 @@ export function SettingsWorkspace({
                   />
                 </div>
                 <div>
-                  <label className="font-medium">Flashcards Daily Limit</label>
+                  <label className="font-medium">{tr("Flashcards Daily Limit", "Limite Diário de Flashcards")}</label>
                   <Input
                     type="number"
                     min={5}
@@ -561,9 +667,9 @@ export function SettingsWorkspace({
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Modo de Interface (Adaptive Interface)</CardTitle>
+                  <CardTitle>{t("settings.interfaceMode")}</CardTitle>
                   <CardDescription>
-                    Alterne entre o Modo Simples (navegação enxuta) e o Modo Avançado (todos os módulos).
+                    {t("settings.interfaceModeDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs">
@@ -576,9 +682,9 @@ export function SettingsWorkspace({
                         : "border-[var(--border)]"
                     }`}
                   >
-                    <div className="font-semibold">Simple Mode</div>
+                    <div className="font-semibold">{t("settings.simpleMode")}</div>
                     <div className="mt-0.5 text-[var(--muted-foreground)]">
-                      Foco nos módulos essenciais: Dashboard, Tasks, Calendar, Notes, Finances, Day Planner, Routines e Compras.
+                      {t("settings.simpleModeDesc")}
                     </div>
                   </button>
                   <button
@@ -590,19 +696,50 @@ export function SettingsWorkspace({
                         : "border-[var(--border)]"
                     }`}
                   >
-                    <div className="font-semibold">Advanced Mode</div>
+                    <div className="font-semibold">{t("settings.advancedMode")}</div>
                     <div className="mt-0.5 text-[var(--muted-foreground)]">
-                      Exibe todos os módulos habilitados, analytics detalhado e ferramentas avançadas.
+                      {t("settings.advancedModeDesc")}
                     </div>
                   </button>
+                  <div className="sm:col-span-2 flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2.5">
+                    <div>
+                      <div className="font-medium">{t("settings.guidedTour")}</div>
+                      <div className="text-[var(--muted-foreground)]">
+                        {t("settings.guidedTourDesc")}
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        await fetch("/api/onboarding", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            welcomeCompleted: true,
+                            tourStatus: "in_progress",
+                            currentTourId: INITIAL_TOUR_ID,
+                            currentStepIndex: 0,
+                          }),
+                        });
+                        window.dispatchEvent(new Event("nikki:onboarding-updated"));
+                      }}
+                    >
+                      {t("settings.redoTour")}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Module Visibility (Sidebar)</CardTitle>
+                  <CardTitle>{tr("Module Visibility (Sidebar)", "Visibilidade dos Módulos (Barra Lateral)")}</CardTitle>
                   <CardDescription>
-                    Hide unused modules from the sidebar without deleting any data.
+                    {tr(
+                      "Hide unused modules from the sidebar without deleting any data.",
+                      "Oculte módulos não utilizados da barra lateral sem excluir nenhum dado."
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-3 text-xs">
@@ -618,7 +755,7 @@ export function SettingsWorkspace({
                           checked={visible}
                           onChange={() => toggleModuleVisibility(mod.id)}
                         />
-                        <span>{mod.name}</span>
+                        <span>{moduleName(mod.id, mod.name)}</span>
                       </label>
                     );
                   })}
@@ -627,9 +764,12 @@ export function SettingsWorkspace({
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Dashboard Widgets</CardTitle>
+                  <CardTitle>{tr("Dashboard Widgets", "Widgets do Painel")}</CardTitle>
                   <CardDescription>
-                    Choose which sections appear on your Dashboard.
+                    {tr(
+                      "Choose which sections appear on your Dashboard.",
+                      "Escolha quais seções aparecem no seu Painel."
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-xs">
@@ -645,7 +785,7 @@ export function SettingsWorkspace({
                           checked={visible}
                           onChange={() => toggleDashboardWidget(widget.id)}
                         />
-                        <span>{widget.label}</span>
+                        <span>{widgetLabel(widget.id, widget.label)}</span>
                       </label>
                     );
                   })}
@@ -655,16 +795,21 @@ export function SettingsWorkspace({
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle>Keyboard Shortcuts</CardTitle>
-                    <CardDescription>Click a binding and press your preferred keys.</CardDescription>
+                    <CardTitle>{tr("Keyboard Shortcuts", "Atalhos de Teclado")}</CardTitle>
+                    <CardDescription>
+                      {tr(
+                        "Click a binding and press your preferred keys.",
+                        "Clique em um atalho e pressione as teclas desejadas."
+                      )}
+                    </CardDescription>
                   </div>
                   <Button type="button" size="sm" variant="outline" onClick={resetKeybindings}>
-                    Reset Shortcuts
+                    {tr("Reset Shortcuts", "Restaurar Atalhos")}
                   </Button>
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs">
                   {(Object.keys(KEYBINDING_LABELS) as Array<keyof KeybindingsConfig>).map((key) => {
-                    const label = KEYBINDING_LABELS[key];
+                    const label = keybindingLabel(key, KEYBINDING_LABELS[key]);
                     const isCapturing = capturingKey === key;
                     return (
                       <div
@@ -695,7 +840,7 @@ export function SettingsWorkspace({
                           }`}
                         >
                           {isCapturing
-                            ? "Press keys..."
+                            ? tr("Press keys...", "Pressione as teclas...")
                             : keybindings[key] ?? DEFAULT_KEYBINDINGS[key]}
                         </button>
                       </div>
@@ -709,9 +854,12 @@ export function SettingsWorkspace({
           {activeCat === "finances" && (
             <Card>
               <CardHeader>
-                <CardTitle>Finances, Analytics &amp; Privacy</CardTitle>
+                <CardTitle>{tr("Finances, Analytics & Privacy", "Finanças, Análises e Privacidade")}</CardTitle>
                 <CardDescription>
-                  Control financial privacy mode and analytics display defaults.
+                  {tr(
+                    "Control financial privacy mode and analytics display defaults.",
+                    "Controle o modo de privacidade financeira e padrões de exibição de análises."
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-xs">
@@ -721,7 +869,10 @@ export function SettingsWorkspace({
                     checked={prefs.hideFinancialValues}
                     onChange={(e) => updatePref("hideFinancialValues", e.target.checked)}
                   />
-                  Hide Financial Values by default (Privacy Mode)
+                  {tr(
+                    "Hide Financial Values by default (Privacy Mode)",
+                    "Ocultar valores financeiros por padrão (Modo Privacidade)"
+                  )}
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -729,7 +880,10 @@ export function SettingsWorkspace({
                     checked={prefs.showCents}
                     onChange={(e) => updatePref("showCents", e.target.checked)}
                   />
-                  Show decimal cents in monetary summaries
+                  {tr(
+                    "Show decimal cents in monetary summaries",
+                    "Exibir centavos decimais nos resumos monetários"
+                  )}
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -737,7 +891,7 @@ export function SettingsWorkspace({
                     checked={prefs.budgetAlertsEnabled}
                     onChange={(e) => updatePref("budgetAlertsEnabled", e.target.checked)}
                   />
-                  Enable budget threshold alerts
+                  {tr("Enable budget threshold alerts", "Ativar alertas de limite de orçamento")}
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -747,7 +901,10 @@ export function SettingsWorkspace({
                       updatePref("showFinancialWidgetsOnDashboard", e.target.checked)
                     }
                   />
-                  Show financial summary widget on Dashboard
+                  {tr(
+                    "Show financial summary widget on Dashboard",
+                    "Exibir widget de resumo financeiro no Painel"
+                  )}
                 </label>
               </CardContent>
             </Card>
@@ -756,7 +913,7 @@ export function SettingsWorkspace({
           {activeCat === "notifications" && (
             <Card>
               <CardHeader>
-                <CardTitle>Notifications &amp; Quiet Hours</CardTitle>
+                <CardTitle>{tr("Notifications & Quiet Hours", "Notificações e Horário Silencioso")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-xs">
                 <label className="flex items-center gap-2">
@@ -765,7 +922,7 @@ export function SettingsWorkspace({
                     checked={prefs.notificationsEnabled}
                     onChange={(e) => updatePref("notificationsEnabled", e.target.checked)}
                   />
-                  Enable In-App Notifications
+                  {tr("Enable In-App Notifications", "Ativar Notificações no App")}
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -773,11 +930,11 @@ export function SettingsWorkspace({
                     checked={prefs.quietHoursEnabled}
                     onChange={(e) => updatePref("quietHoursEnabled", e.target.checked)}
                   />
-                  Enable Quiet Hours
+                  {tr("Enable Quiet Hours", "Ativar Horário Silencioso")}
                 </label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-2">
                   <div>
-                    <label className="block mb-1 font-medium">Modo de Notificação</label>
+                    <label className="block mb-1 font-medium">{tr("Notification Mode", "Modo de Notificação")}</label>
                     <select
                       value={prefs.notificationMode}
                       onChange={(e) =>
@@ -788,14 +945,14 @@ export function SettingsWorkspace({
                       }
                       className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
                     >
-                      <option value="bundled">Resumos Agrupados (Smart Bundles)</option>
-                      <option value="individual">Notificações Individuais</option>
-                      <option value="daily_digest">Resumo Diário</option>
-                      <option value="weekly_digest">Resumo Semanal</option>
+                      <option value="bundled">{tr("Smart Bundles (Grouped)", "Resumos Agrupados (Smart Bundles)")}</option>
+                      <option value="individual">{tr("Individual Notifications", "Notificações Individuais")}</option>
+                      <option value="daily_digest">{tr("Daily Digest", "Resumo Diário")}</option>
+                      <option value="weekly_digest">{tr("Weekly Digest", "Resumo Semanal")}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium">Antecedência dos Lembretes (min)</label>
+                    <label className="block mb-1 font-medium">{tr("Reminder Lead Time (min)", "Antecedência dos Lembretes (min)")}</label>
                     <Input
                       type="number"
                       min={5}
@@ -815,16 +972,21 @@ export function SettingsWorkspace({
                     const res = await fetch("/api/notifications/bundles");
                     if (res.ok) {
                       const json = (await res.json()) as { data?: { bundles?: unknown[] } };
-                      alert(`${json.data?.bundles?.length ?? 0} resumo(s) inteligente(s) atualizado(s) na Central de Notificações.`);
+                      alert(
+                        tr(
+                          `${json.data?.bundles?.length ?? 0} smart bundle(s) updated in the Notification Center.`,
+                          `${json.data?.bundles?.length ?? 0} resumo(s) inteligente(s) atualizado(s) na Central de Notificações.`
+                        )
+                      );
                     }
                   }}
                 >
-                  Gerar Resumos Agrupados Agora
+                  {tr("Generate Smart Bundles Now", "Gerar Resumos Agrupados Agora")}
                 </Button>
                 {prefs.quietHoursEnabled && (
                   <div className="flex gap-3 pt-1">
                     <div>
-                      <label className="block mb-1">Start</label>
+                      <label className="block mb-1">{tr("Start", "Início")}</label>
                       <Input
                         type="time"
                         value={prefs.quietHoursStart}
@@ -832,7 +994,7 @@ export function SettingsWorkspace({
                       />
                     </div>
                     <div>
-                      <label className="block mb-1">End</label>
+                      <label className="block mb-1">{tr("End", "Fim")}</label>
                       <Input
                         type="time"
                         value={prefs.quietHoursEnd}
@@ -851,23 +1013,23 @@ export function SettingsWorkspace({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Smartphone className="h-4 w-4 text-[var(--accent)]" />
-                    Aplicativo e Dispositivos
+                    {tr("App & Devices", "Aplicativo e Dispositivos")}
                   </CardTitle>
                   <CardDescription>
-                    Versão do Nikki, plataforma detectada, notificações e cache local.
+                    {tr("Nikki version, detected platform, notifications, and local cache.", "Versão do Nikki, plataforma detectada, notificações e cache local.")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3 text-xs">
                   <div className="rounded-lg border border-[var(--border)] p-3">
-                    <div className="text-[var(--muted-foreground)]">Versão</div>
+                    <div className="text-[var(--muted-foreground)]">{tr("Version", "Versão")}</div>
                     <div className="mt-0.5 font-semibold">Nikki v0.2.0</div>
                   </div>
                   <div className="rounded-lg border border-[var(--border)] p-3">
-                    <div className="text-[var(--muted-foreground)]">Plataforma</div>
+                    <div className="text-[var(--muted-foreground)]">{tr("Platform", "Plataforma")}</div>
                     <div className="mt-0.5 font-semibold">{platform}</div>
                   </div>
                   <div className="rounded-lg border border-[var(--border)] p-3">
-                    <div className="text-[var(--muted-foreground)]">Conexão</div>
+                    <div className="text-[var(--muted-foreground)]">{tr("Connection", "Conexão")}</div>
                     <div className={`mt-0.5 font-semibold ${isOnline ? "text-emerald-500" : "text-amber-500"}`}>
                       {isOnline ? "Online" : "Offline"}
                     </div>
@@ -878,12 +1040,12 @@ export function SettingsWorkspace({
               {iosSafariPrompt && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Instalar no iPhone (Safari PWA)</CardTitle>
+                    <CardTitle className="text-base">{tr("Install on iPhone (Safari PWA)", "Instalar no iPhone (Safari PWA)")}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1.5 text-xs text-[var(--muted-foreground)]">
-                    <p>1. Certifique-se de abrir o Nikki no Safari.</p>
-                    <p>2. Toque no ícone de Compartilhar na barra inferior.</p>
-                    <p>3. Selecione &ldquo;Adicionar à Tela de Início&rdquo; e confirme.</p>
+                    <p>{tr("1. Make sure you open Nikki in Safari.", "1. Certifique-se de abrir o Nikki no Safari.")}</p>
+                    <p>{tr("2. Tap the Share icon in the bottom bar.", "2. Toque no ícone de Compartilhar na barra inferior.")}</p>
+                    <p>{tr('3. Select "Add to Home Screen" and confirm.', '3. Selecione "Adicionar à Tela de Início" e confirme.')}</p>
                   </CardContent>
                 </Card>
               )}
@@ -892,12 +1054,12 @@ export function SettingsWorkspace({
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <Bell className="h-4 w-4 text-[var(--accent)]" />
-                    Permissões &amp; Dispositivos de Notificação
+                    {tr("Notification Permissions & Devices", "Permissões & Dispositivos de Notificação")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-xs">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span>Permissão do navegador: <strong>{notifPerm}</strong></span>
+                    <span>{tr("Browser permission:", "Permissão do navegador:")} <strong>{permissionLabel(notifPerm)}</strong></span>
                     {typeof Notification !== "undefined" && notifPerm !== "granted" && (
                       <Button
                         type="button"
@@ -912,14 +1074,14 @@ export function SettingsWorkspace({
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({
                                 platform: platform === "capacitor-android" ? "capacitor_android" : "web_push",
-                                deviceLabel: `${platform} (${new Date().toLocaleDateString()})`,
+                                deviceLabel: `${platform} (${new Date().toLocaleDateString(locale)})`,
                               }),
                             });
                             queryClient.invalidateQueries({ queryKey: ["notification-devices"] });
                           }
                         }}
                       >
-                        Permitir Notificações
+                        {tr("Allow Notifications", "Permitir Notificações")}
                       </Button>
                     )}
                     <Button
@@ -933,16 +1095,18 @@ export function SettingsWorkspace({
                           const vapid = json.data?.remotePushConfigured?.webPushVapid;
                           setDeviceMsg(
                             vapid
-                              ? "Notificação de teste registrada e enviada."
-                              : "Notificação in-app criada com sucesso."
+                              ? tr("Test notification logged and sent.", "Notificação de teste registrada e enviada.")
+                              : tr("In-app notification created successfully.", "Notificação in-app criada com sucesso.")
                           );
                           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-                            new Notification("Nikki Test", { body: "Notificação local funcionando!" });
+                            new Notification(tr("Nikki Test", "Teste do Nikki"), {
+                              body: tr("Local notification is working!", "Notificação local funcionando!"),
+                            });
                           }
                         }
                       }}
                     >
-                      Enviar Notificação de Teste
+                      {tr("Send Test Notification", "Enviar Notificação de Teste")}
                     </Button>
                     <Button
                       type="button"
@@ -952,11 +1116,11 @@ export function SettingsWorkspace({
                         if ("caches" in window) {
                           const keys = await caches.keys();
                           await Promise.all(keys.map((k) => caches.delete(k)));
-                          setDeviceMsg("Cache estático limpo com segurança.");
+                          setDeviceMsg(tr("Static cache cleared safely.", "Cache estático limpo com segurança."));
                         }
                       }}
                     >
-                      Limpar Cache Estático
+                      {tr("Clear Static Cache", "Limpar Cache Estático")}
                     </Button>
                   </div>
 
@@ -971,7 +1135,7 @@ export function SettingsWorkspace({
                         <div>
                           <div className="font-medium">{d.deviceLabel}</div>
                           <div className="text-[11px] text-[var(--muted-foreground)]">
-                            {d.platform} · Last seen {new Date(d.lastSeenAt).toLocaleDateString()}
+                            {d.platform} · {tr("Last seen", "Visto por último")} {new Date(d.lastSeenAt).toLocaleDateString(locale)}
                           </div>
                         </div>
                         <button
@@ -983,7 +1147,7 @@ export function SettingsWorkspace({
                             queryClient.invalidateQueries({ queryKey: ["notification-devices"] });
                           }}
                           className="text-[var(--muted-foreground)] hover:text-red-500"
-                          title="Remover dispositivo"
+                          title={tr("Remove device", "Remover dispositivo")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -999,9 +1163,12 @@ export function SettingsWorkspace({
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Dados e Armazenamento</CardTitle>
+                  <CardTitle>{tr("Data & Storage", "Dados e Armazenamento")}</CardTitle>
                   <CardDescription>
-                    Configure arquivamento automático semanal, retenção do histórico e Lixeira.
+                    {tr(
+                      "Configure weekly auto-archiving, history retention, and Trash.",
+                      "Configure arquivamento automático semanal, retenção do histórico e Lixeira."
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-xs">
@@ -1014,16 +1181,19 @@ export function SettingsWorkspace({
                     />
                     <div>
                       <div className="font-medium">
-                        Arquivar tasks concluídas ao término da semana
+                        {tr("Archive completed tasks at the end of the week", "Arquivar tasks concluídas ao término da semana")}
                       </div>
                       <p className="mt-0.5 text-[var(--muted-foreground)]">
-                        As tarefas concluídas permanecem visíveis até o fim da semana e depois são movidas automaticamente para o Arquivo. Você poderá consultá-las ou restaurá-las quando quiser.
+                        {tr(
+                          "Completed tasks stay visible until the end of the week and are then automatically moved to Archive. You can view or restore them anytime.",
+                          "As tarefas concluídas permanecem visíveis até o fim da semana e depois são movidas automaticamente para o Arquivo. Você poderá consultá-las ou restaurá-las quando quiser."
+                        )}
                       </p>
                     </div>
                   </label>
 
                   <div className="space-y-2 rounded-lg border border-[var(--border)] p-3">
-                    <label className="block font-medium">Manter tasks arquivadas por</label>
+                    <label className="block font-medium">{tr("Keep archived tasks for", "Manter tasks arquivadas por")}</label>
                     <select
                       value={prefs.archiveRetentionYears}
                       onChange={async (e) => {
@@ -1039,7 +1209,10 @@ export function SettingsWorkspace({
                           };
                           const affected = prevJson.data?.affectedTasks ?? 0;
                           const ok = window.confirm(
-                            `Atenção: ao ativar a retenção de ${val} ano(s), registros arquivados mais antigos serão excluídos permanentemente na próxima rotina (${affected} tarefa(s) seriam afetadas agora). Deseja continuar?`
+                            tr(
+                              `Warning: enabling ${val}-year retention will permanently delete older archived records on the next run (${affected} task(s) would be affected right now). Continue?`,
+                              `Atenção: ao ativar a retenção de ${val} ano(s), registros arquivados mais antigos serão excluídos permanentemente na próxima rotina (${affected} tarefa(s) seriam afetadas agora). Deseja continuar?`
+                            )
                           );
                           if (!ok) return;
                         }
@@ -1047,18 +1220,18 @@ export function SettingsWorkspace({
                       }}
                       className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 text-xs"
                     >
-                      <option value="forever">Para sempre — padrão</option>
-                      <option value="1">1 ano</option>
-                      <option value="2">2 anos</option>
-                      <option value="5">5 anos</option>
+                      <option value="forever">{tr("Forever — default", "Para sempre — padrão")}</option>
+                      <option value="1">{tr("1 year", "1 ano")}</option>
+                      <option value="2">{tr("2 years", "2 anos")}</option>
+                      <option value="5">{tr("5 years", "5 anos")}</option>
                     </select>
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-3">
                     <div>
-                      <div className="font-medium">Lixeira</div>
+                      <div className="font-medium">{tr("Trash", "Lixeira")}</div>
                       <p className="text-[var(--muted-foreground)]">
-                        Itens excluídos permanecem na Lixeira por 30 dias.
+                        {tr("Deleted items stay in Trash for 30 days.", "Itens excluídos permanecem na Lixeira por 30 dias.")}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -1068,23 +1241,23 @@ export function SettingsWorkspace({
                         variant="outline"
                         onClick={() => router.push("/archive?tab=trash")}
                       >
-                        Abrir Lixeira
+                        {tr("Open Trash", "Abrir Lixeira")}
                       </Button>
                       <Button
                         type="button"
                         size="sm"
                         variant="destructive"
                         onClick={async () => {
-                          if (!window.confirm("Esvaziar toda a Lixeira definitivamente?")) return;
+                          if (!window.confirm(tr("Permanently empty the entire Trash?", "Esvaziar toda a Lixeira definitivamente?"))) return;
                           await fetch("/api/archive", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ action: "empty_trash" }),
                           });
-                          alert("Lixeira esvaziada.");
+                          alert(tr("Trash emptied.", "Lixeira esvaziada."));
                         }}
                       >
-                        Esvaziar Lixeira
+                        {tr("Empty Trash", "Esvaziar Lixeira")}
                       </Button>
                     </div>
                   </div>
@@ -1093,9 +1266,12 @@ export function SettingsWorkspace({
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Exportação de Dados &amp; Backup</CardTitle>
+                  <CardTitle>{tr("Data Export & Backup", "Exportação de Dados & Backup")}</CardTitle>
                   <CardDescription>
-                    Exporte seu histórico de tarefas e projetos em CSV ou JSON, ou restaure as preferências padrão.
+                    {tr(
+                      "Export your task and project history as CSV or JSON, or restore default preferences.",
+                      "Exporte seu histórico de tarefas e projetos em CSV ou JSON, ou restaure as preferências padrão."
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-2">
@@ -1105,7 +1281,7 @@ export function SettingsWorkspace({
                     variant="outline"
                     onClick={() => window.location.assign("/api/archive/export?scope=all&format=csv")}
                   >
-                    <Download className="h-4 w-4" /> Todas as Tasks (CSV)
+                    <Download className="h-4 w-4" /> {tr("All Tasks (CSV)", "Todas as Tasks (CSV)")}
                   </Button>
                   <Button
                     type="button"
@@ -1113,7 +1289,7 @@ export function SettingsWorkspace({
                     variant="outline"
                     onClick={() => window.location.assign("/api/archive/export?scope=completed&format=csv")}
                   >
-                    <Download className="h-4 w-4" /> Tasks Concluídas (CSV)
+                    <Download className="h-4 w-4" /> {tr("Completed Tasks (CSV)", "Tasks Concluídas (CSV)")}
                   </Button>
                   <Button
                     type="button"
@@ -1121,7 +1297,7 @@ export function SettingsWorkspace({
                     variant="outline"
                     onClick={() => window.location.assign("/api/archive/export?scope=archived&format=json")}
                   >
-                    <Download className="h-4 w-4" /> Tasks Arquivadas (JSON)
+                    <Download className="h-4 w-4" /> {tr("Archived Tasks (JSON)", "Tasks Arquivadas (JSON)")}
                   </Button>
                   <Button
                     type="button"
@@ -1129,7 +1305,7 @@ export function SettingsWorkspace({
                     variant="outline"
                     onClick={() => window.location.assign("/api/archive/export?scope=archived_projects&format=json")}
                   >
-                    <Download className="h-4 w-4" /> Projetos Arquivados (JSON)
+                    <Download className="h-4 w-4" /> {tr("Archived Projects (JSON)", "Projetos Arquivados (JSON)")}
                   </Button>
                   <Button
                     type="button"
@@ -1137,10 +1313,10 @@ export function SettingsWorkspace({
                     variant="outline"
                     onClick={() => window.location.assign("/api/settings/export")}
                   >
-                    <Download className="h-4 w-4" /> Backup Completo (JSON)
+                    <Download className="h-4 w-4" /> {tr("Full Backup (JSON)", "Backup Completo (JSON)")}
                   </Button>
                   <Button type="button" size="sm" variant="outline" onClick={handleResetDefaults}>
-                    <RotateCcw className="h-4 w-4" /> Restore Default Preferences
+                    <RotateCcw className="h-4 w-4" /> {tr("Restore Default Preferences", "Restaurar Preferências Padrão")}
                   </Button>
                 </CardContent>
               </Card>
@@ -1150,9 +1326,12 @@ export function SettingsWorkspace({
           {activeCat === "tutorials" && (
             <Card>
               <CardHeader>
-                <CardTitle>Help &amp; Tutorials</CardTitle>
+                <CardTitle>{tr("Help & Tutorials", "Ajuda & Tutoriais")}</CardTitle>
                 <CardDescription>
-                  Inicie ou reinicie o tour guiado inicial e explore guias específicos por módulo.
+                  {tr(
+                    "Start or restart the initial guided tour and explore module-specific guides.",
+                    "Inicie ou reinicie o tour guiado inicial e explore guias específicos por módulo."
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-xs">
@@ -1162,8 +1341,8 @@ export function SettingsWorkspace({
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-3"
                   >
                     <div>
-                      <div className="font-semibold text-sm">{tour.title}</div>
-                      <p className="text-[var(--muted-foreground)]">{tour.description}</p>
+                      <div className="font-semibold text-sm">{tour.title[language]}</div>
+                      <p className="text-[var(--muted-foreground)]">{tour.description[language]}</p>
                     </div>
                     <Button
                       type="button"
@@ -1183,7 +1362,7 @@ export function SettingsWorkspace({
                         window.dispatchEvent(new Event("nikki:onboarding-updated"));
                       }}
                     >
-                      Iniciar Tour
+                      {tr("Start Tour", "Iniciar Tour")}
                     </Button>
                   </div>
                 ))}
@@ -1194,9 +1373,12 @@ export function SettingsWorkspace({
           {activeCat === "diagnostics" && (
             <Card>
               <CardHeader>
-                <CardTitle>Help &amp; Diagnostics</CardTitle>
+                <CardTitle>{tr("Help & Diagnostics", "Ajuda e Diagnóstico")}</CardTitle>
                 <CardDescription>
-                  Check your app and connection status, or share a technical summary with support if you run into an issue.
+                  {tr(
+                    "Check your app and connection status, or share a technical summary with support if you run into an issue.",
+                    "Verifique o status do aplicativo e da conexão, ou compartilhe um resumo técnico com o suporte se encontrar algum problema."
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1219,26 +1401,34 @@ export function SettingsWorkspace({
                     <>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-xs">
                         <div className="rounded-lg border border-[var(--border)] p-3">
-                          <div className="text-[var(--muted-foreground)]">Platform &amp; Version</div>
+                          <div className="text-[var(--muted-foreground)]">
+                            {tr("Platform & Version", "Plataforma e Versão")}
+                          </div>
                           <div className="mt-0.5 font-medium">
                             {snapshot.platform} · v{snapshot.appVersion}
                           </div>
                         </div>
                         <div className="rounded-lg border border-[var(--border)] p-3">
-                          <div className="text-[var(--muted-foreground)]">Connectivity</div>
+                          <div className="text-[var(--muted-foreground)]">
+                            {tr("Connectivity", "Conectividade")}
+                          </div>
                           <div className="mt-0.5 font-medium">
-                            {snapshot.online ? "Online" : "Offline"}
+                            {snapshot.online ? tr("Online", "Online") : tr("Offline", "Offline")}
                           </div>
                         </div>
                         <div className="rounded-lg border border-[var(--border)] p-3">
-                          <div className="text-[var(--muted-foreground)]">Service Worker / Push</div>
+                          <div className="text-[var(--muted-foreground)]">
+                            {tr("Service Worker / Push", "Service Worker / Push")}
+                          </div>
                           <div className="mt-0.5 font-medium">
-                            SW: {snapshot.serviceWorkerSupported ? "Supported" : "No"} · Push:{" "}
-                            {snapshot.notificationPermission}
+                            SW: {snapshot.serviceWorkerSupported ? tr("Supported", "Suportado") : tr("No", "Não")} · Push:{" "}
+                            {permissionLabel(snapshot.notificationPermission)}
                           </div>
                         </div>
                         <div className="rounded-lg border border-[var(--border)] p-3">
-                          <div className="text-[var(--muted-foreground)]">Viewport &amp; Timezone</div>
+                          <div className="text-[var(--muted-foreground)]">
+                            {tr("Viewport & Timezone", "Tela e Fuso Horário")}
+                          </div>
                           <div className="mt-0.5 font-medium">
                             {snapshot.viewport} · {snapshot.timezone}
                           </div>
@@ -1255,10 +1445,15 @@ export function SettingsWorkspace({
                           variant="outline"
                           onClick={() => {
                             void navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
-                            alert("Diagnostic JSON copied to clipboard.");
+                            alert(
+                              tr(
+                                "Diagnostic JSON copied to clipboard.",
+                                "JSON de diagnóstico copiado para a área de transferência."
+                              )
+                            );
                           }}
                         >
-                          Copy Diagnostic JSON
+                          {tr("Copy Diagnostic JSON", "Copiar JSON de Diagnóstico")}
                         </Button>
                         <Button
                           type="button"
@@ -1273,13 +1468,23 @@ export function SettingsWorkspace({
                               }),
                             });
                             if (res.ok) {
-                              alert("Diagnostic report sent successfully.");
+                              alert(
+                                tr(
+                                  "Diagnostic report sent successfully.",
+                                  "Relatório de diagnóstico enviado com sucesso."
+                                )
+                              );
                             } else {
-                              alert("Failed to submit diagnostic report.");
+                              alert(
+                                tr(
+                                  "Failed to submit diagnostic report.",
+                                  "Falha ao enviar relatório de diagnóstico."
+                                )
+                              );
                             }
                           }}
                         >
-                          Send Diagnostic Report
+                          {tr("Send Diagnostic Report", "Enviar Relatório de Diagnóstico")}
                         </Button>
                       </div>
                     </>

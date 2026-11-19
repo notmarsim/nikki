@@ -26,6 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface ProjectDetailPayload {
   project: ProjectSummary;
@@ -57,8 +58,42 @@ export function ProjectsWorkspace({
 }: {
   initialProjects: ProjectSummary[];
 }) {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+
+  const projectStatusLabel = (status: string) => {
+    switch (status) {
+      case "planning":
+        return tr("Planning", "Planejamento");
+      case "active":
+        return tr("Active", "Ativo");
+      case "on_hold":
+        return tr("On hold", "Em espera");
+      case "completed":
+        return tr("Completed", "Concluído");
+      case "archived":
+        return tr("Archived", "Arquivado");
+      default:
+        return status.replace("_", " ");
+    }
+  };
+
+  const milestoneStatusLabel = (status: string) => {
+    switch (status) {
+      case "planned":
+        return tr("Planned", "Planejado");
+      case "active":
+        return tr("Active", "Ativo");
+      case "completed":
+        return tr("Completed", "Concluído");
+      case "cancelled":
+        return tr("Cancelled", "Cancelado");
+      default:
+        return status;
+    }
+  };
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     searchParams.get("id") ?? initialProjects[0]?.id ?? null
@@ -214,14 +249,20 @@ export function ProjectsWorkspace({
     let mode: "unlink" | "trash_all" = "unlink";
     if (taskCount > 0) {
       const choice = window.confirm(
-        `Este projeto possui ${taskCount} tarefa(s). Clique em OK para mover o projeto para a Lixeira preservando as tarefas (desvinculadas), ou Cancelar para desistir.`
+        tr(
+          `This project has ${taskCount} task(s). Click OK to move the project to Trash while keeping its tasks (unlinked), or Cancel to abort.`,
+          `Este projeto possui ${taskCount} tarefa(s). Clique em OK para mover o projeto para a Lixeira preservando as tarefas (desvinculadas), ou Cancelar para desistir.`
+        )
       );
       if (!choice) return;
       const alsoTrash = window.confirm(
-        "Deseja também enviar as tarefas deste projeto para a Lixeira? (OK = enviar tarefas para a Lixeira | Cancelar = manter tarefas ativas sem projeto)"
+        tr(
+          "Do you also want to move this project's tasks to Trash? (OK = move tasks to Trash | Cancel = keep active tasks without project)",
+          "Deseja também enviar as tarefas deste projeto para a Lixeira? (OK = enviar tarefas para a Lixeira | Cancelar = manter tarefas ativas sem projeto)"
+        )
       );
       mode = alsoTrash ? "trash_all" : "unlink";
-    } else if (!window.confirm("Mover este projeto para a Lixeira?")) {
+    } else if (!window.confirm(tr("Move this project to Trash?", "Mover este projeto para a Lixeira?"))) {
       return;
     }
 
@@ -248,28 +289,31 @@ export function ProjectsWorkspace({
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{tr("Projects", "Projetos")}</h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Organize tasks, documentation, and milestones with automatic progress tracking.
+            {tr(
+              "Organize tasks, documentation, and milestones with automatic progress tracking.",
+              "Organize tarefas, documentações e marcos com acompanhamento automático de progresso."
+            )}
           </p>
         </div>
         <Button onClick={() => setShowNewForm(!showNewForm)}>
           <Plus className="h-4 w-4" />
-          New Project
+          {tr("New Project", "Novo Projeto")}
         </Button>
       </div>
 
       {showNewForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Create Project</CardTitle>
+            <CardTitle className="text-base">{tr("Create Project", "Criar Projeto")}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreateProject} className="space-y-3">
               <div className="flex gap-2">
                 <Input
                   required
-                  placeholder="Project name..."
+                  placeholder={tr("Project name...", "Nome do projeto...")}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                 />
@@ -278,20 +322,20 @@ export function ProjectsWorkspace({
                   value={newColor}
                   onChange={(e) => setNewColor(e.target.value)}
                   className="h-9 w-12 cursor-pointer rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1"
-                  aria-label="Project color"
+                  aria-label={tr("Project color", "Cor do projeto")}
                 />
               </div>
               <Input
-                placeholder="Short description (optional)..."
+                placeholder={tr("Short description (optional)...", "Descrição curta (opcional)...")}
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
               />
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowNewForm(false)}>
-                  Cancel
+                  {tr("Cancel", "Cancelar")}
                 </Button>
                 <Button type="submit" disabled={creating}>
-                  {creating ? "Creating..." : "Create"}
+                  {creating ? tr("Creating...", "Criando...") : tr("Create", "Criar")}
                 </Button>
               </div>
             </form>
@@ -305,7 +349,10 @@ export function ProjectsWorkspace({
           {projects.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-sm text-[var(--muted-foreground)]">
-                No projects yet. Click &ldquo;New Project&rdquo; to get started.
+                {tr(
+                  'No projects yet. Click "New Project" to get started.',
+                  'Nenhum projeto ainda. Clique em "Novo Projeto" para começar.'
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -328,7 +375,7 @@ export function ProjectsWorkspace({
                     />
                     <span className="font-medium text-sm truncate">{p.name}</span>
                   </div>
-                  <Badge variant="outline">{p.status}</Badge>
+                  <Badge variant="outline">{projectStatusLabel(p.status)}</Badge>
                 </div>
                 <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-muted)]">
                   <div
@@ -338,7 +385,8 @@ export function ProjectsWorkspace({
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                   <span>
-                    {p.completedTasks}/{p.totalTasks} tasks · {p.notesCount} notes
+                    {p.completedTasks}/{p.totalTasks} {tr("tasks", "tarefas")} · {p.notesCount}{" "}
+                    {tr("notes", "notas")}
                   </span>
                   <span>{p.progress}%</span>
                 </div>
@@ -353,7 +401,9 @@ export function ProjectsWorkspace({
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center text-sm text-[var(--muted-foreground)]">
                 <FolderKanban className="mb-2 h-8 w-8 opacity-60" />
-                {loadingDetail ? "Loading project..." : "Select a project to view details."}
+                {loadingDetail
+                  ? tr("Loading project...", "Carregando projeto...")
+                  : tr("Select a project to view details.", "Selecione um projeto para ver os detalhes.")}
               </CardContent>
             </Card>
           ) : (
@@ -367,7 +417,7 @@ export function ProjectsWorkspace({
                         style={{ backgroundColor: detail.project.color }}
                       />
                       <CardTitle className="text-xl">{detail.project.name}</CardTitle>
-                      <Badge variant="accent">{detail.project.status}</Badge>
+                      <Badge variant="accent">{projectStatusLabel(detail.project.status)}</Badge>
                     </div>
                     {detail.project.description && (
                       <CardDescription className="mt-1">
@@ -378,7 +428,7 @@ export function ProjectsWorkspace({
                   <div className="text-right">
                     <div className="text-lg font-bold">{detail.project.progress}%</div>
                     <div className="text-[11px] text-[var(--muted-foreground)]">
-                      completed / active tasks
+                      {tr("completed / active tasks", "concluídas / tarefas ativas")}
                     </div>
                   </div>
                 </div>
@@ -387,11 +437,20 @@ export function ProjectsWorkspace({
                 <div className="mt-4 flex flex-wrap gap-1">
                   {(
                     [
-                      { id: "overview", label: "Overview" },
-                      { id: "tasks", label: `Tasks (${detail.tasks.length})` },
-                      { id: "notes", label: `Notes (${detail.notes.length})` },
-                      { id: "milestones", label: `Milestones (${detail.milestones.length})` },
-                      { id: "settings", label: "Settings" },
+                      { id: "overview", label: tr("Overview", "Visão Geral") },
+                      {
+                        id: "tasks",
+                        label: `${tr("Tasks", "Tarefas")} (${detail.tasks.length})`,
+                      },
+                      {
+                        id: "notes",
+                        label: `${tr("Notes", "Notas")} (${detail.notes.length})`,
+                      },
+                      {
+                        id: "milestones",
+                        label: `${tr("Milestones", "Marcos")} (${detail.milestones.length})`,
+                      },
+                      { id: "settings", label: tr("Settings", "Configurações") },
                     ] as const
                   ).map((tab) => (
                     <button
@@ -415,15 +474,21 @@ export function ProjectsWorkspace({
                   <div className="space-y-5">
                     <div className="grid grid-cols-3 gap-3">
                       <div className="rounded-lg border border-[var(--border)] p-3">
-                        <div className="text-xs text-[var(--muted-foreground)]">Tasks</div>
+                        <div className="text-xs text-[var(--muted-foreground)]">
+                          {tr("Tasks", "Tarefas")}
+                        </div>
                         <div className="text-xl font-bold">{detail.tasks.length}</div>
                       </div>
                       <div className="rounded-lg border border-[var(--border)] p-3">
-                        <div className="text-xs text-[var(--muted-foreground)]">Notes</div>
+                        <div className="text-xs text-[var(--muted-foreground)]">
+                          {tr("Notes", "Notas")}
+                        </div>
                         <div className="text-xl font-bold">{detail.notes.length}</div>
                       </div>
                       <div className="rounded-lg border border-[var(--border)] p-3">
-                        <div className="text-xs text-[var(--muted-foreground)]">Milestones</div>
+                        <div className="text-xs text-[var(--muted-foreground)]">
+                          {tr("Milestones", "Marcos")}
+                        </div>
                         <div className="text-xl font-bold">{detail.milestones.length}</div>
                       </div>
                     </div>
@@ -434,18 +499,18 @@ export function ProjectsWorkspace({
                   <div className="space-y-4">
                     <form onSubmit={handleAddProjectTask} className="flex gap-2">
                       <Input
-                        placeholder="Add task to this project..."
+                        placeholder={tr("Add task to this project...", "Adicionar tarefa a este projeto...")}
                         value={newTaskTitle}
                         onChange={(e) => setNewTaskTitle(e.target.value)}
                       />
                       <Button type="submit" size="sm">
-                        <Plus className="h-4 w-4" /> Add
+                        <Plus className="h-4 w-4" /> {tr("Add", "Adicionar")}
                       </Button>
                     </form>
 
                     {detail.tasks.length === 0 ? (
                       <p className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                        No tasks linked to this project yet.
+                        {tr("No tasks linked to this project yet.", "Nenhuma tarefa vinculada a este projeto ainda.")}
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -486,19 +551,19 @@ export function ProjectsWorkspace({
                                   await invalidateAll();
                                 }}
                                 className="h-7 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-                                aria-label={`Status for ${task.title}`}
+                                aria-label={tr(`Status for ${task.title}`, `Status de ${task.title}`)}
                               >
-                                <option value="todo">To Do</option>
-                                <option value="in_progress">Working</option>
-                                <option value="done">Done</option>
-                                <option value="blocked">Blocked</option>
-                                <option value="cancelled">Cancelled</option>
+                                <option value="todo">{tr("To Do", "A Fazer")}</option>
+                                <option value="in_progress">{tr("Working", "Em Progresso")}</option>
+                                <option value="done">{tr("Done", "Concluída")}</option>
+                                <option value="blocked">{tr("Blocked", "Bloqueada")}</option>
+                                <option value="cancelled">{tr("Cancelled", "Cancelada")}</option>
                               </select>
                               <Link
                                 href={`/tasks?taskId=${task.id}`}
                                 className="text-xs text-[var(--accent)] hover:underline"
                               >
-                                Open →
+                                {tr("Open →", "Abrir →")}
                               </Link>
                             </div>
                           </div>
@@ -512,18 +577,21 @@ export function ProjectsWorkspace({
                   <div className="space-y-4">
                     <form onSubmit={handleAddProjectNote} className="flex gap-2">
                       <Input
-                        placeholder="Create documentation note in this project..."
+                        placeholder={tr(
+                          "Create documentation note in this project...",
+                          "Criar nota de documentação neste projeto..."
+                        )}
                         value={newNoteTitle}
                         onChange={(e) => setNewNoteTitle(e.target.value)}
                       />
                       <Button type="submit" size="sm">
-                        <Plus className="h-4 w-4" /> New Note
+                        <Plus className="h-4 w-4" /> {tr("New Note", "Nova Nota")}
                       </Button>
                     </form>
 
                     {detail.notes.length === 0 ? (
                       <p className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                        No notes linked to this project yet.
+                        {tr("No notes linked to this project yet.", "Nenhuma nota vinculada a este projeto ainda.")}
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -538,7 +606,7 @@ export function ProjectsWorkspace({
                               {note.title}
                             </span>
                             <span className="text-xs text-[var(--muted-foreground)]">
-                              {new Date(note.updatedAt).toLocaleDateString()}
+                              {new Date(note.updatedAt).toLocaleDateString(locale)}
                             </span>
                           </Link>
                         ))}
@@ -552,7 +620,7 @@ export function ProjectsWorkspace({
                     <form onSubmit={handleAddMilestone} className="flex flex-wrap gap-2">
                       <Input
                         className="flex-1 min-w-[180px]"
-                        placeholder="Milestone name..."
+                        placeholder={tr("Milestone name...", "Nome do marco...")}
                         value={newMilestoneName}
                         onChange={(e) => setNewMilestoneName(e.target.value)}
                       />
@@ -563,13 +631,13 @@ export function ProjectsWorkspace({
                         onChange={(e) => setNewMilestoneDue(e.target.value)}
                       />
                       <Button type="submit" size="sm">
-                        <Plus className="h-4 w-4" /> Add Milestone
+                        <Plus className="h-4 w-4" /> {tr("Add Milestone", "Adicionar Marco")}
                       </Button>
                     </form>
 
                     {detail.milestones.length === 0 ? (
                       <p className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                        No milestones created yet.
+                        {tr("No milestones created yet.", "Nenhum marco criado ainda.")}
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -582,12 +650,12 @@ export function ProjectsWorkspace({
                               <div className="flex items-center gap-2 font-medium">
                                 <Flag className="h-4 w-4 text-[var(--accent)]" />
                                 {m.name}
-                                <Badge variant="outline">{m.status}</Badge>
+                                <Badge variant="outline">{milestoneStatusLabel(m.status)}</Badge>
                               </div>
                               <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                                {m.completedTasks}/{m.totalTasks} tasks ({m.progress}%)
+                                {m.completedTasks}/{m.totalTasks} {tr("tasks", "tarefas")} ({m.progress}%)
                                 {m.dueDate &&
-                                  ` · Due ${new Date(m.dueDate).toLocaleDateString()}`}
+                                  ` · ${tr("Due", "Prazo")} ${new Date(m.dueDate).toLocaleDateString(locale)}`}
                               </div>
                             </div>
                             <div className="flex gap-1">
@@ -603,10 +671,10 @@ export function ProjectsWorkspace({
                                 }}
                                 className="h-8 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
                               >
-                                <option value="planned">Planned</option>
-                                <option value="active">Active</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
+                                <option value="planned">{tr("Planned", "Planejado")}</option>
+                                <option value="active">{tr("Active", "Ativo")}</option>
+                                <option value="completed">{tr("Completed", "Concluído")}</option>
+                                <option value="cancelled">{tr("Cancelled", "Cancelado")}</option>
                               </select>
                               <Button
                                 size="icon"
@@ -617,6 +685,8 @@ export function ProjectsWorkspace({
                                   });
                                   await invalidateAll();
                                 }}
+                                title={tr("Delete milestone", "Excluir marco")}
+                                aria-label={tr("Delete milestone", "Excluir marco")}
                               >
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
@@ -632,7 +702,7 @@ export function ProjectsWorkspace({
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Settings className="h-4 w-4" />
-                      Project Status &amp; Danger Zone
+                      {tr("Project Status & Danger Zone", "Status do Projeto e Zona de Perigo")}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {(["planning", "active", "on_hold", "completed", "archived"] as const).map(
@@ -650,7 +720,7 @@ export function ProjectsWorkspace({
                               await invalidateAll();
                             }}
                           >
-                            {st.replace("_", " ")}
+                            {projectStatusLabel(st)}
                           </Button>
                         )
                       )}
@@ -661,7 +731,7 @@ export function ProjectsWorkspace({
                         size="sm"
                         onClick={() => handleArchiveProject(detail.project.id)}
                       >
-                        Archive Project
+                        {tr("Archive Project", "Arquivar Projeto")}
                       </Button>
                       <Button
                         variant="destructive"
@@ -669,7 +739,7 @@ export function ProjectsWorkspace({
                         onClick={() => handleDeleteProject(detail.project.id, detail.tasks.length)}
                       >
                         <Trash2 className="h-4 w-4" />
-                        Delete Project
+                        {tr("Delete Project", "Excluir Projeto")}
                       </Button>
                     </div>
                   </div>

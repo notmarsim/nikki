@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pause, Play, Square, Timer, Trash2 } from "lucide-react";
 import type { ProjectRecord, TaskRecord } from "@/db/schema";
 import { computeElapsedFocusSeconds } from "@/modules/focus/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +72,8 @@ export function FocusWorkspace({
   projects: ProjectRecord[];
   courses: Array<{ id: string; title: string }>;
 }) {
+  const { tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -144,7 +147,9 @@ export function FocusWorkspace({
     });
     const json = await res.json();
     if (!res.ok) {
-      setErrorMsg(json?.error?.message ?? "Unable to start session");
+      setErrorMsg(
+        json?.error?.message ?? tr("Unable to start session", "Não foi possível iniciar a sessão")
+      );
       await refreshAll();
       return;
     }
@@ -173,12 +178,31 @@ export function FocusWorkspace({
       ? Math.max(0, targetSeconds - liveSeconds)
       : liveSeconds;
 
+  const modeLabel = (m: string) =>
+    m === "pomodoro"
+      ? tr("Pomodoro", "Pomodoro")
+      : m === "stopwatch"
+        ? tr("Stopwatch", "Cronômetro")
+        : m;
+
+  const statusLabel = (s: string) =>
+    s === "running"
+      ? tr("running", "em andamento")
+      : s === "paused"
+        ? tr("paused", "pausado")
+        : s;
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Focus &amp; Time Tracking</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {tr("Focus & Time Tracking", "Foco e Controle de Tempo")}
+        </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Pomodoro and Stopwatch sessions linked to your Tasks, Projects, and Courses.
+          {tr(
+            "Pomodoro and Stopwatch sessions linked to your Tasks, Projects, and Courses.",
+            "Sessões de Pomodoro e Cronômetro vinculadas às suas Tarefas, Projetos e Cursos."
+          )}
         </p>
       </div>
 
@@ -186,25 +210,33 @@ export function FocusWorkspace({
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-[var(--muted-foreground)]">Focused Today</div>
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {tr("Focused Today", "Focado Hoje")}
+            </div>
             <div className="text-2xl font-bold">{overview.analytics.todayMinutes}m</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-[var(--muted-foreground)]">This Week</div>
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {tr("This Week", "Esta Semana")}
+            </div>
             <div className="text-2xl font-bold">{overview.analytics.weekMinutes}m</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-[var(--muted-foreground)]">Sessions</div>
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {tr("Sessions", "Sessões")}
+            </div>
             <div className="text-2xl font-bold">{overview.analytics.sessionsCount}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-[var(--muted-foreground)]">Avg Session</div>
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {tr("Avg Session", "Média por Sessão")}
+            </div>
             <div className="text-2xl font-bold">{overview.analytics.avgMinutes}m</div>
           </CardContent>
         </Card>
@@ -227,13 +259,13 @@ export function FocusWorkspace({
                     key={m}
                     type="button"
                     onClick={() => setMode(m)}
-                    className={`rounded-lg px-4 py-1.5 text-sm font-medium capitalize ${
+                    className={`rounded-lg px-4 py-1.5 text-sm font-medium ${
                       mode === m
                         ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
                         : "bg-[var(--surface-muted)] text-[var(--muted-foreground)]"
                     }`}
                   >
-                    {m}
+                    {modeLabel(m)}
                   </button>
                 ))}
               </div>
@@ -250,7 +282,7 @@ export function FocusWorkspace({
                   onChange={(e) => setTaskId(e.target.value)}
                   className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
                 >
-                  <option value="">Link Task (optional)</option>
+                  <option value="">{tr("Link Task (optional)", "Vincular Tarefa (opcional)")}</option>
                   {tasks
                     .filter((t) => t.status !== "done" && t.status !== "cancelled")
                     .map((t) => (
@@ -265,7 +297,7 @@ export function FocusWorkspace({
                   onChange={(e) => setProjectId(e.target.value)}
                   className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
                 >
-                  <option value="">Link Project (optional)</option>
+                  <option value="">{tr("Link Project (optional)", "Vincular Projeto (opcional)")}</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -278,7 +310,7 @@ export function FocusWorkspace({
                   onChange={(e) => setCourseId(e.target.value)}
                   className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
                 >
-                  <option value="">Link Course (optional)</option>
+                  <option value="">{tr("Link Course (optional)", "Vincular Curso (opcional)")}</option>
                   {courses.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.title}
@@ -287,7 +319,7 @@ export function FocusWorkspace({
                 </select>
 
                 <Input
-                  placeholder="Category or note..."
+                  placeholder={tr("Category or note...", "Categoria ou observação...")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="h-9 text-xs"
@@ -296,18 +328,21 @@ export function FocusWorkspace({
 
               <div className="flex justify-center pt-2">
                 <Button size="lg" onClick={handleStart}>
-                  <Play className="h-4 w-4" /> Start {mode === "pomodoro" ? "Pomodoro" : "Stopwatch"}
+                  <Play className="h-4 w-4" />{" "}
+                  {mode === "pomodoro"
+                    ? tr("Start Pomodoro", "Iniciar Pomodoro")
+                    : tr("Start Stopwatch", "Iniciar Cronômetro")}
                 </Button>
               </div>
             </div>
           ) : (
             <div className="space-y-5 text-center">
               <div className="flex items-center justify-center gap-2">
-                <Badge variant="accent" className="capitalize">
-                  {active.mode}
+                <Badge variant="accent">
+                  {modeLabel(active.mode)}
                 </Badge>
                 <Badge variant={active.status === "running" ? "success" : "warning"}>
-                  {active.status}
+                  {statusLabel(active.status)}
                 </Badge>
               </div>
 
@@ -322,20 +357,20 @@ export function FocusWorkspace({
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {active.status === "running" ? (
                   <Button variant="outline" onClick={() => handleTransition("pause")}>
-                    <Pause className="h-4 w-4" /> Pause
+                    <Pause className="h-4 w-4" /> {tr("Pause", "Pausar")}
                   </Button>
                 ) : (
                   <Button onClick={() => handleTransition("resume")}>
-                    <Play className="h-4 w-4" /> Resume
+                    <Play className="h-4 w-4" /> {tr("Resume", "Retomar")}
                   </Button>
                 )}
 
                 <Button variant="default" onClick={() => handleTransition("complete")}>
-                  <Square className="h-4 w-4" /> Complete &amp; Save
+                  <Square className="h-4 w-4" /> {tr("Complete & Save", "Concluir e Salvar")}
                 </Button>
 
                 <Button variant="ghost" onClick={() => handleTransition("discard")}>
-                  <Trash2 className="h-4 w-4 text-red-500" /> Discard
+                  <Trash2 className="h-4 w-4 text-red-500" /> {tr("Discard", "Descartar")}
                 </Button>
               </div>
             </div>
@@ -347,12 +382,16 @@ export function FocusWorkspace({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Pomodoro Preferences</CardTitle>
+            <CardTitle className="text-base">
+              {tr("Pomodoro Preferences", "Preferências do Pomodoro")}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-[var(--muted-foreground)]">Focus (min)</label>
+                <label className="text-xs text-[var(--muted-foreground)]">
+                  {tr("Focus (min)", "Foco (min)")}
+                </label>
                 <Input
                   type="number"
                   min={1}
@@ -372,7 +411,9 @@ export function FocusWorkspace({
                 />
               </div>
               <div>
-                <label className="text-xs text-[var(--muted-foreground)]">Short Break</label>
+                <label className="text-xs text-[var(--muted-foreground)]">
+                  {tr("Short Break", "Pausa Curta")}
+                </label>
                 <Input
                   type="number"
                   min={1}
@@ -392,7 +433,9 @@ export function FocusWorkspace({
                 />
               </div>
               <div>
-                <label className="text-xs text-[var(--muted-foreground)]">Long Break</label>
+                <label className="text-xs text-[var(--muted-foreground)]">
+                  {tr("Long Break", "Pausa Longa")}
+                </label>
                 <Input
                   type="number"
                   min={1}
@@ -418,13 +461,13 @@ export function FocusWorkspace({
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Timer className="h-4 w-4" /> Recent Sessions
+              <Timer className="h-4 w-4" /> {tr("Recent Sessions", "Sessões Recentes")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 max-h-64 overflow-y-auto">
             {overview.recentSessions.length === 0 ? (
               <p className="py-6 text-center text-xs text-[var(--muted-foreground)]">
-                No completed focus sessions yet.
+                {tr("No completed focus sessions yet.", "Nenhuma sessão de foco concluída ainda.")}
               </p>
             ) : (
               overview.recentSessions.map((s) => (
@@ -433,7 +476,7 @@ export function FocusWorkspace({
                   className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-xs"
                 >
                   <div className="truncate">
-                    <span className="font-medium capitalize">{s.mode}</span>
+                    <span className="font-medium">{modeLabel(s.mode)}</span>
                     {s.description && (
                       <span className="text-[var(--muted-foreground)]">
                         {" "}
@@ -446,7 +489,7 @@ export function FocusWorkspace({
                       {Math.max(1, Math.round(s.actualDurationSeconds / 60))}m
                     </Badge>
                     <span className="text-[var(--muted-foreground)]">
-                      {new Date(s.startedAt).toLocaleDateString()}
+                      {new Date(s.startedAt).toLocaleDateString(locale)}
                     </span>
                   </div>
                 </div>

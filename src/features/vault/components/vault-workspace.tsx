@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Download, FileLock2, Plus, Trash2, Upload } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface VaultDoc {
   id: string;
@@ -17,6 +18,8 @@ interface VaultDoc {
 const MAX_SIZE_BYTES = 20 * 1024 * 1024;
 
 export function VaultWorkspace() {
+  const { t, tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const [docs, setDocs] = useState<VaultDoc[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [name, setName] = useState("");
@@ -26,6 +29,29 @@ export function VaultWorkspace() {
   const [expiresAt, setExpiresAt] = useState("");
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const categoryLabel = (cat: string) => {
+    switch (cat) {
+      case "identity":
+        return tr("Identity", "Identidade");
+      case "contract":
+        return tr("Contract", "Contrato");
+      case "medical":
+        return tr("Medical", "Médico");
+      case "tax":
+        return tr("Tax & Finance", "Impostos e Finanças");
+      case "other":
+        return tr("Other", "Outro");
+      default:
+        return cat;
+    }
+  };
+
+  const formatExpiryDate = (value: string) => {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value.slice(0, 10);
+    return parsed.toLocaleDateString(locale, { timeZone: "UTC" });
+  };
 
   const load = useCallback(async () => {
     const res = await fetch("/api/vault");
@@ -44,7 +70,7 @@ export function VaultWorkspace() {
 
     if (selectedFile) {
       if (selectedFile.size > MAX_SIZE_BYTES) {
-        setErrorMsg("File exceeds the 20 MB limit.");
+        setErrorMsg(tr("File exceeds the 20 MB limit.", "O arquivo excede o limite de 20 MB."));
         return;
       }
       setUploading(true);
@@ -62,7 +88,7 @@ export function VaultWorkspace() {
         });
         const json = (await res.json()) as { error?: { message?: string } };
         if (!res.ok) {
-          setErrorMsg(json.error?.message ?? "Failed to upload document.");
+          setErrorMsg(json.error?.message ?? tr("Failed to upload document.", "Falha ao enviar documento."));
           return;
         }
       } finally {
@@ -70,7 +96,7 @@ export function VaultWorkspace() {
       }
     } else {
       if (!name.trim()) {
-        setErrorMsg("Please select a file or enter a document name.");
+        setErrorMsg(tr("Please select a file or enter a document name.", "Selecione um arquivo ou informe o nome do documento."));
         return;
       }
       const res = await fetch("/api/vault", {
@@ -88,7 +114,7 @@ export function VaultWorkspace() {
       });
       const json = (await res.json()) as { error?: { message?: string } };
       if (!res.ok) {
-        setErrorMsg(json.error?.message ?? "Failed to save vault record.");
+        setErrorMsg(json.error?.message ?? tr("Failed to save vault record.", "Falha ao salvar registro no cofre."));
         return;
       }
     }
@@ -110,10 +136,10 @@ export function VaultWorkspace() {
       <header>
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           <FileLock2 className="h-6 w-6 text-[var(--accent)]" />
-          Document Vault
+          {t("vault.title")}
         </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Keep important personal documents organized with categories and expiration reminders.
+          {t("vault.subtitle")}
         </p>
       </header>
 
@@ -127,7 +153,10 @@ export function VaultWorkspace() {
             <span className="font-medium">
               {selectedFile
                 ? `${selectedFile.name} (${Math.max(1, Math.round(selectedFile.size / 1024))} KB)`
-                : "Click to upload a file (PDF, PNG, JPG, WEBP, TXT, DOCX — max 20 MB)"}
+                : tr(
+                    "Click to upload a file (PDF, PNG, JPG, WEBP, TXT, DOCX — max 20 MB)",
+                    "Clique para enviar um arquivo (PDF, PNG, JPG, WEBP, TXT, DOCX — máx. 20 MB)"
+                  )}
             </span>
             <input
               type="file"
@@ -146,55 +175,65 @@ export function VaultWorkspace() {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1">
-            <label className="text-xs text-[var(--muted-foreground)]">Document Name</label>
+            <label className="text-xs text-[var(--muted-foreground)]">
+              {tr("Document Name", "Nome do Documento")}
+            </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Passport Scan"
+              placeholder={tr("e.g. Passport Scan", "ex: Cópia do Passaporte")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               required={!selectedFile}
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-[var(--muted-foreground)]">Category</label>
+            <label className="text-xs text-[var(--muted-foreground)]">
+              {tr("Category", "Categoria")}
+            </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
             >
-              <option value="identity">Identity</option>
-              <option value="contract">Contract</option>
-              <option value="medical">Medical</option>
-              <option value="tax">Tax &amp; Finance</option>
-              <option value="other">Other</option>
+              <option value="identity">{tr("Identity", "Identidade")}</option>
+              <option value="contract">{tr("Contract", "Contrato")}</option>
+              <option value="medical">{tr("Medical", "Médico")}</option>
+              <option value="tax">{tr("Tax & Finance", "Impostos e Finanças")}</option>
+              <option value="other">{tr("Other", "Outro")}</option>
             </select>
           </div>
           {!selectedFile && (
             <div className="space-y-1">
-              <label className="text-xs text-[var(--muted-foreground)]">Document Type</label>
+              <label className="text-xs text-[var(--muted-foreground)]">
+                {tr("Document Type", "Tipo de Documento")}
+              </label>
               <select
                 value={mimeType}
                 onChange={(e) => setMimeType(e.target.value)}
                 className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
               >
-                <option value="application/pdf">PDF Document</option>
-                <option value="image/png">PNG Image</option>
-                <option value="image/jpeg">JPEG Image</option>
-                <option value="text/plain">Text Document</option>
+                <option value="application/pdf">{tr("PDF Document", "Documento PDF")}</option>
+                <option value="image/png">{tr("PNG Image", "Imagem PNG")}</option>
+                <option value="image/jpeg">{tr("JPEG Image", "Imagem JPEG")}</option>
+                <option value="text/plain">{tr("Text Document", "Documento de Texto")}</option>
               </select>
             </div>
           )}
           <div className="space-y-1">
-            <label className="text-xs text-[var(--muted-foreground)]">Notes (optional)</label>
+            <label className="text-xs text-[var(--muted-foreground)]">
+              {tr("Notes (optional)", "Observações (opcional)")}
+            </label>
             <input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Valid through 2030"
+              placeholder={tr("e.g. Valid through 2030", "ex: Válido até 2030")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-[var(--muted-foreground)]">Expiration Date (optional)</label>
+            <label className="text-xs text-[var(--muted-foreground)]">
+              {tr("Expiration Date (optional)", "Data de Validade (opcional)")}
+            </label>
             <input
               type="date"
               value={expiresAt}
@@ -211,14 +250,21 @@ export function VaultWorkspace() {
           className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />{" "}
-          {uploading ? "Uploading..." : selectedFile ? "Upload Document" : "Save Document Record"}
+          {uploading
+            ? tr("Uploading...", "Enviando...")
+            : selectedFile
+              ? tr("Upload Document", "Enviar Documento")
+              : tr("Save Document Record", "Salvar Registro do Documento")}
         </button>
       </form>
 
       <div className="space-y-2">
         {docs.length === 0 ? (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-            Your vault is empty. Upload or register private documents above.
+            {tr(
+              "Your vault is empty. Upload or register private documents above.",
+              "Seu cofre está vazio. Envie ou registre documentos privados acima."
+            )}
           </div>
         ) : (
           docs.map((doc) => {
@@ -231,8 +277,8 @@ export function VaultWorkspace() {
                 <div>
                   <div className="font-medium">{doc.name}</div>
                   <div className="text-xs text-[var(--muted-foreground)]">
-                    {doc.category} · {Math.max(1, Math.round(doc.sizeBytes / 1024))} KB
-                    {doc.expiresAt ? ` · Expires ${doc.expiresAt.slice(0, 10)}` : ""}
+                    {categoryLabel(doc.category)} · {Math.max(1, Math.round(doc.sizeBytes / 1024))} KB
+                    {doc.expiresAt ? ` · ${tr("Expires", "Validade")} ${formatExpiryDate(doc.expiresAt)}` : ""}
                     {doc.description ? ` · ${doc.description}` : ""}
                   </div>
                 </div>
@@ -242,14 +288,14 @@ export function VaultWorkspace() {
                       href={`/api/vault/download/${doc.id}`}
                       className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-black/5 dark:hover:bg-white/5"
                     >
-                      <Download className="h-3.5 w-3.5" /> Download
+                      <Download className="h-3.5 w-3.5" /> {tr("Download", "Baixar")}
                     </a>
                   )}
                   <button
                     type="button"
                     onClick={() => handleDelete(doc.id)}
                     className="rounded p-1 text-[var(--muted-foreground)] hover:text-red-500"
-                    aria-label="Delete document"
+                    aria-label={tr("Delete document", "Excluir documento")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

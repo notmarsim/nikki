@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Network } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import type { GraphEdge, GraphNode } from "@/modules/graph/utils";
 import { GraphCanvas } from "@/features/knowledge-graph/components/graph-canvas";
 
@@ -20,6 +21,7 @@ export function LocalGraphPanel({
   noteId: string;
   onSelectNote: (id: string) => void;
 }) {
+  const { tr } = useI18n();
   const [depth, setDepth] = useState<1 | 2 | 3>(1);
 
   const { data } = useQuery<LocalGraphResponse>({
@@ -40,7 +42,7 @@ export function LocalGraphPanel({
       <div>
         <div className="mb-1.5 flex items-center justify-between">
           <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-            <Network className="h-3 w-3" /> Local Graph
+            <Network className="h-3 w-3" /> {tr("Local Graph", "Grafo Local")}
           </span>
           <div className="flex items-center gap-0.5 rounded border border-[var(--border)] p-0.5 text-[10px]">
             {([1, 2, 3] as const).map((lvl) => (
@@ -77,7 +79,7 @@ export function LocalGraphPanel({
           />
         ) : (
           <p className="text-xs text-[var(--muted-foreground)]">
-            No local connections yet.
+            {tr("No local connections yet.", "Nenhuma conexão local ainda.")}
           </p>
         )}
 
@@ -85,14 +87,14 @@ export function LocalGraphPanel({
           href="/knowledge-graph"
           className="mt-1.5 inline-block text-[11px] text-[var(--accent)] hover:underline"
         >
-          Open Global Graph →
+          {tr("Open Global Graph →", "Abrir Grafo Global →")}
         </Link>
       </div>
 
       {data && data.relatedNotes.length > 0 && (
         <div>
           <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-            Related Notes ({data.relatedNotes.length})
+            {tr("Related Notes", "Notas Relacionadas")} ({data.relatedNotes.length})
           </div>
           <div className="space-y-1">
             {data.relatedNotes.map((r) => (

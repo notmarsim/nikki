@@ -6,13 +6,13 @@ import {
   createSubscription,
   deleteSubscription,
   listSubscriptionsOverview,
-  updateSubscriptionStatus,
+  updateSubscription,
 } from "@/modules/subscriptions/service";
 import { getOrCreateDefaultWorkspace } from "@/modules/users/service";
 
 const postSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  category: z.string().trim().max(60).default("Software"),
+  category: z.string().trim().max(60).default(""),
   amountCents: z.number().int().positive(),
   currency: z.string().trim().max(10).default("BRL"),
   billingCycle: z.enum(["weekly", "monthly", "quarterly", "yearly"]).default("monthly"),
@@ -24,7 +24,12 @@ const postSchema = z.object({
 
 const patchSchema = z.object({
   id: z.string().uuid(),
-  status: z.enum(["active", "trial", "paused", "cancelled"]),
+  status: z.enum(["active", "trial", "paused", "cancelled"]).optional(),
+  name: z.string().trim().min(1).max(120).optional(),
+  category: z.string().trim().max(60).optional(),
+  amountCents: z.number().int().positive().optional(),
+  billingCycle: z.enum(["weekly", "monthly", "quarterly", "yearly"]).optional(),
+  nextBillingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export async function GET() {
@@ -57,11 +62,7 @@ export async function PATCH(request: NextRequest) {
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) return apiError(400, "VALIDATION_ERROR", "Invalid subscription update");
 
-  const subscription = await updateSubscriptionStatus(
-    session.user.id,
-    parsed.data.id,
-    parsed.data.status
-  );
+  const subscription = await updateSubscription(session.user.id, parsed.data.id, parsed.data);
   return apiOk({ subscription });
 }
 

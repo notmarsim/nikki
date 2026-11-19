@@ -26,6 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { formatCents } from "@/modules/finances/money";
 
 export interface DashboardPayload {
@@ -147,6 +148,8 @@ export function DashboardView({
   initialData: DashboardPayload;
   hiddenWidgets?: string[];
 }) {
+  const { t, tr, language } = useI18n();
+  const locale = language === "pt-BR" ? "pt-BR" : "en-US";
   const showWidget = (id: string) => !hiddenWidgets.includes(id);
   const queryClient = useQueryClient();
   const [quickText, setQuickText] = useState("");
@@ -158,6 +161,9 @@ export function DashboardView({
       title: string;
       description: string;
       actionLabel: string;
+      titlePt?: string;
+      descriptionPt?: string;
+      actionLabelPt?: string;
       href: string;
     }>;
   }>({
@@ -203,7 +209,7 @@ export function DashboardView({
     }
   };
 
-  const todayFormatted = new Intl.DateTimeFormat("en-US", {
+  const todayFormatted = new Intl.DateTimeFormat(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -220,24 +226,24 @@ export function DashboardView({
       >
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Welcome back, {userName}
+            {t("dash.welcome")}, {userName}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">{todayFormatted}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/notes?new=1">
             <Button size="sm" variant="outline">
-              <FileText className="h-3.5 w-3.5" /> New Note
+              <FileText className="h-3.5 w-3.5" /> {t("dash.newNote")}
             </Button>
           </Link>
           <Link href="/tasks?new=1">
             <Button size="sm" variant="outline">
-              <CheckSquare className="h-3.5 w-3.5" /> New Task
+              <CheckSquare className="h-3.5 w-3.5" /> {t("dash.newTask")}
             </Button>
           </Link>
           <Link href="/projects">
             <Button size="sm">
-              <FolderKanban className="h-3.5 w-3.5" /> Projects
+              <FolderKanban className="h-3.5 w-3.5" /> {t("dash.projects")}
             </Button>
           </Link>
         </div>
@@ -252,12 +258,16 @@ export function DashboardView({
               className="flex flex-col justify-between gap-2 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/5 p-3.5 text-xs"
             >
               <div>
-                <div className="font-semibold text-[var(--foreground)]">{sug.title}</div>
-                <p className="mt-0.5 text-[var(--muted-foreground)]">{sug.description}</p>
+                <div className="font-semibold text-[var(--foreground)]">
+                  {language === "pt-BR" ? (sug.titlePt ?? sug.title) : sug.title}
+                </div>
+                <p className="mt-0.5 text-[var(--muted-foreground)]">
+                  {language === "pt-BR" ? (sug.descriptionPt ?? sug.description) : sug.description}
+                </p>
               </div>
               <div className="flex items-center justify-between pt-1">
                 <Link href={sug.href} className="font-medium text-[var(--accent)] hover:underline">
-                  {sug.actionLabel} →
+                  {language === "pt-BR" ? (sug.actionLabelPt ?? sug.actionLabel) : sug.actionLabel} →
                 </Link>
                 <button
                   type="button"
@@ -271,7 +281,7 @@ export function DashboardView({
                   }}
                   className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 >
-                  Dispensar
+                  {t("dash.dismiss")}
                 </button>
               </div>
             </div>
@@ -286,14 +296,14 @@ export function DashboardView({
           <Card className="hover:border-[var(--accent)] transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
-                Open Tasks
+                {tr("Open Tasks", "Tarefas Abertas")}
               </CardTitle>
               <CheckSquare className="h-4 w-4 text-[var(--muted-foreground)]" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data.overview.openTasks}</div>
               <p className="text-xs text-[var(--muted-foreground)]">
-                {data.overview.totalTasks} total tasks
+                {data.overview.totalTasks} {tr("total tasks", "tarefas no total")}
               </p>
             </CardContent>
           </Card>
@@ -303,14 +313,14 @@ export function DashboardView({
           <Card className="hover:border-[var(--accent)] transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
-                Active Projects
+                {tr("Active Projects", "Projetos Ativos")}
               </CardTitle>
               <FolderKanban className="h-4 w-4 text-[var(--muted-foreground)]" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data.overview.activeProjects}</div>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Progress synced from tasks
+                {tr("Progress synced from tasks", "Progresso sincronizado das tarefas")}
               </p>
             </CardContent>
           </Card>
@@ -320,14 +330,14 @@ export function DashboardView({
           <Card className="hover:border-[var(--accent)] transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
-                Recent Notes
+                {tr("Recent Notes", "Notas Recentes")}
               </CardTitle>
               <FileText className="h-4 w-4 text-[var(--muted-foreground)]" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data.recentNotes.length}</div>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Block editor &amp; links
+                {tr("Block editor & links", "Editor em blocos e links")}
               </p>
             </CardContent>
           </Card>
@@ -337,14 +347,14 @@ export function DashboardView({
           <Card className="hover:border-[var(--accent)] transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
-                Pending Inbox
+                {tr("Pending Inbox", "Inbox Pendente")}
               </CardTitle>
               <Inbox className="h-4 w-4 text-[var(--muted-foreground)]" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data.overview.pendingInbox}</div>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Ready to triage
+                {tr("Ready to triage", "Pronto para triagem")}
               </p>
             </CardContent>
           </Card>
@@ -356,9 +366,9 @@ export function DashboardView({
       {showWidget("quick_capture") && (
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Quick Capture</CardTitle>
+          <CardTitle className="text-base">{tr("Quick Capture", "Captura Rápida")}</CardTitle>
           <CardDescription>
-            Send a thought or task straight to your Universal Inbox.
+            {tr("Send a thought or task straight to your Universal Inbox.", "Envie uma ideia ou tarefa direto para sua Inbox Universal.")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -366,11 +376,11 @@ export function DashboardView({
             <Input
               value={quickText}
               onChange={(e) => setQuickText(e.target.value)}
-              placeholder="Capture an idea, task, or note..."
+              placeholder={tr("Capture an idea, task, or note...", "Capture uma ideia, tarefa ou nota...")}
             />
             <Button type="submit" disabled={capturing || !quickText.trim()}>
               <Plus className="h-4 w-4" />
-              {capturing ? "Saving..." : "Capture"}
+              {capturing ? tr("Saving...", "Salvando...") : tr("Capture", "Capturar")}
             </Button>
           </form>
         </CardContent>
@@ -384,14 +394,14 @@ export function DashboardView({
           <Card className="hover:border-[var(--accent)] transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
-                Flashcards Due
+                {tr("Flashcards Due", "Flashcards para Revisar")}
               </CardTitle>
               <Layers className="h-4 w-4 text-[var(--muted-foreground)]" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data.overview.flashcardsDue ?? 0}</div>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Ready for review
+                {tr("Ready for review", "Prontos para revisão")}
               </p>
             </CardContent>
           </Card>
@@ -401,7 +411,7 @@ export function DashboardView({
           <Card className="hover:border-[var(--accent)] transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
-                Study Time Today
+                {tr("Study Time Today", "Tempo de Foco Hoje")}
               </CardTitle>
               <Timer className="h-4 w-4 text-[var(--muted-foreground)]" />
             </CardHeader>
@@ -409,8 +419,8 @@ export function DashboardView({
               <div className="text-2xl font-bold">{data.overview.studyMinutesToday ?? 0}m</div>
               <p className="text-xs text-[var(--muted-foreground)]">
                 {data.activeFocus
-                  ? `Active ${data.activeFocus.mode} (${data.activeFocus.status})`
-                  : "Start a focus session"}
+                  ? `${tr("Active", "Ativo")} ${data.activeFocus.mode} (${data.activeFocus.status})`
+                  : tr("Start a focus session", "Iniciar sessão de foco")}
               </p>
             </CardContent>
           </Card>
@@ -420,7 +430,7 @@ export function DashboardView({
           <Card className="hover:border-[var(--accent)] transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
-                Today&apos;s Habits
+                {tr("Today's Habits", "Hábitos de Hoje")}
               </CardTitle>
               <Flame className="h-4 w-4 text-[var(--muted-foreground)]" />
             </CardHeader>
@@ -429,7 +439,7 @@ export function DashboardView({
                 {data.overview.habitsCompletedToday ?? 0}/{data.overview.habitsTotal ?? 0}
               </div>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Daily consistency check-in
+                {tr("Daily consistency check-in", "Check-in diário de consistência")}
               </p>
             </CardContent>
           </Card>
@@ -439,14 +449,14 @@ export function DashboardView({
           <Card className="hover:border-[var(--accent)] transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--muted-foreground)]">
-                Upcoming Events
+                {tr("Upcoming Events", "Próximos Eventos")}
               </CardTitle>
               <Calendar className="h-4 w-4 text-[var(--muted-foreground)]" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data.upcomingEvents?.length ?? 0}</div>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Next 7 days on calendar
+                {tr("Next 7 days on calendar", "Próximos 7 dias no calendário")}
               </p>
             </CardContent>
           </Card>
@@ -462,22 +472,22 @@ export function DashboardView({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-base">Tasks Today</CardTitle>
+              <CardTitle className="text-base">{tr("Tasks Today", "Tarefas de Hoje")}</CardTitle>
               <CardDescription>
-                {data.tasksToday.completed} done · {data.tasksToday.pending} pending
-                {data.tasksToday.overdue > 0 && ` · ${data.tasksToday.overdue} overdue`}
+                {data.tasksToday.completed} {tr("done", "concluídas")} · {data.tasksToday.pending} {tr("pending", "pendentes")}
+                {data.tasksToday.overdue > 0 && ` · ${data.tasksToday.overdue} ${tr("overdue", "atrasadas")}`}
               </CardDescription>
             </div>
             <Link href="/tasks" className="text-xs font-medium text-[var(--accent)] hover:underline">
-              View all →
+              {tr("View all →", "Ver tudo →")}
             </Link>
           </CardHeader>
           <CardContent>
             {data.tasksToday.items.length === 0 ? (
               <div className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                <p>No tasks scheduled for today or overdue.</p>
+                <p>{tr("No tasks scheduled for today or overdue.", "Nenhuma tarefa agendada para hoje ou atrasada.")}</p>
                 <Link href="/tasks" className="mt-2 inline-block text-xs text-[var(--accent)] hover:underline">
-                  Add your first task →
+                  {tr("Add your first task →", "Adicionar primeira tarefa →")}
                 </Link>
               </div>
             ) : (
@@ -524,19 +534,19 @@ export function DashboardView({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-base">Active Projects</CardTitle>
-              <CardDescription>Real-time progress from linked tasks.</CardDescription>
+              <CardTitle className="text-base">{tr("Active Projects", "Projetos Ativos")}</CardTitle>
+              <CardDescription>{tr("Real-time progress from linked tasks.", "Progresso em tempo real das tarefas vinculadas.")}</CardDescription>
             </div>
             <Link href="/projects" className="text-xs font-medium text-[var(--accent)] hover:underline">
-              View all →
+              {tr("View all →", "Ver tudo →")}
             </Link>
           </CardHeader>
           <CardContent>
             {data.activeProjects.length === 0 ? (
               <div className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                <p>No active projects yet.</p>
+                <p>{tr("No active projects yet.", "Nenhum projeto ativo ainda.")}</p>
                 <Link href="/projects" className="mt-2 inline-block text-xs text-[var(--accent)] hover:underline">
-                  Create a project →
+                  {tr("Create a project →", "Criar um projeto →")}
                 </Link>
               </div>
             ) : (
@@ -556,7 +566,7 @@ export function DashboardView({
                         <span className="text-sm font-medium">{project.name}</span>
                       </div>
                       <span className="text-xs text-[var(--muted-foreground)]">
-                        {project.completedTasks}/{project.totalTasks} tasks · {project.progress}%
+                        {project.completedTasks}/{project.totalTasks} {tr("tasks", "tarefas")} · {project.progress}%
                       </span>
                     </div>
                     <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-muted)]">
@@ -584,17 +594,17 @@ export function DashboardView({
         {showWidget("recent_notes") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Recent Notes</CardTitle>
+            <CardTitle className="text-base">{tr("Recent Notes", "Notas Recentes")}</CardTitle>
             <Link href="/notes" className="text-xs font-medium text-[var(--accent)] hover:underline">
-              Open Notes →
+              {tr("Open Notes →", "Abrir Notas →")}
             </Link>
           </CardHeader>
           <CardContent>
             {data.recentNotes.length === 0 ? (
               <div className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                <p>No notes yet.</p>
+                <p>{tr("No notes yet.", "Nenhuma nota ainda.")}</p>
                 <Link href="/notes?new=1" className="mt-2 inline-block text-xs text-[var(--accent)] hover:underline">
-                  Create your first note →
+                  {tr("Create your first note →", "Criar primeira nota →")}
                 </Link>
               </div>
             ) : (
@@ -610,7 +620,7 @@ export function DashboardView({
                       <span className="truncate font-medium">{note.title}</span>
                     </div>
                     <span className="text-xs text-[var(--muted-foreground)]">
-                      {new Date(note.updatedAt).toLocaleDateString()}
+                      {new Date(note.updatedAt).toLocaleDateString(locale)}
                     </span>
                   </Link>
                 ))}
@@ -623,12 +633,12 @@ export function DashboardView({
         {showWidget("recent_activity") && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Recent Activity</CardTitle>
+            <CardTitle className="text-base">{tr("Recent Activity", "Atividade Recente")}</CardTitle>
           </CardHeader>
           <CardContent>
             {data.recentActivity.length === 0 ? (
               <div className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-                No recent activity recorded yet.
+                {tr("No recent activity recorded yet.", "Nenhuma atividade recente registrada ainda.")}
               </div>
             ) : (
               <div className="space-y-2">
@@ -653,7 +663,7 @@ export function DashboardView({
                       )}
                     </div>
                     <span className="ml-2 shrink-0 text-[var(--muted-foreground)]">
-                      {new Date(event.createdAt).toLocaleDateString()}
+                      {new Date(event.createdAt).toLocaleDateString(locale)}
                     </span>
                   </div>
                 ))}
@@ -670,21 +680,21 @@ export function DashboardView({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base">Upcoming Events</CardTitle>
+            <CardTitle className="text-base">{tr("Upcoming Events", "Próximos Eventos")}</CardTitle>
             <CardDescription>
-              Your scheduled events and time blocks for the next 7 days.
+              {tr("Your scheduled events and time blocks for the next 7 days.", "Seus eventos e blocos de tempo agendados para os próximos 7 dias.")}
             </CardDescription>
           </div>
           <Link href="/calendar" className="text-xs font-medium text-[var(--accent)] hover:underline">
-            Open Calendar →
+            {tr("Open Calendar →", "Abrir Calendário →")}
           </Link>
         </CardHeader>
         <CardContent>
           {!data.upcomingEvents || data.upcomingEvents.length === 0 ? (
             <div className="py-6 text-center text-sm text-[var(--muted-foreground)]">
-              <p>No upcoming events in the next 7 days.</p>
+              <p>{tr("No upcoming events in the next 7 days.", "Nenhum evento nos próximos 7 dias.")}</p>
               <Link href="/calendar" className="mt-2 inline-block text-xs text-[var(--accent)] hover:underline">
-                Schedule an event →
+                {tr("Schedule an event →", "Agendar um evento →")}
               </Link>
             </div>
           ) : (
@@ -704,8 +714,8 @@ export function DashboardView({
                   </div>
                   <span className="ml-2 shrink-0 text-xs text-[var(--muted-foreground)]">
                     {evt.allDay
-                      ? new Date(evt.startAt).toLocaleDateString()
-                      : new Date(evt.startAt).toLocaleString(undefined, {
+                      ? new Date(evt.startAt).toLocaleDateString(locale)
+                      : new Date(evt.startAt).toLocaleString(locale, {
                           month: "short",
                           day: "numeric",
                           hour: "2-digit",
@@ -727,17 +737,17 @@ export function DashboardView({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-base">Recent Bookmarks</CardTitle>
-              <CardDescription>Saved articles, docs, and resources.</CardDescription>
+              <CardTitle className="text-base">{tr("Recent Bookmarks", "Favoritos Recentes")}</CardTitle>
+              <CardDescription>{tr("Saved articles, docs, and resources.", "Artigos, documentações e recursos salvos.")}</CardDescription>
             </div>
             <Link href="/bookmarks" className="text-xs font-medium text-[var(--accent)] hover:underline">
-              Open Library →
+              {tr("Open Library →", "Abrir Biblioteca →")}
             </Link>
           </CardHeader>
           <CardContent>
             {!data.recentBookmarks || data.recentBookmarks.length === 0 ? (
               <div className="py-5 text-center text-sm text-[var(--muted-foreground)]">
-                No bookmarks saved yet.
+                {tr("No bookmarks saved yet.", "Nenhum favorito salvo ainda.")}
               </div>
             ) : (
               <div className="space-y-2">
@@ -768,22 +778,22 @@ export function DashboardView({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-base">Developer Hub Snippets</CardTitle>
-              <CardDescription>Quick access to your saved code snippets.</CardDescription>
+              <CardTitle className="text-base">{tr("Developer Hub Snippets", "Snippets do Developer Hub")}</CardTitle>
+              <CardDescription>{tr("Quick access to your saved code snippets.", "Acesso rápido aos seus snippets de código salvos.")}</CardDescription>
             </div>
             <div className="flex items-center gap-3 text-xs font-medium">
               <Link href="/knowledge-graph" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
-                Graph
+                {tr("Graph", "Grafo")}
               </Link>
               <Link href="/developer-hub" className="text-[var(--accent)] hover:underline">
-                Open Dev Hub →
+                {tr("Open Dev Hub →", "Abrir Dev Hub →")}
               </Link>
             </div>
           </CardHeader>
           <CardContent>
             {!data.favoriteSnippets || data.favoriteSnippets.length === 0 ? (
               <div className="py-5 text-center text-sm text-[var(--muted-foreground)]">
-                No code snippets saved yet.
+                {tr("No code snippets saved yet.", "Nenhum snippet de código salvo ainda.")}
               </div>
             ) : (
               <div className="space-y-2">
@@ -813,38 +823,38 @@ export function DashboardView({
           <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <CardTitle className="text-base">
-                Financial Snapshot ({data.financeWidget.month})
+                {t("dash.finTitle")} ({data.financeWidget.month})
               </CardTitle>
               <CardDescription>
                 {data.financeWidget.hidden
-                  ? "Privacy mode is enabled in Settings."
-                  : "Real-time account balance and monthly cash flow."}
+                  ? t("dash.finPrivacy")
+                  : t("dash.finDesc")}
               </CardDescription>
             </div>
             <div className="flex shrink-0 items-center gap-3 text-xs font-medium whitespace-nowrap">
               <Link href="/analytics" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
-                Analytics
+                {t("dash.analytics")}
               </Link>
               <Link href="/finances" className="text-[var(--accent)] hover:underline">
-                Open Finances →
+                {t("dash.openFinances")}
               </Link>
             </div>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <div className="text-xs text-[var(--muted-foreground)]">Available Balance</div>
+              <div className="text-xs text-[var(--muted-foreground)]">{t("dash.balance")}</div>
               <div className="text-lg font-bold">
                 {formatCents(data.financeWidget.totalBalanceCents, "BRL", true, data.financeWidget.hidden)}
               </div>
             </div>
             <div>
-              <div className="text-xs text-[var(--muted-foreground)]">Income</div>
+              <div className="text-xs text-[var(--muted-foreground)]">{t("dash.income")}</div>
               <div className="text-lg font-bold text-emerald-500">
                 {formatCents(data.financeWidget.monthIncomeCents, "BRL", true, data.financeWidget.hidden)}
               </div>
             </div>
             <div>
-              <div className="text-xs text-[var(--muted-foreground)]">Expenses</div>
+              <div className="text-xs text-[var(--muted-foreground)]">{t("dash.expenses")}</div>
               <div className="text-lg font-bold text-red-500">
                 {formatCents(data.financeWidget.monthExpenseCents, "BRL", true, data.financeWidget.hidden)}
               </div>

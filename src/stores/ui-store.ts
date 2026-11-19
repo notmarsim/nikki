@@ -29,42 +29,15 @@ interface UiState {
   setInterfaceMode: (mode: "simple" | "advanced") => void;
 }
 
-const getInitialSpellcheck = (): boolean => {
-  if (typeof window === "undefined") return true;
-  const saved = window.localStorage.getItem("nikki-spellcheck");
-  return saved === null ? true : saved === "true";
-};
-
-const getInitialKeybindings = (): KeybindingsConfig => {
-  if (typeof window === "undefined") return DEFAULT_KEYBINDINGS;
-  try {
-    const raw = window.localStorage.getItem("nikki-keybindings");
-    if (!raw) return DEFAULT_KEYBINDINGS;
-    return { ...DEFAULT_KEYBINDINGS, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_KEYBINDINGS;
-  }
-};
-
-const getInitialHiddenModules = (): string[] => {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem("nikki-hidden-modules");
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-};
-
 export const useUiStore = create<UiState>((set) => ({
   sidebarCollapsed: false,
   mobileSidebarOpen: false,
   commandPaletteOpen: false,
   quickCaptureOpen: false,
-  spellcheckEnabled: getInitialSpellcheck(),
-  keybindings: getInitialKeybindings(),
+  spellcheckEnabled: true,
+  keybindings: DEFAULT_KEYBINDINGS,
   pinnedModuleIds: ["dashboard", "inbox", "notes", "tasks", "projects"],
-  hiddenModuleIds: getInitialHiddenModules(),
+  hiddenModuleIds: [],
   interfaceMode: "advanced",
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),

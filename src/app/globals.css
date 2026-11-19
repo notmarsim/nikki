@@ -94,11 +94,16 @@ html[data-focus-indicators="false"] *:focus-visible {
   outline: none !important;
 }
 
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="datetime-local"] {
+  color-scheme: dark;
+}
+
 .dark input[type="date"]::-webkit-calendar-picker-indicator,
 .dark input[type="time"]::-webkit-calendar-picker-indicator,
 .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.9);
-  opacity: 0.85;
+  opacity: 0.9;
   cursor: pointer;
 }
 

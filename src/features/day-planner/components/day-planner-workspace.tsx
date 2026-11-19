@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   AlertTriangle,
   ArrowDown,
@@ -47,8 +48,13 @@ function fmtMinute(min: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+function getLocalDateStr(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function DayPlannerWorkspace() {
-  const [planDate, setPlanDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const { t, tr } = useI18n();
+  const [planDate, setPlanDate] = useState(() => getLocalDateStr());
   const [blocks, setBlocks] = useState<PlannerBlock[]>([]);
   const [unscheduled, setUnscheduled] = useState<Array<{ id: string; title: string; reason: string }>>([]);
   const [recovery, setRecovery] = useState<RecoveryData | null>(null);
@@ -84,10 +90,22 @@ export function DayPlannerWorkspace() {
   async function generatePlan() {
     setLoading(true);
     try {
+      const now = new Date();
+      const isToday = planDate === getLocalDateStr(now);
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const roundedStart = Math.ceil(currentMinutes / 5) * 5;
+      const workStartMinute = isToday
+        ? Math.max(8 * 60, Math.min(23 * 60 + 55, roundedStart))
+        : undefined;
+
       const res = await fetch("/api/day-planner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "generate", planDate }),
+        body: JSON.stringify({
+          action: "generate",
+          planDate,
+          ...(workStartMinute !== undefined ? { workStartMinute } : {}),
+        }),
       });
       const json = (await res.json()) as {
         data?: { unscheduled?: Array<{ id: string; title: string; reason: string }> };
@@ -170,10 +188,10 @@ export function DayPlannerWorkspace() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
             <CalendarClock className="h-6 w-6 text-[var(--accent)]" />
-            Day Planner
+            {t("planner.title")}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Distribua suas tarefas nos horários livres respeitando compromissos, rotinas e dependências.
+            {t("planner.subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -190,7 +208,8 @@ export function DayPlannerWorkspace() {
             onClick={() => void generatePlan()}
             className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            <Sparkles className="h-4 w-4" /> {loading ? "Planejando..." : "Gerar Sugestão"}
+            <Sparkles className="h-4 w-4" />{" "}
+            {loading ? tr("Planning...", "Planejando...") : tr("Generate Suggestion", "Gerar Sugestão")}
           </button>
         </div>
       </header>
@@ -201,10 +220,16 @@ export function DayPlannerWorkspace() {
             <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
             <div>
               <div className="font-medium">
-                Você tem {recovery.overdueCount} atividade(s) pendente(s) atrasada(s). Deseja reorganizar seu planejamento?
+                {tr(
+                  `You have ${recovery.overdueCount} overdue pending item(s). Would you like to reorganize your plan?`,
+                  `Você tem ${recovery.overdueCount} atividade(s) pendente(s) atrasada(s). Deseja reorganizar seu planejamento?`
+                )}
               </div>
               <div className="text-xs text-[var(--muted-foreground)]">
-                O Recovery Assistant ajuda a adiar, concluir ou cancelar em lote com prévia.
+                {tr(
+                  "The Recovery Assistant helps reschedule, complete, or cancel in bulk with a preview.",
+                  "O Recovery Assistant ajuda a adiar, concluir ou cancelar em lote com prévia."
+                )}
               </div>
             </div>
           </div>
@@ -214,7 +239,7 @@ export function DayPlannerWorkspace() {
               onClick={() => setShowRecovery(true)}
               className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-black"
             >
-              Abrir Recovery
+              {tr("Open Recovery", "Abrir Recovery")}
             </button>
             <button
               type="button"
@@ -228,7 +253,7 @@ export function DayPlannerWorkspace() {
               }}
               className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs"
             >
-              Dispensar
+              {tr("Dismiss", "Dispensar")}
             </button>
           </div>
         </div>
@@ -238,7 +263,10 @@ export function DayPlannerWorkspace() {
         <div className="space-y-3 lg:col-span-2">
           {blocks.length === 0 ? (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--muted-foreground)]">
-              Nenhum bloco planejado para {planDate}. Clique em <strong>Gerar Sugestão</strong> ou bloqueie um horário ao lado.
+              {tr(
+                `No blocks planned for ${planDate}. Click Generate Suggestion or block a time slot on the side.`,
+                `Nenhum bloco planejado para ${planDate}. Clique em Gerar Sugestão ou bloqueie um horário ao lado.`
+              )}
             </div>
           ) : (
             blocks.map((b) => (
@@ -251,12 +279,36 @@ export function DayPlannerWorkspace() {
                     {b.sourceType === "blocked" && <Lock className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />}
                     <span>{b.title}</span>
                     <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] capitalize">
-                      {b.status}
+                      {b.status === "suggested"
+                        ? tr("Suggested", "Sugerido")
+                        : b.status === "accepted"
+                          ? tr("Accepted", "Aceito")
+                          : b.status === "completed"
+                            ? tr("Completed", "Concluído")
+                            : b.status === "skipped"
+                              ? tr("Skipped", "Pulado")
+                              : b.status}
                     </span>
                   </div>
                   <div className="text-xs text-[var(--muted-foreground)]">
                     {fmtMinute(b.startMinute)} – {fmtMinute(b.endMinute)} ({b.endMinute - b.startMinute} min) ·{" "}
-                    {b.sourceType} · prioridade {b.priority}
+                    {b.sourceType === "task"
+                      ? tr("task", "tarefa")
+                      : b.sourceType === "blocked"
+                        ? tr("blocked", "bloqueado")
+                        : b.sourceType === "custom"
+                          ? tr("custom", "manual")
+                          : b.sourceType}{" "}
+                    · {tr("priority", "prioridade")}{" "}
+                    {b.priority === "urgent"
+                      ? tr("urgent", "urgente")
+                      : b.priority === "high"
+                        ? tr("high", "alta")
+                        : b.priority === "medium"
+                          ? tr("medium", "média")
+                          : b.priority === "low"
+                            ? tr("low", "baixa")
+                            : tr("none", "nenhuma")}
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -264,7 +316,7 @@ export function DayPlannerWorkspace() {
                     type="button"
                     onClick={() => void shiftBlock(b, -30)}
                     className="rounded border border-[var(--border)] p-1.5 text-xs"
-                    title="Mover 30m antes"
+                    title={tr("Move 30m earlier", "Mover 30m antes")}
                     aria-label="Move 30 minutes earlier"
                   >
                     <ArrowUp className="h-3.5 w-3.5" />
@@ -273,7 +325,7 @@ export function DayPlannerWorkspace() {
                     type="button"
                     onClick={() => void shiftBlock(b, 30)}
                     className="rounded border border-[var(--border)] p-1.5 text-xs"
-                    title="Mover 30m depois"
+                    title={tr("Move 30m later", "Mover 30m depois")}
                     aria-label="Move 30 minutes later"
                   >
                     <ArrowDown className="h-3.5 w-3.5" />
@@ -284,14 +336,14 @@ export function DayPlannerWorkspace() {
                       onClick={() => void updateBlock(b.id, { status: "accepted" })}
                       className="inline-flex items-center gap-1 rounded bg-[var(--accent)] px-2.5 py-1 text-xs font-medium text-white"
                     >
-                      <Check className="h-3.5 w-3.5" /> Aceitar
+                      <Check className="h-3.5 w-3.5" /> {tr("Accept", "Aceitar")}
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => void removeBlock(b.id)}
                     className="rounded border border-[var(--border)] p-1.5 text-xs text-red-500"
-                    title="Remover do plano"
+                    title={tr("Remove from plan", "Remover do plano")}
                     aria-label="Remove block"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -307,11 +359,11 @@ export function DayPlannerWorkspace() {
             onSubmit={addManualBlock}
             className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <h2 className="text-sm font-semibold">Bloquear Horário ou Bloco Manual</h2>
+            <h2 className="text-sm font-semibold">{tr("Block Time or Manual Block", "Bloquear Horário ou Bloco Manual")}</h2>
             <input
               value={manualTitle}
               onChange={(e) => setManualTitle(e.target.value)}
-              placeholder="Ex: Almoço, Academia, Foco livre"
+              placeholder={tr("e.g. Lunch, Gym, Deep Focus", "Ex: Almoço, Academia, Foco livre")}
               className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               required
             />
@@ -320,8 +372,8 @@ export function DayPlannerWorkspace() {
               onChange={(e) => setManualType(e.target.value as "custom" | "blocked")}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
             >
-              <option value="blocked">Horário bloqueado</option>
-              <option value="custom">Atividade manual</option>
+              <option value="blocked">{tr("Blocked time", "Horário bloqueado")}</option>
+              <option value="custom">{tr("Manual activity", "Atividade manual")}</option>
             </select>
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -341,13 +393,13 @@ export function DayPlannerWorkspace() {
               type="submit"
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium"
             >
-              <Plus className="h-4 w-4" /> Adicionar Bloco
+              <Plus className="h-4 w-4" /> {tr("Add Block", "Adicionar Bloco")}
             </button>
           </form>
 
           {unscheduled.length > 0 && (
             <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-              <h2 className="text-sm font-semibold">Tarefas sem horário ({unscheduled.length})</h2>
+              <h2 className="text-sm font-semibold">{tr("Unscheduled Tasks", "Tarefas sem horário")} ({unscheduled.length})</h2>
               {unscheduled.map((u) => (
                 <div key={u.id} className="rounded-lg border border-[var(--border)] p-2.5 text-xs">
                   <div className="font-medium">{u.title}</div>
@@ -364,7 +416,10 @@ export function DayPlannerWorkspace() {
           <div className="max-h-[85vh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
             <h2 className="text-lg font-semibold">Nikki Recovery Assistant</h2>
             <p className="text-xs text-[var(--muted-foreground)]">
-              Escolha o que fazer com cada tarefa atrasada. Nenhuma alteração é aplicada sem sua confirmação.
+              {tr(
+                "Choose what to do with each overdue task. No changes are applied without your confirmation.",
+                "Escolha o que fazer com cada tarefa atrasada. Nenhuma alteração é aplicada sem sua confirmação."
+              )}
             </p>
             <div className="space-y-2">
               {allOverdue.map((t) => {
@@ -377,8 +432,8 @@ export function DayPlannerWorkspace() {
                     <div>
                       <div className="font-medium">{t.title}</div>
                       <div className="text-[var(--muted-foreground)]">
-                        Prioridade: {t.priority}
-                        {t.blockedBy.length > 0 ? ` · Bloqueada por: ${t.blockedBy.join(", ")}` : ""}
+                        {tr("Priority:", "Prioridade:")} {t.priority}
+                        {t.blockedBy.length > 0 ? ` · ${tr("Blocked by:", "Bloqueada por:")} ${t.blockedBy.join(", ")}` : ""}
                       </div>
                     </div>
                     <select
@@ -398,10 +453,10 @@ export function DayPlannerWorkspace() {
                       }}
                       className="rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1"
                     >
-                      <option value="keep">Manter como está</option>
-                      <option value="reschedule">Adiar para amanhã</option>
-                      <option value="complete">Marcar concluída</option>
-                      <option value="cancel">Cancelar</option>
+                      <option value="keep">{tr("Keep as is", "Manter como está")}</option>
+                      <option value="reschedule">{tr("Reschedule to tomorrow", "Adiar para amanhã")}</option>
+                      <option value="complete">{tr("Mark completed", "Marcar concluída")}</option>
+                      <option value="cancel">{tr("Cancel", "Cancelar")}</option>
                     </select>
                   </div>
                 );
@@ -413,14 +468,14 @@ export function DayPlannerWorkspace() {
                 onClick={() => setShowRecovery(false)}
                 className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs"
               >
-                Fechar
+                {tr("Close", "Fechar")}
               </button>
               <button
                 type="button"
                 onClick={() => void applyRecovery()}
                 className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white"
               >
-                Confirmar Alterações
+                {tr("Confirm Changes", "Confirmar Alterações")}
               </button>
             </div>
           </div>

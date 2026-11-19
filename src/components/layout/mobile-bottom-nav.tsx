@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { MoreHorizontal, X } from "lucide-react";
 import { APP_MODULES, MODULE_SECTIONS, type ModuleSection } from "@/config/modules";
 import { ModuleIcon } from "@/components/ui/module-icon";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -20,6 +21,7 @@ const SECTION_ORDER: ModuleSection[] = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { t, moduleName, sectionName } = useI18n();
   const [moreOpen, setMoreOpen] = useState(false);
   const hiddenModuleIds = useUiStore((s) => s.hiddenModuleIds);
 
@@ -47,7 +49,7 @@ export function MobileBottomNav() {
               )}
             >
               <ModuleIcon name={mod.icon} className="h-5 w-5" />
-              <span className="truncate">{mod.name}</span>
+              <span className="truncate">{moduleName(mod.id, mod.name)}</span>
             </Link>
           );
         })}
@@ -64,7 +66,7 @@ export function MobileBottomNav() {
           )}
         >
           <MoreHorizontal className="h-5 w-5" />
-          <span>More</span>
+          <span>{t("topbar.more")}</span>
         </button>
       </nav>
 

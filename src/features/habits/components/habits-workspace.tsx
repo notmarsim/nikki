@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Flame, Plus, Trash2 } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,7 @@ export function HabitsWorkspace({
 }: {
   initialData: { habits: HabitItem[]; todayStr: string };
 }) {
+  const { tr } = useI18n();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [habitType, setHabitType] = useState<"boolean" | "quantitative">("boolean");
@@ -89,25 +91,40 @@ export function HabitsWorkspace({
     }
   };
 
+  const activityLabel = (type: string) => {
+    if (type === "focus_minutes") return tr("Focus minutes", "Minutos de foco");
+    if (type === "lessons_completed") return tr("Lessons completed", "Aulas concluídas");
+    if (type === "flashcards_reviewed") return tr("Flashcards reviewed", "Flashcards revisados");
+    return type.replace("_", " ");
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Habits &amp; Consistency</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {tr("Habits & Consistency", "Hábitos e Consistência")}
+        </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Track daily and weekly habits with streaks, 90-day heatmaps, and Focus/Learning integration.
+          {tr(
+            "Track daily and weekly habits with streaks, 90-day heatmaps, and Focus/Learning integration.",
+            "Acompanhe hábitos diários e semanais com sequências, mapas de calor de 90 dias e integração com Foco e Aprendizado."
+          )}
         </p>
       </div>
 
       {/* Create Habit */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">New Habit</CardTitle>
+          <CardTitle className="text-sm">{tr("New Habit", "Novo Hábito")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreate} className="flex flex-wrap items-center gap-2">
             <Input
               className="flex-1 min-w-[180px]"
-              placeholder="e.g. Study 60 minutes, Read 20 pages, Review flashcards..."
+              placeholder={tr(
+                "e.g. Study 60 minutes, Read 20 pages, Review flashcards...",
+                "ex.: Estudar 60 minutos, Ler 20 páginas, Revisar flashcards..."
+              )}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
@@ -118,8 +135,8 @@ export function HabitsWorkspace({
               }
               className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
             >
-              <option value="boolean">Yes / No</option>
-              <option value="quantitative">Quantitative</option>
+              <option value="boolean">{tr("Yes / No", "Sim / Não")}</option>
+              <option value="quantitative">{tr("Quantitative", "Quantitativo")}</option>
             </select>
             {habitType === "quantitative" && (
               <>
@@ -133,7 +150,7 @@ export function HabitsWorkspace({
                 <Input
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
-                  placeholder="unit"
+                  placeholder={tr("unit", "unidade")}
                   className="w-24 text-xs"
                 />
               </>
@@ -145,8 +162,8 @@ export function HabitsWorkspace({
               }
               className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
             >
-              <option value="daily">Daily</option>
-              <option value="weekly_count">3x / Week</option>
+              <option value="daily">{tr("Daily", "Diário")}</option>
+              <option value="weekly_count">{tr("3x / Week", "3x / Semana")}</option>
             </select>
             <select
               value={activityType}
@@ -161,13 +178,13 @@ export function HabitsWorkspace({
               }
               className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
             >
-              <option value="">Manual tracking</option>
-              <option value="focus_minutes">Auto: Focus minutes</option>
-              <option value="lessons_completed">Auto: Lessons completed</option>
-              <option value="flashcards_reviewed">Auto: Flashcards reviewed</option>
+              <option value="">{tr("Manual tracking", "Rastreamento manual")}</option>
+              <option value="focus_minutes">{tr("Auto: Focus minutes", "Auto: Minutos de foco")}</option>
+              <option value="lessons_completed">{tr("Auto: Lessons completed", "Auto: Aulas concluídas")}</option>
+              <option value="flashcards_reviewed">{tr("Auto: Flashcards reviewed", "Auto: Flashcards revisados")}</option>
             </select>
             <Button type="submit" disabled={creating || !title.trim()}>
-              <Plus className="h-4 w-4" /> Add
+              <Plus className="h-4 w-4" /> {tr("Add", "Adicionar")}
             </Button>
           </form>
         </CardContent>
@@ -177,7 +194,10 @@ export function HabitsWorkspace({
       {data.habits.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-[var(--muted-foreground)]">
-            No habits yet. Create your first habit above!
+            {tr(
+              "No habits yet. Create your first habit above!",
+              "Nenhum hábito ainda. Crie seu primeiro hábito acima!"
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -217,8 +237,8 @@ export function HabitsWorkspace({
                       }`}
                       title={
                         habit.activityLink
-                          ? "Synced automatically from activity"
-                          : "Log progress for today"
+                          ? tr("Synced automatically from activity", "Sincronizado automaticamente da atividade")
+                          : tr("Log progress for today", "Registrar progresso de hoje")
                       }
                     >
                       <CheckCircle2 className="h-4 w-4" />
@@ -229,12 +249,12 @@ export function HabitsWorkspace({
                         <span>{habit.title}</span>
                         {habit.activityLink && (
                           <Badge variant="accent">
-                            Auto: {habit.activityLink.activityType.replace("_", " ")}
+                            {tr("Auto", "Auto")}: {activityLabel(habit.activityLink.activityType)}
                           </Badge>
                         )}
                       </div>
                       <div className="text-xs text-[var(--muted-foreground)]">
-                        Today: {habit.todayValue} / {habit.targetValue} {habit.unit}
+                        {tr("Today", "Hoje")}: {habit.todayValue} / {habit.targetValue} {habit.unit}
                       </div>
                     </div>
                   </div>
@@ -242,12 +262,15 @@ export function HabitsWorkspace({
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="gap-1">
                       <Flame className="h-3 w-3 text-amber-500" />
-                      {habit.currentStreak} streak (best {habit.bestStreak})
+                      {habit.currentStreak} {tr("streak", "sequência")} ({tr("best", "melhor")} {habit.bestStreak})
                     </Badge>
-                    <Badge variant="default">{habit.consistencyRate}% consistency</Badge>
+                    <Badge variant="default">
+                      {habit.consistencyRate}% {tr("consistency", "de consistência")}
+                    </Badge>
                     <Button
                       size="icon"
                       variant="ghost"
+                      aria-label={tr("Delete habit", "Excluir hábito")}
                       onClick={async () => {
                         await fetch(`/api/habits/${habit.id}`, { method: "DELETE" });
                         await refresh();
