@@ -699,9 +699,12 @@ export function BookmarksWorkspace({
               accept=".html,.htm"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
-                if (file) {
-                  setImportHtml(await file.text());
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) {
+                  setImportResult("File exceeds 5 MB limit.");
+                  return;
                 }
+                setImportHtml(await file.text());
               }}
               className="text-xs"
             />

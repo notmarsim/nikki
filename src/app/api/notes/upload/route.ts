@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { noteAttachments, notes } from "@/db/schema";
 import { apiError, apiOk } from "@/lib/api-response";
+import { validateUploadedFileBuffer } from "@/lib/file-security";
 import {
   ALLOWED_MIME_TYPES,
   MAX_UPLOAD_BYTES,
@@ -47,11 +48,22 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const validated = validateUploadedFileBuffer({
+      buffer,
+      declaredMime: file.type,
+      fileName: file.name,
+      maxBytes: MAX_UPLOAD_BYTES,
+      allowedMimes: ALLOWED_MIME_TYPES,
+    });
+    if (!validated.ok) {
+      return apiError(400, "UNSUPPORTED_FILE_TYPE", validated.error);
+    }
+
     const { storagePath } = await uploadNoteAttachment({
       userId: session.user.id,
       noteId,
-      fileName: file.name,
-      mimeType: file.type,
+      fileName: validated.safeName,
+      mimeType: validated.detectedMime,
       buffer,
     });
 
@@ -61,9 +73,9 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         noteId,
         storagePath,
-        fileName: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
+        fileName: validated.safeName,
+        mimeType: validated.detectedMime,
+        sizeBytes: buffer.byteLength,
       })
       .returning();
 

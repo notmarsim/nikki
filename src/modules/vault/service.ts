@@ -73,9 +73,10 @@ export async function createVaultDocument(
 
 export async function deleteVaultDocument(userId: string, docId: string) {
   return withUserRls(userId, async (tx) => {
-    await tx
+    const [removed] = await tx
       .delete(vaultDocuments)
-      .where(and(eq(vaultDocuments.id, docId), eq(vaultDocuments.userId, userId)));
-    return { deleted: true };
+      .where(and(eq(vaultDocuments.id, docId), eq(vaultDocuments.userId, userId)))
+      .returning({ storagePath: vaultDocuments.storagePath });
+    return { deleted: true, storagePath: removed?.storagePath ?? null };
   });
 }

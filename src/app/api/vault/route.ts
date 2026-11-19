@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiError, apiOk } from "@/lib/api-response";
+import { deleteStorageObject } from "@/lib/supabase/storage";
 import { getCurrentSession } from "@/modules/auth/session";
 import { getOrCreateDefaultWorkspace } from "@/modules/users/service";
 import {
@@ -60,5 +61,8 @@ export async function DELETE(request: NextRequest) {
   if (!id) return apiError(400, "VALIDATION_ERROR", "id required");
 
   const res = await deleteVaultDocument(session.user.id, id);
-  return apiOk(res);
+  if (res.storagePath) {
+    await deleteStorageObject(res.storagePath);
+  }
+  return apiOk({ deleted: res.deleted });
 }

@@ -20,6 +20,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  MAX_CSV_UPLOAD_BYTES,
+  parseCsvLine,
+  sanitizeCsvText,
+} from "@/lib/file-security";
 import { formatCents, parseMoneyToCents } from "@/modules/finances/money";
 
 export interface FinanceOverviewPayload {
@@ -181,6 +186,7 @@ export function FinancesWorkspace({
   const [goalTarget, setGoalTarget] = useState("");
 
   const [showCsvModal, setShowCsvModal] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvText, setCsvText] = useState("");
   const [csvAccount, setCsvAccount] = useState(initialData.accounts[0]?.id ?? "");
   const [csvStatus, setCsvStatus] = useState<string | null>(null);
@@ -271,58 +277,74 @@ export function FinancesWorkspace({
   const handleCsvImport = async (e: React.FormEvent) => {
     e.preventDefault();
     const accountId = csvAccount || data.accounts[0]?.id;
-    if (!accountId || !csvText.trim()) return;
+    if (!accountId || (!csvFile && !csvText.trim())) return;
 
-    const lines = csvText
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean);
-    const parsedRows: Array<{
-      date: string;
-      description: string;
-      amountCents: number;
-      type: "income" | "expense";
-    }> = [];
+    let res: Response;
+    if (csvFile) {
+      const fd = new FormData();
+      fd.append("file", csvFile);
+      fd.append("accountId", accountId);
+      res = await fetch("/api/finances/import", {
+        method: "POST",
+        body: fd,
+      });
+    } else {
+      const cleanText = sanitizeCsvText(csvText);
+      const lines = cleanText
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const parsedRows: Array<{
+        date: string;
+        description: string;
+        amountCents: number;
+        type: "income" | "expense";
+      }> = [];
 
-    for (const line of lines) {
-      const parts = line.split(/[;,]/).map((p) => p.trim().replace(/^"|"$/g, ""));
-      if (parts.length < 3) continue;
-      const [dateRaw, descRaw, amountRaw] = parts;
-      if (!dateRaw || !/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) continue;
-      try {
-        const cents = parseMoneyToCents(amountRaw!);
-        parsedRows.push({
-          date: dateRaw,
-          description: descRaw || "Imported",
-          amountCents: Math.abs(cents),
-          type: cents >= 0 ? "income" : "expense",
-        });
-      } catch {
-        // skip invalid line
+      for (const line of lines) {
+        const parts = parseCsvLine(line);
+        if (parts.length < 3) continue;
+        const [dateRaw, descRaw, amountRaw] = parts;
+        if (!dateRaw || !/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) continue;
+        try {
+          const cents = parseMoneyToCents(amountRaw!);
+          parsedRows.push({
+            date: dateRaw,
+            description: descRaw || "Imported",
+            amountCents: Math.abs(cents),
+            type: cents >= 0 ? "income" : "expense",
+          });
+        } catch {
+          // skip invalid line
+        }
       }
+
+      if (parsedRows.length === 0) {
+        setCsvStatus("No valid rows found (expected: YYYY-MM-DD;Description;Amount).");
+        return;
+      }
+
+      res = await fetch("/api/finances/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId,
+          filename: "manual-import.csv",
+          rows: parsedRows,
+        }),
+      });
     }
 
-    if (parsedRows.length === 0) {
-      setCsvStatus("No valid rows found (expected: YYYY-MM-DD;Description;Amount).");
-      return;
-    }
-
-    const res = await fetch("/api/finances/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        accountId,
-        filename: "manual-import.csv",
-        rows: parsedRows,
-      }),
-    });
     const json = await res.json();
     if (res.ok) {
       setCsvStatus(
         `Imported ${json.data.imported} rows (${json.data.skipped} duplicates skipped).`
       );
+      setCsvFile(null);
       setCsvText("");
       refresh();
+    } else {
+      setCsvStatus(json.error?.message ?? "Failed to import CSV.");
     }
   };
 
@@ -1305,10 +1327,40 @@ export function FinancesWorkspace({
                 </option>
               ))}
             </select>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) {
+                  setCsvFile(null);
+                  return;
+                }
+                if (file.size > MAX_CSV_UPLOAD_BYTES) {
+                  setCsvStatus("CSV file exceeds 5 MB limit.");
+                  setCsvFile(null);
+                  return;
+                }
+                try {
+                  const buf = new Uint8Array(await file.arrayBuffer());
+                  const clean = sanitizeCsvText(buf);
+                  setCsvFile(file);
+                  setCsvText(clean);
+                  setCsvStatus(null);
+                } catch (err) {
+                  setCsvStatus(err instanceof Error ? err.message : "Invalid CSV file.");
+                  setCsvFile(null);
+                }
+              }}
+              className="block w-full text-xs file:mr-3 file:rounded-md file:border file:border-[var(--border)] file:bg-[var(--background)] file:px-3 file:py-1.5 file:text-xs file:font-medium"
+            />
             <textarea
               rows={6}
               value={csvText}
-              onChange={(e) => setCsvText(e.target.value)}
+              onChange={(e) => {
+                setCsvFile(null);
+                setCsvText(e.target.value);
+              }}
               placeholder={"2026-11-01;Salário;5000,00\n2026-11-02;Mercado;-250,40"}
               className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] p-2 font-mono text-xs"
             />

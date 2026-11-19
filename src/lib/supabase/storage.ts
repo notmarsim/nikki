@@ -88,3 +88,56 @@ export async function getSignedAttachmentUrl(
 
   return data.signedUrl;
 }
+
+export async function uploadVaultFile(params: {
+  userId: string;
+  safeName: string;
+  mimeType: string;
+  buffer: Buffer;
+}): Promise<{ storagePath: string }> {
+  const storagePath = `vault/${params.userId}/${crypto.randomUUID()}-${params.safeName}`;
+  const client = getServerSupabaseAdmin();
+  await ensurePrivateBucketExists(client);
+
+  const { error } = await client.storage
+    .from(ATTACHMENTS_BUCKET)
+    .upload(storagePath, params.buffer, {
+      contentType: params.mimeType,
+      upsert: false,
+    });
+
+  if (error) {
+    throw new Error(`Storage upload failed: ${error.message}`);
+  }
+
+  return { storagePath };
+}
+
+export async function getSignedVaultDownloadUrl(
+  storagePath: string,
+  downloadFileName: string,
+  expiresInSeconds = 120
+): Promise<string> {
+  const client = getServerSupabaseAdmin();
+  const { data, error } = await client.storage
+    .from(ATTACHMENTS_BUCKET)
+    .createSignedUrl(storagePath, expiresInSeconds, {
+      download: downloadFileName,
+    });
+
+  if (error || !data?.signedUrl) {
+    throw new Error(`Failed to generate signed URL: ${error?.message ?? "Unknown"}`);
+  }
+
+  return data.signedUrl;
+}
+
+export async function deleteStorageObject(storagePath: string): Promise<void> {
+  if (!storagePath.startsWith("vault/") && !storagePath.includes("/")) return;
+  try {
+    const client = getServerSupabaseAdmin();
+    await client.storage.from(ATTACHMENTS_BUCKET).remove([storagePath]);
+  } catch {
+    // Ignore cleanup errors for legacy metadata-only records
+  }
+}
