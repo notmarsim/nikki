@@ -270,7 +270,7 @@ export function DashboardView({
             <CardContent>
               <div className="text-2xl font-bold">{data.recentNotes.length}</div>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Block editor &amp; [[links]]
+                Block editor &amp; links
               </p>
             </CardContent>
           </Card>
