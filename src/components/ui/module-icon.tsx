@@ -1,4 +1,5 @@
 import {
+  Archive,
   BarChart3,
   BookOpen,
   Bookmark,
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 
 const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
+  Archive,
   LayoutDashboard,
   Inbox,
   FileText,

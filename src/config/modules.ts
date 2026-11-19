@@ -382,6 +382,21 @@ export const APP_MODULES: AppModule[] = [
     ],
   },
   {
+    id: "archive",
+    name: "Arquivo",
+    href: "/archive",
+    icon: "Archive",
+    section: "productivity",
+    phase: 6,
+    status: "active",
+    description: "Histórico de tarefas concluídas, projetos arquivados e Lixeira.",
+    plannedFeatures: [
+      "Arquivamento semanal automático de tarefas concluídas",
+      "Histórico de projetos e restauração em lote",
+      "Lixeira com recuperação de 30 dias",
+    ],
+  },
+  {
     id: "settings",
     name: "Settings",
     href: "/settings",

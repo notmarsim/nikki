@@ -54,16 +54,19 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const session = await getCurrentSession();
   if (!session) return apiError(401, "UNAUTHORIZED", "Authentication required");
 
   const { id } = await context.params;
+  const rawMode = new URL(request.url).searchParams.get("mode");
+  const mode =
+    rawMode === "trash_all" || rawMode === "permanent" ? rawMode : "unlink";
   try {
-    await deleteProject(session.user.id, id);
-    return apiOk({ deleted: true });
+    await deleteProject(session.user.id, id, mode);
+    return apiOk({ deleted: true, mode });
   } catch (error) {
     if (error instanceof ProjectServiceError) {
       return apiError(error.status, error.code, error.message);

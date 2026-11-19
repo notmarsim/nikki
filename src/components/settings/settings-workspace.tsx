@@ -908,26 +908,155 @@ export function SettingsWorkspace({
           )}
 
           {activeCat === "data" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Data Export &amp; Reset</CardTitle>
-                <CardDescription>
-                  Export your personal workspace data in JSON or restore default preferences.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => window.location.assign("/api/settings/export")}
-                >
-                  <Download className="h-4 w-4" /> Export Full Backup (JSON)
-                </Button>
-                <Button type="button" variant="outline" onClick={handleResetDefaults}>
-                  <RotateCcw className="h-4 w-4" /> Restore Default Preferences
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Dados e Armazenamento</CardTitle>
+                  <CardDescription>
+                    Configure arquivamento automático semanal, retenção do histórico e Lixeira.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 text-xs">
+                  <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border-[var(--border)] p-3">
+                    <input
+                      type="checkbox"
+                      checked={prefs.autoArchiveTasks}
+                      onChange={(e) => updatePref("autoArchiveTasks", e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <div>
+                      <div className="font-medium">
+                        Arquivar tasks concluídas ao término da semana
+                      </div>
+                      <p className="mt-0.5 text-[var(--muted-foreground)]">
+                        As tarefas concluídas permanecem visíveis até o fim da semana e depois são movidas automaticamente para o Arquivo. Você poderá consultá-las ou restaurá-las quando quiser.
+                      </p>
+                    </div>
+                  </label>
+
+                  <div className="space-y-2 rounded-lg border border-[var(--border)] p-3">
+                    <label className="block font-medium">Manter tasks arquivadas por</label>
+                    <select
+                      value={prefs.archiveRetentionYears}
+                      onChange={async (e) => {
+                        const val = e.target.value as "forever" | "1" | "2" | "5";
+                        if (val !== "forever") {
+                          const prevRes = await fetch("/api/archive", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action: "retention_preview", years: val }),
+                          });
+                          const prevJson = (await prevRes.json()) as {
+                            data?: { affectedTasks?: number };
+                          };
+                          const affected = prevJson.data?.affectedTasks ?? 0;
+                          const ok = window.confirm(
+                            `Atenção: ao ativar a retenção de ${val} ano(s), registros arquivados mais antigos serão excluídos permanentemente na próxima rotina (${affected} tarefa(s) seriam afetadas agora). Deseja continuar?`
+                          );
+                          if (!ok) return;
+                        }
+                        updatePref("archiveRetentionYears", val);
+                      }}
+                      className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 text-xs"
+                    >
+                      <option value="forever">Para sempre — padrão</option>
+                      <option value="1">1 ano</option>
+                      <option value="2">2 anos</option>
+                      <option value="5">5 anos</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-3">
+                    <div>
+                      <div className="font-medium">Lixeira</div>
+                      <p className="text-[var(--muted-foreground)]">
+                        Itens excluídos permanecem na Lixeira por 30 dias.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push("/archive?tab=trash")}
+                      >
+                        Abrir Lixeira
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        onClick={async () => {
+                          if (!window.confirm("Esvaziar toda a Lixeira definitivamente?")) return;
+                          await fetch("/api/archive", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action: "empty_trash" }),
+                          });
+                          alert("Lixeira esvaziada.");
+                        }}
+                      >
+                        Esvaziar Lixeira
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Exportação de Dados &amp; Backup</CardTitle>
+                  <CardDescription>
+                    Exporte seu histórico de tarefas e projetos em CSV ou JSON, ou restaure as preferências padrão.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.location.assign("/api/archive/export?scope=all&format=csv")}
+                  >
+                    <Download className="h-4 w-4" /> Todas as Tasks (CSV)
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.location.assign("/api/archive/export?scope=completed&format=csv")}
+                  >
+                    <Download className="h-4 w-4" /> Tasks Concluídas (CSV)
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.location.assign("/api/archive/export?scope=archived&format=json")}
+                  >
+                    <Download className="h-4 w-4" /> Tasks Arquivadas (JSON)
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.location.assign("/api/archive/export?scope=archived_projects&format=json")}
+                  >
+                    <Download className="h-4 w-4" /> Projetos Arquivados (JSON)
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.location.assign("/api/settings/export")}
+                  >
+                    <Download className="h-4 w-4" /> Backup Completo (JSON)
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={handleResetDefaults}>
+                    <RotateCcw className="h-4 w-4" /> Restore Default Preferences
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {activeCat === "diagnostics" && (

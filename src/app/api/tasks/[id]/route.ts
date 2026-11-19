@@ -34,16 +34,17 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const session = await getCurrentSession();
   if (!session) return apiError(401, "UNAUTHORIZED", "Authentication required");
 
   const { id } = await context.params;
+  const permanent = new URL(request.url).searchParams.get("permanent") === "true";
   try {
-    await deleteTask(session.user.id, id);
-    return apiOk({ deleted: true });
+    await deleteTask(session.user.id, id, permanent);
+    return apiOk({ deleted: true, permanent });
   } catch (error) {
     if (error instanceof TaskServiceError) {
       return apiError(error.status, error.code, error.message);

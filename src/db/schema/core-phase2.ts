@@ -62,6 +62,7 @@ export const projects = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("projects_workspace_status_idx").on(table.workspaceId, table.status),
@@ -216,6 +217,9 @@ export const tasks = pgTable(
     recurrenceRule: text("recurrence_rule"),
     sortOrder: integer("sort_order").notNull().default(0),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archiveAfter: timestamp("archive_after", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

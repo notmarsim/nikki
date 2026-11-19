@@ -43,7 +43,14 @@ export async function listProjects(
       tx
         .select()
         .from(projects)
-        .where(and(eq(projects.userId, userId), eq(projects.workspaceId, workspaceId)))
+        .where(
+          and(
+            eq(projects.userId, userId),
+            eq(projects.workspaceId, workspaceId),
+            isNull(projects.archivedAt),
+            isNull(projects.deletedAt)
+          )
+        )
         .orderBy(desc(projects.updatedAt)),
       tx
         .select({
@@ -52,7 +59,13 @@ export async function listProjects(
           parentTaskId: tasks.parentTaskId,
         })
         .from(tasks)
-        .where(and(eq(tasks.userId, userId), eq(tasks.workspaceId, workspaceId))),
+        .where(
+          and(
+            eq(tasks.userId, userId),
+            eq(tasks.workspaceId, workspaceId),
+            isNull(tasks.deletedAt)
+          )
+        ),
       tx
         .select({ projectId: notes.projectId })
         .from(notes)
@@ -274,7 +287,11 @@ export async function updateProject(
   return updated;
 }
 
-export async function deleteProject(userId: string, projectId: string): Promise<void> {
+export async function deleteProject(
+  userId: string,
+  projectId: string,
+  mode: "unlink" | "trash_all" | "permanent" = "unlink"
+): Promise<void> {
   await withUserRls(userId, async (tx) => {
     const rows = await tx
       .select({ id: projects.id })
@@ -286,8 +303,33 @@ export async function deleteProject(userId: string, projectId: string): Promise<
       throw new ProjectServiceError(404, "PROJECT_NOT_FOUND", "Project not found");
     }
 
+    const now = new Date();
+    if (mode === "permanent") {
+      await tx
+        .update(tasks)
+        .set({ projectId: null, updatedAt: now })
+        .where(and(eq(tasks.projectId, projectId), eq(tasks.userId, userId)));
+      await tx
+        .delete(projects)
+        .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
+      return;
+    }
+
+    if (mode === "trash_all") {
+      await tx
+        .update(tasks)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(and(eq(tasks.projectId, projectId), eq(tasks.userId, userId)));
+    } else {
+      await tx
+        .update(tasks)
+        .set({ projectId: null, updatedAt: now })
+        .where(and(eq(tasks.projectId, projectId), eq(tasks.userId, userId), isNull(tasks.deletedAt)));
+    }
+
     await tx
-      .delete(projects)
+      .update(projects)
+      .set({ deletedAt: now, updatedAt: now })
       .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
   });
 }

@@ -51,6 +51,10 @@ export const userPreferencesSchema = z.object({
   quietHoursEnabled: z.boolean().default(false),
   quietHoursStart: z.string().regex(/^\d{2}:\d{2}$/).default("22:00"),
   quietHoursEnd: z.string().regex(/^\d{2}:\d{2}$/).default("07:00"),
+
+  // History, Archive & Retention
+  autoArchiveTasks: z.boolean().default(true),
+  archiveRetentionYears: z.enum(["forever", "1", "2", "5"]).default("forever"),
 });
 
 export type UserPreferences = z.infer<typeof userPreferencesSchema>;
@@ -86,6 +90,6 @@ export const SETTINGS_CATEGORIES = [
   { id: "finances", label: "Finances & Privacy", keywords: "privacy hide values cents budget analytics" },
   { id: "notifications", label: "Notifications", keywords: "quiet hours alerts reminders" },
   { id: "devices", label: "Aplicativo e Dispositivos", keywords: "pwa android ios capacitor offline cache push" },
-  { id: "data", label: "Account & Data Export", keywords: "export backup json reset defaults" },
+  { id: "data", label: "Dados e Armazenamento", keywords: "export backup json csv reset archive retention trash lixeira historico" },
   { id: "diagnostics", label: "Help & Diagnostics", keywords: "diagnostics health support bug report logs" },
 ] as const;

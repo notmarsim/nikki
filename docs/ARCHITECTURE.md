@@ -317,3 +317,8 @@ A Fase 6 expande o Nikki para suportar espaços compartilhados, colaboração em
 4. **Ecossistema iOS & Confiabilidade**
    - Endpoint `/api/ios/widget-snapshot` + referências Swift (`ios-extensions/NikkiWidget.swift`, `NikkiAppIntents.swift`, `NikkiShareExtension.swift`) documentadas em `docs/IOS_NATIVE_ECOSYSTEM.md`.
    - **Nikki Diagnostics** (`Settings -> Help & Diagnostics` + `/api/diagnostics`) com remoção de chaves sensíveis e **Nikki Ops** (`/ops` + `/api/ops`) restrito a administradores (`users.isAdmin === true`).
+
+5. **Arquivamento Automático Semanal, Histórico, Lixeira e Retenção (`0009_archive_retention.sql`)**
+   - **Ciclo de Vida (`tasks` e `projects`):** `completed_at`, `archived_at`, `archive_after` (calculado em UTC conforme `users.timezone` e `preferences.weekStartsOn`) e `deleted_at`.
+   - **Rotina Idempotente:** função PostgreSQL `public.nikki_run_archive_and_retention_job()` + endpoint `/api/cron/archive` agendado por `vercel.json` (e `pg_cron` quando habilitado no Supabase), arquivando tarefas concluídas após o fim da semana, purgando itens na Lixeira após 30 dias e aplicando retenção histórica apenas por opt-in (`1`, `2` ou `5` anos; padrão `"forever"`).
+   - **Página `/archive` & Exportação (`/api/archive/export`):** filtros e paginação no banco (25 itens/página), restauração em lote, Lixeira com contagem regressiva de 30 dias e preservação de métricas históricas no **Analytics**.

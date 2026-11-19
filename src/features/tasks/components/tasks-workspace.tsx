@@ -496,6 +496,17 @@ export function TasksWorkspace({
         </div>
       </div>
 
+      {view === "completed" && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-xs text-[var(--muted-foreground)]">
+          <span>
+            Tarefas concluídas permanecem visíveis até o fim da semana e depois vão para o Arquivo.
+          </span>
+          <Link href="/archive" className="font-medium text-[var(--accent)] hover:underline">
+            Abrir Arquivo →
+          </Link>
+        </div>
+      )}
+
       {/* Main View */}
       {view === "board" ? (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>

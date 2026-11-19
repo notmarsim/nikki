@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { userSettings, users } from "@/db/schema";
 import { apiError, apiOk } from "@/lib/api-response";
 import { getCurrentSession } from "@/modules/auth/session";
+import { recalculatePendingArchiveAfterForUser } from "@/modules/archive/service";
 import {
   DEFAULT_USER_PREFERENCES,
   mergeUserPreferences,
@@ -92,6 +93,10 @@ export async function PATCH(request: NextRequest) {
         updatedAt: new Date(),
       })
       .where(eq(userSettings.userId, session.user.id));
+  }
+
+  if (timezone !== undefined || preferences?.weekStartsOn !== undefined) {
+    await recalculatePendingArchiveAfterForUser(session.user.id);
   }
 
   return apiOk({ updated: true, preferences: mergedPrefs });

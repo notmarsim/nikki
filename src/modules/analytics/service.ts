@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte } from "drizzle-orm";
 import { withUserRls } from "@/db/rls";
 import {
   analyticsSavedReports,
@@ -55,12 +55,22 @@ export async function getAnalyticsOverview(params: {
       tx
         .select()
         .from(tasks)
-        .where(and(eq(tasks.userId, params.userId), eq(tasks.workspaceId, params.workspaceId))),
+        .where(
+          and(
+            eq(tasks.userId, params.userId),
+            eq(tasks.workspaceId, params.workspaceId),
+            isNull(tasks.deletedAt)
+          )
+        ),
       tx
         .select()
         .from(projects)
         .where(
-          and(eq(projects.userId, params.userId), eq(projects.workspaceId, params.workspaceId))
+          and(
+            eq(projects.userId, params.userId),
+            eq(projects.workspaceId, params.workspaceId),
+            isNull(projects.deletedAt)
+          )
         ),
       tx
         .select()

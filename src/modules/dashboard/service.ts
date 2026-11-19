@@ -45,7 +45,14 @@ export async function getDashboardData(userId: string, workspaceId: string) {
       tx
         .select()
         .from(tasks)
-        .where(and(eq(tasks.userId, userId), eq(tasks.workspaceId, workspaceId)))
+        .where(
+          and(
+            eq(tasks.userId, userId),
+            eq(tasks.workspaceId, workspaceId),
+            isNull(tasks.archivedAt),
+            isNull(tasks.deletedAt)
+          )
+        )
         .orderBy(desc(tasks.updatedAt)),
       tx
         .select()
@@ -54,7 +61,9 @@ export async function getDashboardData(userId: string, workspaceId: string) {
           and(
             eq(projects.userId, userId),
             eq(projects.workspaceId, workspaceId),
-            eq(projects.status, "active")
+            eq(projects.status, "active"),
+            isNull(projects.archivedAt),
+            isNull(projects.deletedAt)
           )
         )
         .orderBy(desc(projects.updatedAt))

@@ -8,10 +8,14 @@ import {
   taskRecurrenceRules,
   tasks,
   taskTags,
+  users,
+  userSettings,
   type TaskRecord,
 } from "@/db/schema";
 import { recordActivity } from "@/modules/activity/service";
+import { computeWeekEndUtc } from "@/modules/archive/week";
 import { recalculateProjectProgressTx } from "@/modules/projects/progress";
+import { mergeUserPreferences } from "@/modules/settings/registry";
 import type { CreateTaskInput, UpdateTaskInput } from "./schemas";
 import { calculateNextOccurrence, wouldCreateTaskCycle } from "./utils";
 
@@ -23,6 +27,22 @@ export class TaskServiceError extends Error {
   ) {
     super(message);
   }
+}
+
+async function getUserWeekConfigTx(tx: DbTransaction, userId: string) {
+  const [userRows, settingsRows] = await Promise.all([
+    tx.select({ timezone: users.timezone }).from(users).where(eq(users.id, userId)).limit(1),
+    tx
+      .select({ preferences: userSettings.preferences })
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1),
+  ]);
+  const prefs = mergeUserPreferences(settingsRows[0]?.preferences);
+  return {
+    timezone: userRows[0]?.timezone ?? "UTC",
+    weekStartsOn: prefs.weekStartsOn,
+  };
 }
 
 async function syncTaskTagsTx(
@@ -130,6 +150,8 @@ export async function listTasks(
     const conditions = [
       eq(tasks.userId, userId),
       eq(tasks.workspaceId, workspaceId),
+      isNull(tasks.archivedAt),
+      isNull(tasks.deletedAt),
     ];
 
     if (filters?.projectId) {
@@ -168,7 +190,13 @@ export async function listTasks(
         .from(taskRecurrenceRules)
         .where(inArray(taskRecurrenceRules.taskId, taskIds)),
       tx
-        .select({ id: projects.id, name: projects.name, color: projects.color })
+        .select({
+          id: projects.id,
+          name: projects.name,
+          color: projects.color,
+          archivedAt: projects.archivedAt,
+          deletedAt: projects.deletedAt,
+        })
         .from(projects)
         .where(eq(projects.userId, userId)),
       tx
@@ -191,9 +219,14 @@ export async function listTasks(
       ])
     );
     const projectMap = new Map(projectRows.map((p) => [p.id, p]));
+    const activeProjectIds = new Set(
+      projectRows.filter((p) => !p.archivedAt && !p.deletedAt).map((p) => p.id)
+    );
     const noteMap = new Map(noteRows.map((n) => [n.id, n]));
 
-    return taskRows.map((t) => {
+    return taskRows
+      .filter((t) => !t.projectId || activeProjectIds.has(t.projectId))
+      .map((t) => {
       const proj = t.projectId ? projectMap.get(t.projectId) : undefined;
       const note = t.noteId ? noteMap.get(t.noteId) : undefined;
       return {
@@ -223,6 +256,13 @@ export async function createTask(
       ? `${input.recurrence.frequency}:${input.recurrence.interval}`
       : null;
 
+    const completedAt = status === "done" ? new Date() : null;
+    let archiveAfter: Date | null = null;
+    if (completedAt) {
+      const cfg = await getUserWeekConfigTx(tx, userId);
+      archiveAfter = computeWeekEndUtc(completedAt, cfg.timezone, cfg.weekStartsOn);
+    }
+
     const [inserted] = await tx
       .insert(tasks)
       .values({
@@ -240,7 +280,8 @@ export async function createTask(
         parentTaskId: input.parentTaskId ?? null,
         milestoneId: input.milestoneId ?? null,
         recurrenceRule,
-        completedAt: status === "done" ? new Date() : null,
+        completedAt,
+        archiveAfter,
       })
       .returning();
 
@@ -322,6 +363,26 @@ export async function updateTask(
     const becomingDone = existing.status !== "done" && nextStatus === "done";
     const leavingDone = existing.status === "done" && nextStatus !== "done";
 
+    let doneFields: {
+      completedAt?: Date | null;
+      archiveAfter?: Date | null;
+      archivedAt?: Date | null;
+    } = {};
+    if (becomingDone) {
+      const now = new Date();
+      const cfg = await getUserWeekConfigTx(tx, userId);
+      doneFields = {
+        completedAt: now,
+        archiveAfter: computeWeekEndUtc(now, cfg.timezone, cfg.weekStartsOn),
+      };
+    } else if (leavingDone) {
+      doneFields = {
+        completedAt: null,
+        archiveAfter: null,
+        archivedAt: null,
+      };
+    }
+
     const [updated] = await tx
       .update(tasks)
       .set({
@@ -350,8 +411,7 @@ export async function updateTask(
                 : null,
             }
           : {}),
-        ...(becomingDone ? { completedAt: new Date() } : {}),
-        ...(leavingDone ? { completedAt: null } : {}),
+        ...doneFields,
         updatedAt: new Date(),
       })
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
@@ -456,7 +516,11 @@ export async function updateTask(
   return all.find((t) => t.id === result.updated.id)!;
 }
 
-export async function deleteTask(userId: string, taskId: string): Promise<void> {
+export async function deleteTask(
+  userId: string,
+  taskId: string,
+  permanent = false
+): Promise<void> {
   await withUserRls(userId, async (tx) => {
     const rows = await tx
       .select({ id: tasks.id, projectId: tasks.projectId })
@@ -469,7 +533,14 @@ export async function deleteTask(userId: string, taskId: string): Promise<void> 
       throw new TaskServiceError(404, "TASK_NOT_FOUND", "Task not found");
     }
 
-    await tx.delete(tasks).where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
+    if (permanent) {
+      await tx.delete(tasks).where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
+    } else {
+      await tx
+        .update(tasks)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
+    }
     await recalculateProjectProgressTx(tx, userId, existing.projectId);
   });
 }

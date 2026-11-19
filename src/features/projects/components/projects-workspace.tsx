@@ -210,8 +210,34 @@ export function ProjectsWorkspace({
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
-    const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+  const handleDeleteProject = async (id: string, taskCount = 0) => {
+    let mode: "unlink" | "trash_all" = "unlink";
+    if (taskCount > 0) {
+      const choice = window.confirm(
+        `Este projeto possui ${taskCount} tarefa(s). Clique em OK para mover o projeto para a Lixeira preservando as tarefas (desvinculadas), ou Cancelar para desistir.`
+      );
+      if (!choice) return;
+      const alsoTrash = window.confirm(
+        "Deseja também enviar as tarefas deste projeto para a Lixeira? (OK = enviar tarefas para a Lixeira | Cancelar = manter tarefas ativas sem projeto)"
+      );
+      mode = alsoTrash ? "trash_all" : "unlink";
+    } else if (!window.confirm("Mover este projeto para a Lixeira?")) {
+      return;
+    }
+
+    const res = await fetch(`/api/projects/${id}?mode=${mode}`, { method: "DELETE" });
+    if (res.ok) {
+      setSelectedProjectId(null);
+      await invalidateAll();
+    }
+  };
+
+  const handleArchiveProject = async (id: string) => {
+    const res = await fetch("/api/archive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "archive_project", projectId: id }),
+    });
     if (res.ok) {
       setSelectedProjectId(null);
       await invalidateAll();
@@ -629,11 +655,18 @@ export function ProjectsWorkspace({
                         )
                       )}
                     </div>
-                    <div className="border-t border-[var(--border)] pt-4">
+                    <div className="flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleArchiveProject(detail.project.id)}
+                      >
+                        Archive Project
+                      </Button>
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleDeleteProject(detail.project.id)}
+                        onClick={() => handleDeleteProject(detail.project.id, detail.tasks.length)}
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete Project
