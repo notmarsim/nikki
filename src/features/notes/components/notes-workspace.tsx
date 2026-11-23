@@ -299,6 +299,10 @@ export function NotesWorkspace({
   };
 
   const handleDelete = async (noteId: string) => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
     const res = await fetch(`/api/notes/${noteId}`, { method: "DELETE" });
     if (res.ok) {
       const remaining = notesList.filter((n) => n.id !== noteId);

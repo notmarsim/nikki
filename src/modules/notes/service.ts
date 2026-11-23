@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { withUserRls, type DbTransaction } from "@/db/rls";
 import {
@@ -434,7 +434,7 @@ export async function softDeleteNote(userId: string, noteId: string): Promise<vo
     await tx
       .update(notes)
       .set({ deletedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(notes.id, noteId), eq(notes.userId, userId), ne(notes.id, existing.parentId ?? existing.id)));
+      .where(and(eq(notes.id, noteId), eq(notes.userId, userId)));
   });
 }
 
