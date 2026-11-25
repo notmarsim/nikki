@@ -218,30 +218,31 @@ export function LearningWorkspace({
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+    <div className="mx-auto max-w-6xl space-y-5 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
             {tr("Learning Hub", "Central de Aprendizado")}
           </h1>
-          <p className="text-sm text-[var(--muted-foreground)]">
+          <p className="text-xs sm:text-sm text-[var(--muted-foreground)]">
             {tr(
               "Organize Learning Paths, Courses, Modules, and Lessons with linked Notes, Flashcards, and Focus sessions.",
               "Organize Trilhas de Aprendizado, Cursos, Módulos e Aulas com Notas, Flashcards e sessões de Foco vinculados."
             )}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
           <Button
             size="sm"
             variant="outline"
             data-tour="learning-course-from-notes"
             onClick={() => setShowCourseWizard(true)}
+            className="w-full sm:w-auto justify-center"
           >
             <Sparkles className="h-3.5 w-3.5" />
             {tr("Create Course from Notes", "Criar Curso de Notas")}
           </Button>
-          <div className="flex rounded-lg border border-[var(--border)] p-0.5 text-xs">
+          <div className="flex w-full sm:w-auto rounded-lg border border-[var(--border)] p-0.5 text-xs">
             {(
               [
                 ["courses", tr("Courses", "Cursos")],
@@ -253,7 +254,7 @@ export function LearningWorkspace({
                 key={id}
                 type="button"
                 onClick={() => setTopView(id)}
-                className={`rounded-md px-2.5 py-1 font-medium ${
+                className={`flex-1 sm:flex-initial rounded-md px-2.5 py-1.5 sm:py-1 font-medium whitespace-nowrap text-center ${
                   topView === id
                     ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
                     : "text-[var(--muted-foreground)]"
@@ -315,7 +316,7 @@ export function LearningWorkspace({
           </CardHeader>
           <CardContent>
             <form
-              className="flex gap-2"
+              className="flex flex-col sm:flex-row gap-2"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!newPathTitle.trim()) return;
@@ -338,7 +339,7 @@ export function LearningWorkspace({
                 value={newPathTitle}
                 onChange={(e) => setNewPathTitle(e.target.value)}
               />
-              <Button type="submit" size="sm">
+              <Button type="submit" size="sm" className="w-full sm:w-auto shrink-0">
                 <Plus className="h-4 w-4" /> {tr("Add", "Adicionar")}
               </Button>
             </form>
@@ -351,7 +352,7 @@ export function LearningWorkspace({
           </CardHeader>
           <CardContent>
             <form
-              className="flex flex-wrap gap-2"
+              className="flex flex-col sm:flex-row sm:flex-wrap gap-2"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!newCourseTitle.trim()) return;
@@ -372,26 +373,28 @@ export function LearningWorkspace({
               }}
             >
               <Input
-                className="flex-1 min-w-[160px]"
+                className="flex-1 min-w-0 sm:min-w-[160px]"
                 placeholder={tr("Course title...", "Título do curso...")}
                 value={newCourseTitle}
                 onChange={(e) => setNewCourseTitle(e.target.value)}
               />
-              <select
-                value={newCoursePathId}
-                onChange={(e) => setNewCoursePathId(e.target.value)}
-                className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
-              >
-                <option value="">{tr("No path", "Sem trilha")}</option>
-                {overview.paths.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
-              <Button type="submit" size="sm">
-                <Plus className="h-4 w-4" /> {tr("Add", "Adicionar")}
-              </Button>
+              <div className="flex gap-2">
+                <select
+                  value={newCoursePathId}
+                  onChange={(e) => setNewCoursePathId(e.target.value)}
+                  className="h-9 flex-1 sm:flex-initial rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs"
+                >
+                  <option value="">{tr("No path", "Sem trilha")}</option>
+                  {overview.paths.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title}
+                    </option>
+                  ))}
+                </select>
+                <Button type="submit" size="sm" className="shrink-0">
+                  <Plus className="h-4 w-4" /> {tr("Add", "Adicionar")}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -646,7 +649,7 @@ export function LearningWorkspace({
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-1">
+                <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1">
                   {(
                     [
                       { id: "curriculum", label: tr("Curriculum", "Currículo") },
@@ -672,7 +675,7 @@ export function LearningWorkspace({
                       key={t.id}
                       type="button"
                       onClick={() => setTab(t.id)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap shrink-0 ${
                         tab === t.id
                           ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
                           : "bg-[var(--surface-muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
@@ -684,7 +687,7 @@ export function LearningWorkspace({
                 </div>
               </CardHeader>
 
-              <CardContent className="p-5 space-y-4">
+              <CardContent className="p-3.5 sm:p-5 space-y-4">
                 {tab === "curriculum" && (
                   <>
                     <form
@@ -730,12 +733,12 @@ export function LearningWorkspace({
                             key={mod.id}
                             className="rounded-xl border border-[var(--border)] p-3.5 space-y-3"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 font-semibold text-sm">
-                                <BookOpen className="h-4 w-4 text-[var(--accent)]" />
-                                {mod.title}
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 font-semibold text-sm min-w-0">
+                                <BookOpen className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                                <span className="truncate">{mod.title}</span>
                               </div>
-                              <Badge variant="outline">
+                              <Badge variant="outline" className="shrink-0">
                                 {mod.completedLessons}/{mod.totalLessons} ({mod.progress}%)
                               </Badge>
                             </div>
@@ -744,7 +747,7 @@ export function LearningWorkspace({
                               {mod.lessons.map((lesson) => (
                                 <div
                                   key={lesson.id}
-                                  className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-xs"
+                                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-xs"
                                 >
                                   {renamingTarget?.kind === "lesson" &&
                                   renamingTarget.id === lesson.id ? (

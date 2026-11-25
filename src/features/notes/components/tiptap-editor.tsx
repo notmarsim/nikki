@@ -43,6 +43,7 @@ import { MathBlockExtension } from "../extensions/math-extension";
 import { MermaidBlockExtension } from "../extensions/mermaid-extension";
 import { ToggleExtension } from "../extensions/toggle-extension";
 import { WikiLinkExtension } from "../extensions/wiki-link-extension";
+import { looksLikeMarkdown, markdownToHtml } from "../lib/markdown-paste";
 import "katex/dist/katex.min.css";
 
 const lowlight = createLowlight(common);
@@ -81,6 +82,7 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   const { tr } = useI18n();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
   const keybindings = useUiStore((s) => s.keybindings);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
@@ -136,6 +138,19 @@ export function TiptapEditor({
         class:
           "prose prose-sm dark:prose-invert max-w-none min-h-[420px] focus:outline-none px-1 py-2",
       },
+      handlePaste: (_view, event) => {
+        const plain = event.clipboardData?.getData("text/plain") ?? "";
+        const htmlClip = event.clipboardData?.getData("text/html") ?? "";
+        const hasRichSemanticHtml =
+          /<(h[1-6]|table|blockquote|ul|ol|pre|strong|em)\b/i.test(htmlClip);
+        if (!hasRichSemanticHtml && looksLikeMarkdown(plain)) {
+          event.preventDefault();
+          const parsedHtml = markdownToHtml(plain);
+          editorRef.current?.chain().focus().insertContent(parsedHtml).run();
+          return true;
+        }
+        return false;
+      },
     },
     onUpdate: ({ editor: ed }) => {
       const json = ed.getJSON();
@@ -167,6 +182,10 @@ export function TiptapEditor({
   });
 
   useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+  useEffect(() => {
     if (!editor) return;
     editor.setOptions({
       editorProps: {
@@ -174,6 +193,19 @@ export function TiptapEditor({
           spellcheck: spellcheckEnabled ? "true" : "false",
           class:
             "prose prose-sm dark:prose-invert max-w-none min-h-[420px] focus:outline-none px-1 py-2",
+        },
+        handlePaste: (_view, event) => {
+          const plain = event.clipboardData?.getData("text/plain") ?? "";
+          const htmlClip = event.clipboardData?.getData("text/html") ?? "";
+          const hasRichSemanticHtml =
+            /<(h[1-6]|table|blockquote|ul|ol|pre|strong|em)\b/i.test(htmlClip);
+          if (!hasRichSemanticHtml && looksLikeMarkdown(plain)) {
+            event.preventDefault();
+            const parsedHtml = markdownToHtml(plain);
+            editorRef.current?.chain().focus().insertContent(parsedHtml).run();
+            return true;
+          }
+          return false;
         },
       },
     });

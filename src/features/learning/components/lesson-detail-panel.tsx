@@ -131,7 +131,7 @@ export function LessonDetailPanel({
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-[var(--accent)]/40 bg-[var(--surface)] p-5">
+    <div className="space-y-4 rounded-xl border border-[var(--accent)]/40 bg-[var(--surface)] p-3.5 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[var(--border)] pb-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -305,11 +305,11 @@ export function LessonDetailPanel({
         </div>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <div className="flex gap-1.5">
+          <div className="flex flex-col sm:flex-row gap-1.5">
             <select
               value={linkNoteId}
               onChange={(e) => setLinkNoteId(e.target.value)}
-              className="h-8 flex-1 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
+              className="h-8 flex-1 min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-xs"
             >
               <option value="">{tr("Link existing note...", "Vincular nota existente...")}</option>
               {allNotes.map((n) => (
@@ -318,41 +318,43 @@ export function LessonDetailPanel({
                 </option>
               ))}
             </select>
-            <select
-              value={linkPurpose}
-              onChange={(e) => setLinkPurpose(e.target.value)}
-              className="h-8 rounded-md border border-[var(--border)] bg-[var(--background)] px-1.5 text-[11px]"
-            >
-              <option value="main_content">{tr("Main", "Principal")}</option>
-              <option value="supplementary">{tr("Suppl.", "Complem.")}</option>
-              <option value="reference">{tr("Ref.", "Ref.")}</option>
-              <option value="exercise">{tr("Ex.", "Exerc.")}</option>
-              <option value="summary">{tr("Summary", "Resumo")}</option>
-              <option value="personal_annotation">{tr("Personal", "Pessoal")}</option>
-            </select>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!linkNoteId}
-              onClick={async () => {
-                if (!linkNoteId) return;
-                await fetch("/api/learning/links", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    noteId: linkNoteId,
-                    courseId,
-                    lessonId,
-                    purpose: linkPurpose,
-                  }),
-                });
-                setLinkNoteId("");
-                await load();
-                onChanged();
-              }}
-            >
-              <Link2 className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex gap-1.5">
+              <select
+                value={linkPurpose}
+                onChange={(e) => setLinkPurpose(e.target.value)}
+                className="h-8 flex-1 sm:flex-initial rounded-md border border-[var(--border)] bg-[var(--background)] px-1.5 text-[11px]"
+              >
+                <option value="main_content">{tr("Main", "Principal")}</option>
+                <option value="supplementary">{tr("Suppl.", "Complem.")}</option>
+                <option value="reference">{tr("Ref.", "Ref.")}</option>
+                <option value="exercise">{tr("Ex.", "Exerc.")}</option>
+                <option value="summary">{tr("Summary", "Resumo")}</option>
+                <option value="personal_annotation">{tr("Personal", "Pessoal")}</option>
+              </select>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!linkNoteId}
+                onClick={async () => {
+                  if (!linkNoteId) return;
+                  await fetch("/api/learning/links", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      noteId: linkNoteId,
+                      courseId,
+                      lessonId,
+                      purpose: linkPurpose,
+                    }),
+                  });
+                  setLinkNoteId("");
+                  await load();
+                  onChanged();
+                }}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
 
           <div className="flex gap-1.5">
