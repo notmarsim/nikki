@@ -234,6 +234,67 @@ export const MODULE_TOURS: TourDefinition[] = [
       },
     ],
   },
+  {
+    id: "notes-learning-integration",
+    title: {
+      "en-US": "Notes & Learning Integration",
+      "pt-BR": "Integração Notes & Learning",
+    },
+    description: {
+      "en-US": "Turn your notes into lessons, courses, spaced-repetition reviews, and study sessions.",
+      "pt-BR": "Transforme suas notas em aulas, cursos, revisões espaçadas e sessões de estudo.",
+    },
+    steps: [
+      {
+        id: "nl-link",
+        moduleId: "notes",
+        route: "/notes",
+        targetSelector: "[data-tour='notes-link-learning']",
+        title: { "en-US": "Link Note to Learning", "pt-BR": "Vincular Nota ao Learning" },
+        description: {
+          "en-US": "Link any note to courses, modules, or lessons, or convert it directly into a lesson.",
+          "pt-BR": "Vincule qualquer nota a cursos, módulos ou aulas, ou converta diretamente em aula.",
+        },
+        placement: "bottom",
+      },
+      {
+        id: "nl-course",
+        moduleId: "learning",
+        route: "/learning",
+        targetSelector: "[data-tour='learning-course-from-notes']",
+        title: { "en-US": "Create Course from Notes", "pt-BR": "Criar Curso a partir de Notas" },
+        description: {
+          "en-US": "Select multiple notes and organize them into a structured course with modules and lessons.",
+          "pt-BR": "Selecione múltiplas notas e organize-as em um curso estruturado com módulos e aulas.",
+        },
+        placement: "bottom",
+      },
+      {
+        id: "nl-study",
+        moduleId: "learning",
+        route: "/learning",
+        targetSelector: "[data-tour='learning-study-mode']",
+        title: { "en-US": "Study Mode & Review Queue", "pt-BR": "Modo Estudo & Fila de Revisão" },
+        description: {
+          "en-US": "Enter distraction-free Study Mode with timer, flashcards, quizzes, and spaced repetition.",
+          "pt-BR": "Entre no Modo Estudo sem distrações com timer, flashcards, quizzes e repetição espaçada.",
+        },
+        placement: "bottom",
+      },
+      {
+        id: "nl-graph",
+        moduleId: "knowledge-graph",
+        route: "/knowledge-graph",
+        targetSelector: "[data-tour='graph-scope-filter']",
+        title: { "en-US": "Knowledge Graph", "pt-BR": "Grafo de Conhecimento" },
+        description: {
+          "en-US": "Explore connections across notes, courses, lessons, and tags.",
+          "pt-BR": "Explore conexões entre notas, cursos, aulas e tags.",
+        },
+        placement: "bottom",
+      },
+    ],
+  },
 ];
 
 export const ALL_TOURS: TourDefinition[] = [INITIAL_TOUR, ...MODULE_TOURS];

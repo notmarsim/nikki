@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
   const tag = searchParams.get("tag") ?? undefined;
   const projectId = searchParams.get("projectId") ?? undefined;
   const courseId = searchParams.get("courseId") ?? undefined;
+  const noteId = searchParams.get("noteId") ?? undefined;
+  const isolatedOnly = searchParams.get("isolatedOnly") === "true";
   const search = searchParams.get("q") ?? undefined;
   const limitParam = Number(searchParams.get("limit") ?? "300");
 
@@ -36,6 +38,8 @@ export async function GET(request: NextRequest) {
     tag,
     projectId,
     courseId,
+    noteId,
+    isolatedOnly,
     favoritesOnly,
     search,
     limit: Number.isFinite(limitParam) ? limitParam : 300,

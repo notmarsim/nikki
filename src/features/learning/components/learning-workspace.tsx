@@ -7,11 +7,14 @@ import {
   BookOpen,
   CheckCircle2,
   Circle,
+  Edit3,
   ExternalLink,
   FileText,
   GraduationCap,
   Layers,
+  Play,
   Plus,
+  Sparkles,
   Timer,
   Trash2,
 } from "lucide-react";
@@ -20,6 +23,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CreateCourseFromNotesWizard } from "./create-course-from-notes-wizard";
+import { InlineNoteEditorDrawer } from "./inline-note-editor-drawer";
+import { LessonDetailPanel } from "./lesson-detail-panel";
+import { QuizzesPanel } from "./quizzes-panel";
+import { ReviewQueuePanel } from "./review-queue-panel";
+import { StudyModeOverlay } from "./study-mode-overlay";
 
 interface CourseSummary {
   id: string;
@@ -81,9 +90,14 @@ export function LearningWorkspace({
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(
     initialOverview.courses[0]?.id ?? null
   );
-  const [tab, setTab] = useState<"curriculum" | "notes" | "flashcards" | "sessions">(
+  const [tab, setTab] = useState<"curriculum" | "notes" | "flashcards" | "quizzes" | "sessions">(
     "curriculum"
   );
+  const [topView, setTopView] = useState<"courses" | "reviews" | "quizzes">("courses");
+  const [showCourseWizard, setShowCourseWizard] = useState(false);
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [studyModeOpen, setStudyModeOpen] = useState(false);
 
   // Forms
   const [newPathTitle, setNewPathTitle] = useState("");
@@ -170,17 +184,91 @@ export function LearningWorkspace({
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {tr("Learning Hub", "Central de Aprendizado")}
-        </h1>
-        <p className="text-sm text-[var(--muted-foreground)]">
-          {tr(
-            "Organize Learning Paths, Courses, Modules, and Lessons with linked Notes, Flashcards, and Focus sessions.",
-            "Organize Trilhas de Aprendizado, Cursos, Módulos e Aulas com Notas, Flashcards e sessões de Foco vinculados."
-          )}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {tr("Learning Hub", "Central de Aprendizado")}
+          </h1>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            {tr(
+              "Organize Learning Paths, Courses, Modules, and Lessons with linked Notes, Flashcards, and Focus sessions.",
+              "Organize Trilhas de Aprendizado, Cursos, Módulos e Aulas com Notas, Flashcards e sessões de Foco vinculados."
+            )}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            data-tour="learning-course-from-notes"
+            onClick={() => setShowCourseWizard(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {tr("Create Course from Notes", "Criar Curso de Notas")}
+          </Button>
+          <div className="flex rounded-lg border border-[var(--border)] p-0.5 text-xs">
+            {(
+              [
+                ["courses", tr("Courses", "Cursos")],
+                ["reviews", tr("Review Queue", "Fila de Revisão")],
+                ["quizzes", tr("Quizzes", "Quizzes")],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTopView(id)}
+                className={`rounded-md px-2.5 py-1 font-medium ${
+                  topView === id
+                    ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                    : "text-[var(--muted-foreground)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* Knowledge Overview Strip */}
+      {"knowledgeOverview" in overview && Boolean((overview as { knowledgeOverview?: unknown }).knowledgeOverview) && (
+        (() => {
+          const ko = (overview as {
+            knowledgeOverview: {
+              linkedNotesCount: number;
+              flashcardsCount: number;
+              pendingReviewsCount: number;
+              totalStudyMinutes: number;
+            };
+          }).knowledgeOverview;
+          return (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+                <div className="text-xs text-[var(--muted-foreground)]">{tr("Linked Notes", "Notas Vinculadas")}</div>
+                <div className="mt-1 text-lg font-bold">{ko.linkedNotesCount}</div>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+                <div className="text-xs text-[var(--muted-foreground)]">{tr("Courses", "Cursos")}</div>
+                <div className="mt-1 text-lg font-bold">{overview.courses.length}</div>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+                <div className="text-xs text-[var(--muted-foreground)]">{tr("Pending Reviews", "Revisões Pendentes")}</div>
+                <div className="mt-1 text-lg font-bold text-amber-500">{ko.pendingReviewsCount}</div>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+                <div className="text-xs text-[var(--muted-foreground)]">{tr("Study Time", "Tempo de Estudo")}</div>
+                <div className="mt-1 text-lg font-bold">{ko.totalStudyMinutes}m</div>
+              </div>
+            </div>
+          );
+        })()
+      )}
+
+      {topView === "reviews" && <ReviewQueuePanel />}
+      {topView === "quizzes" && <QuizzesPanel />}
+      {topView === "courses" && (
+      <>
 
       {/* Quick Create Bar */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -388,11 +476,18 @@ export function LearningWorkspace({
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      data-tour="learning-study-mode"
+                      onClick={() => setStudyModeOpen(true)}
+                    >
+                      <Play className="h-3.5 w-3.5" /> {tr("Study Mode", "Modo Estudo")}
+                    </Button>
                     <Link href={`/focus?courseId=${courseDetail.course.id}`}>
-                      <Button size="sm">
+                      <Button size="sm" variant="outline">
                         <Timer className="h-3.5 w-3.5" />{" "}
-                        {tr("Start Study Focus", "Iniciar Foco de Estudo")}
+                        {tr("Focus Timer", "Timer de Foco")}
                       </Button>
                     </Link>
                     <Button
@@ -424,6 +519,10 @@ export function LearningWorkspace({
                       {
                         id: "flashcards",
                         label: `${tr("Flashcards", "Flashcards")} (${courseDetail.decks.length})`,
+                      },
+                      {
+                        id: "quizzes",
+                        label: tr("Quizzes", "Quizzes"),
                       },
                       {
                         id: "sessions",
@@ -541,6 +640,19 @@ export function LearningWorkspace({
                                       {lesson.title}
                                     </span>
                                   </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveLessonId(
+                                        activeLessonId === lesson.id ? null : lesson.id
+                                      )
+                                    }
+                                    className="rounded border border-[var(--border)] px-2 py-0.5 text-[11px] hover:bg-[var(--surface-muted)]"
+                                  >
+                                    {activeLessonId === lesson.id
+                                      ? tr("Close", "Fechar")
+                                      : tr("Open", "Abrir")}
+                                  </button>
                                   {lesson.externalUrl && (
                                     <a
                                       href={lesson.externalUrl}
@@ -591,6 +703,17 @@ export function LearningWorkspace({
                         ))}
                       </div>
                     )}
+
+                    {activeLessonId && (
+                      <LessonDetailPanel
+                        lessonId={activeLessonId}
+                        courseId={courseDetail.course.id}
+                        onClose={() => setActiveLessonId(null)}
+                        onOpenNote={(nid) => setEditingNoteId(nid)}
+                        onStartStudyMode={() => setStudyModeOpen(true)}
+                        onChanged={() => void refresh()}
+                      />
+                    )}
                   </>
                 )}
 
@@ -618,6 +741,7 @@ export function LearningWorkspace({
                           });
                           setNewNoteTitle("");
                           await refresh();
+                          setEditingNoteId(json.data.note.id);
                         }
                       }}
                     >
@@ -644,19 +768,34 @@ export function LearningWorkspace({
                     ) : (
                       <div className="space-y-2">
                         {courseDetail.linkedNotes.map((n) => (
-                          <Link
+                          <div
                             key={n.id}
-                            href={`/notes?id=${n.id}`}
-                            className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--surface-muted)]"
+                            className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--surface-muted)]"
                           >
-                            <span className="flex items-center gap-2 font-medium">
-                              <FileText className="h-4 w-4" />
-                              {n.title}
-                            </span>
-                            <span className="text-xs text-[var(--muted-foreground)]">
-                              {tr("Open →", "Abrir →")}
-                            </span>
-                          </Link>
+                            <button
+                              type="button"
+                              onClick={() => setEditingNoteId(n.id)}
+                              className="flex flex-1 items-center gap-2 text-left font-medium"
+                            >
+                              <FileText className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{n.title}</span>
+                            </button>
+                            <div className="flex items-center gap-2 text-xs">
+                              <button
+                                type="button"
+                                onClick={() => setEditingNoteId(n.id)}
+                                className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
+                              >
+                                <Edit3 className="h-3 w-3" /> {tr("Edit", "Editar")}
+                              </button>
+                              <Link
+                                href={`/notes?id=${n.id}`}
+                                className="text-[var(--muted-foreground)] hover:underline"
+                              >
+                                {tr("Open →", "Abrir →")}
+                              </Link>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -694,6 +833,8 @@ export function LearningWorkspace({
                   </div>
                 )}
 
+                {tab === "quizzes" && <QuizzesPanel courseId={courseDetail.course.id} />}
+
                 {tab === "sessions" && (
                   <div className="space-y-2">
                     {courseDetail.sessions.length === 0 ? (
@@ -724,6 +865,48 @@ export function LearningWorkspace({
           )}
         </div>
       </div>
+      </>
+      )}
+
+      {showCourseWizard && (
+        <CreateCourseFromNotesWizard
+          onClose={() => setShowCourseWizard(false)}
+          onCreated={(cid) => {
+            setSelectedCourseId(cid);
+            setTopView("courses");
+            void refresh();
+          }}
+        />
+      )}
+
+      {editingNoteId && (
+        <InlineNoteEditorDrawer
+          noteId={editingNoteId}
+          onClose={() => setEditingNoteId(null)}
+          onUpdated={() => void refresh()}
+        />
+      )}
+
+      {studyModeOpen && courseDetail && (
+        <StudyModeOverlay
+          courseId={courseDetail.course.id}
+          courseTitle={courseDetail.course.title}
+          lessons={courseDetail.modules.flatMap((m) => m.lessons)}
+          initialLessonId={activeLessonId ?? undefined}
+          onClose={() => {
+            setStudyModeOpen(false);
+            void refresh();
+          }}
+          onLessonStatusChange={async (lid, status) => {
+            await fetch(`/api/learning/lessons/${lid}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status }),
+            });
+            await refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

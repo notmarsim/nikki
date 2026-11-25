@@ -56,6 +56,16 @@ export interface AnalyticsOverviewPayload {
     ratingDistribution: Record<number, number>;
   };
   focusByDay: Array<{ date: string; minutes: number }>;
+  knowledgeStats?: {
+    totalNotes: number;
+    linkedToLearningCount: number;
+    reviewedNotesCount: number;
+    isolatedNotesCount: number;
+    studySessionsCount: number;
+    studySessionMinutes: number;
+    quizAttemptsCount: number;
+    avgQuizScorePercent: number | null;
+  };
   savedReports: Array<{
     id: string;
     name: string;
@@ -536,6 +546,40 @@ export function AnalyticsWorkspace({
       )}
 
       {/* FINANCES */}
+      {tab === "learning" && data.knowledgeStats && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {tr("Knowledge & Study Analytics", "Analytics de Conhecimento e Estudo")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-center">
+            <div className="rounded-lg border border-[var(--border)] p-3">
+              <div className="text-xl font-bold">{data.knowledgeStats.totalNotes}</div>
+              <div className="text-xs text-[var(--muted-foreground)]">{tr("Notes Created", "Notas Criadas")}</div>
+            </div>
+            <div className="rounded-lg border border-[var(--border)] p-3">
+              <div className="text-xl font-bold">{data.knowledgeStats.linkedToLearningCount}</div>
+              <div className="text-xs text-[var(--muted-foreground)]">{tr("Linked to Learning", "Vinculadas ao Learning")}</div>
+            </div>
+            <div className="rounded-lg border border-[var(--border)] p-3">
+              <div className="text-xl font-bold">{data.knowledgeStats.isolatedNotesCount}</div>
+              <div className="text-xs text-[var(--muted-foreground)]">{tr("Isolated Notes", "Notas Isoladas")}</div>
+            </div>
+            <div className="rounded-lg border border-[var(--border)] p-3">
+              <div className="text-xl font-bold">
+                {data.knowledgeStats.avgQuizScorePercent !== null
+                  ? `${data.knowledgeStats.avgQuizScorePercent}%`
+                  : "—"}
+              </div>
+              <div className="text-xs text-[var(--muted-foreground)]">
+                {tr("Observed Quiz Avg", "Média Observada em Quizzes")}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {tab === "finances" && !hideFinances && data.finances && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">

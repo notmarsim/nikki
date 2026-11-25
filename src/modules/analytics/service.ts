@@ -8,8 +8,14 @@ import {
   focusSessions,
   habitEntries,
   habits,
+  learningResourceLinks,
+  learningReviews,
   lessons,
+  noteLinks,
+  notes,
   projects,
+  quizAttempts,
+  studySessions,
   tasks,
 } from "@/db/schema";
 import { getFinanceOverview } from "@/modules/finances/service";
@@ -51,6 +57,12 @@ export async function getAnalyticsOverview(params: {
       habitRows,
       habitEntryRows,
       savedReports,
+      allNotes,
+      learningLinks,
+      learningReviewRows,
+      noteLinkRows,
+      studySessionRows,
+      quizAttemptRows,
     ] = await Promise.all([
       tx
         .select()
@@ -125,6 +137,36 @@ export async function getAnalyticsOverview(params: {
           )
         )
         .orderBy(desc(analyticsSavedReports.isFavorite), desc(analyticsSavedReports.updatedAt)),
+      tx
+        .select({ id: notes.id })
+        .from(notes)
+        .where(
+          and(
+            eq(notes.userId, params.userId),
+            eq(notes.workspaceId, params.workspaceId),
+            isNull(notes.deletedAt)
+          )
+        ),
+      tx
+        .select({ noteId: learningResourceLinks.noteId })
+        .from(learningResourceLinks)
+        .where(eq(learningResourceLinks.userId, params.userId)),
+      tx
+        .select({ id: learningReviews.id, lastReviewedAt: learningReviews.lastReviewedAt })
+        .from(learningReviews)
+        .where(eq(learningReviews.userId, params.userId)),
+      tx
+        .select({ sourceNoteId: noteLinks.sourceNoteId, targetNoteId: noteLinks.targetNoteId })
+        .from(noteLinks)
+        .where(eq(noteLinks.userId, params.userId)),
+      tx
+        .select({ durationSeconds: studySessions.durationSeconds, courseId: studySessions.courseId })
+        .from(studySessions)
+        .where(and(eq(studySessions.userId, params.userId), eq(studySessions.workspaceId, params.workspaceId))),
+      tx
+        .select({ scorePercent: quizAttempts.scorePercent, passed: quizAttempts.passed })
+        .from(quizAttempts)
+        .where(eq(quizAttempts.userId, params.userId)),
     ]);
 
     // Productivity
@@ -257,6 +299,34 @@ export async function getAnalyticsOverview(params: {
       focusByDay: Array.from(focusByDayMap.entries())
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([date, minutes]) => ({ date, minutes })),
+      knowledgeStats: {
+        totalNotes: allNotes.length,
+        linkedToLearningCount: new Set(learningLinks.map((l) => l.noteId).filter(Boolean)).size,
+        reviewedNotesCount: learningReviewRows.filter((r) => Boolean(r.lastReviewedAt)).length,
+        isolatedNotesCount: (() => {
+          const connected = new Set<string>();
+          for (const nl of noteLinkRows) {
+            connected.add(nl.sourceNoteId);
+            connected.add(nl.targetNoteId);
+          }
+          for (const ll of learningLinks) {
+            if (ll.noteId) connected.add(ll.noteId);
+          }
+          return allNotes.filter((n) => !connected.has(n.id)).length;
+        })(),
+        studySessionsCount: studySessionRows.length,
+        studySessionMinutes: Math.round(
+          studySessionRows.reduce((acc, s) => acc + s.durationSeconds, 0) / 60
+        ),
+        quizAttemptsCount: quizAttemptRows.length,
+        avgQuizScorePercent:
+          quizAttemptRows.length > 0
+            ? Math.round(
+                quizAttemptRows.reduce((acc, a) => acc + a.scorePercent, 0) /
+                  quizAttemptRows.length
+              )
+            : null,
+      },
       savedReports,
     };
   });

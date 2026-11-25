@@ -116,8 +116,12 @@ export const lessons = pgTable(
     title: text("title").notNull(),
     description: text("description"),
     status: text("status").notNull().default("not_started"),
+    difficulty: text("difficulty").notNull().default("intermediate"),
     estimatedMinutes: integer("estimated_minutes"),
     externalUrl: text("external_url"),
+    objectives: jsonb("objectives").$type<string[]>().notNull().default([]),
+    prerequisites: jsonb("prerequisites").$type<string[]>().notNull().default([]),
+    resources: jsonb("resources").$type<Array<{ title: string; url: string }>>().notNull().default([]),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -133,15 +137,22 @@ export const learningResourceLinks = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    pathId: uuid("path_id").references(() => learningPaths.id, { onDelete: "cascade" }),
     courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }),
+    moduleId: uuid("module_id").references(() => courseModules.id, { onDelete: "cascade" }),
     lessonId: uuid("lesson_id").references(() => lessons.id, { onDelete: "cascade" }),
     noteId: uuid("note_id").references(() => notes.id, { onDelete: "cascade" }),
     taskId: uuid("task_id").references(() => tasks.id, { onDelete: "cascade" }),
+    purpose: text("purpose").notNull().default("supplementary"),
+    isRequired: boolean("is_required").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("learning_links_course_idx").on(table.courseId),
+    index("learning_links_module_idx").on(table.moduleId),
     index("learning_links_lesson_idx").on(table.lessonId),
+    index("learning_links_note_idx").on(table.noteId),
   ]
 );
 

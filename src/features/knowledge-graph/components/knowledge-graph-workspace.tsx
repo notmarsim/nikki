@@ -45,6 +45,7 @@ export function KnowledgeGraphWorkspace({
   const [favoritesOnly, setFavoritesOnly] = useState(
     initialGraph.preferences.filterConfig.favoritesOnly ?? false
   );
+  const [isolatedOnly, setIsolatedOnly] = useState(false);
   const [includeTasks, setIncludeTasks] = useState(
     initialGraph.preferences.layoutConfig.includeTasks ?? false
   );
@@ -72,11 +73,12 @@ export function KnowledgeGraphWorkspace({
     const p = new URLSearchParams();
     if (includeTasks) p.set("includeTasks", "true");
     if (favoritesOnly) p.set("favoritesOnly", "true");
+    if (isolatedOnly) p.set("isolatedOnly", "true");
     if (selectedTag) p.set("tag", selectedTag);
     if (search.trim()) p.set("q", search.trim());
     if (enabledTypes.length > 0) p.set("types", enabledTypes.join(","));
     return p.toString();
-  }, [includeTasks, favoritesOnly, selectedTag, search, enabledTypes]);
+  }, [includeTasks, favoritesOnly, isolatedOnly, selectedTag, search, enabledTypes]);
 
   const { data: graph = initialGraph } = useQuery<GraphPayload>({
     queryKey: ["knowledge-graph", queryParams],
@@ -226,7 +228,7 @@ export function KnowledgeGraphWorkspace({
       {/* Filters & Controls */}
       <Card>
         <CardContent className="pt-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2" data-tour="graph-scope-filter">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
               <Input
@@ -262,6 +264,17 @@ export function KnowledgeGraphWorkspace({
               }`}
             >
               <Star className="h-3.5 w-3.5" /> {tr("Favorites", "Favoritos")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsolatedOnly((v) => !v)}
+              className={`inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium ${
+                isolatedOnly
+                  ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+                  : "border-[var(--border)] text-[var(--muted-foreground)]"
+              }`}
+            >
+              {tr("Isolated Notes", "Notas Isoladas")}
             </button>
 
             <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)] ml-auto">

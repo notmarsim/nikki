@@ -9,3 +9,4 @@ export * from "./phase5";
 export * from "./phase6";
 export * from "./notifications";
 export * from "./expansion";
+export * from "./learning-integration";

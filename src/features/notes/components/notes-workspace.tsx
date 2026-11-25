@@ -6,17 +6,21 @@ import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
+  BookOpen,
   CheckSquare,
   ChevronDown,
   ChevronRight,
   Copy,
   FileText,
   FolderKanban,
+  GraduationCap,
   Link2,
   Plus,
+  RotateCcw,
   Search,
   Star,
   Trash2,
+  Unlink,
 } from "lucide-react";
 import type { NoteBlockDocument, NoteBlockNode, NoteRecord, ProjectRecord } from "@/db/schema";
 import { NOTE_TEMPLATES, type NoteTemplateId } from "@/modules/notes/templates";
@@ -27,6 +31,11 @@ import { Input } from "@/components/ui/input";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { HeadingToc, type HeadingTocItem } from "./heading-toc";
 import { LocalGraphPanel } from "./local-graph-panel";
+import {
+  CreateLessonFromNoteModal,
+  LinkedNoteDeleteDialog,
+  LinkToLearningModal,
+} from "./note-learning-modals";
 import { TiptapEditor } from "./tiptap-editor";
 
 interface NoteDetailPayload {
@@ -148,6 +157,20 @@ export function NotesWorkspace({
     code: string;
   } | null>(null);
   const [savingSnippet, setSavingSnippet] = useState(false);
+  const [showLinkLearningModal, setShowLinkLearningModal] = useState(false);
+  const [showCreateLessonModal, setShowCreateLessonModal] = useState(false);
+  const [relTargetId, setRelTargetId] = useState("");
+  const [relLabel, setRelLabel] = useState("related_to");
+  const [reviewMsg, setReviewMsg] = useState<string | null>(null);
+  const [deleteImpactModal, setDeleteImpactModal] = useState<{
+    noteId: string;
+    noteTitle: string;
+    impact: {
+      linkedLearning: Array<{ course: { title: string } | null; lesson: { title: string } | null }>;
+      flashcardsCount: number;
+      quizzes: Array<{ title: string }>;
+    };
+  } | null>(null);
   const spellcheckEnabled = useUiStore((s) => s.spellcheckEnabled);
 
   const editorScrollRef = useRef<HTMLDivElement | null>(null);
@@ -177,6 +200,62 @@ export function NotesWorkspace({
       if (!res.ok) throw new Error("Failed to load note");
       const json = await res.json();
       return json.data;
+    },
+    enabled: Boolean(selectedNoteId),
+  });
+
+  const { data: linkedLearning = [], refetch: refetchLinkedLearning } = useQuery<
+    Array<{
+      linkId: string;
+      purpose: string;
+      course: { id: string; title: string; status: string } | null;
+      module: { id: string; title: string } | null;
+      lesson: { id: string; title: string; status: string } | null;
+      path: { id: string; title: string } | null;
+    }>
+  >({
+    queryKey: ["note-linked-learning", selectedNoteId],
+    queryFn: async () => {
+      if (!selectedNoteId) return [];
+      const res = await fetch(`/api/learning/links?noteId=${selectedNoteId}`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data?.links ?? [];
+    },
+    enabled: Boolean(selectedNoteId),
+  });
+
+  const { data: noteRelations = [], refetch: refetchRelations } = useQuery<
+    Array<{
+      id: string;
+      direction: string;
+      relationType: string;
+      label?: string;
+      otherEntity: { id: string; title: string; type: string };
+    }>
+  >({
+    queryKey: ["note-relations", selectedNoteId],
+    queryFn: async () => {
+      if (!selectedNoteId) return [];
+      const res = await fetch(`/api/relations?entityType=note&entityId=${selectedNoteId}`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      const rows = (json.data?.relations ?? []) as Array<{
+        id: string;
+        direction: string;
+        relationType: string;
+        metadata?: { label?: string } | null;
+        otherEntity?: { id: string; title: string; type: string };
+      }>;
+      return rows
+        .filter((r) => r.otherEntity && r.otherEntity.type === "note")
+        .map((r) => ({
+          id: r.id,
+          direction: r.direction,
+          relationType: r.relationType,
+          label: r.metadata?.label ?? r.relationType,
+          otherEntity: r.otherEntity!,
+        }));
     },
     enabled: Boolean(selectedNoteId),
   });
@@ -298,7 +377,21 @@ export function NotesWorkspace({
     }
   };
 
-  const handleDelete = async (noteId: string) => {
+  const handleDelete = async (noteId: string, skipImpactCheck = false) => {
+    if (!skipImpactCheck) {
+      const impRes = await fetch(`/api/learning/links?noteId=${noteId}&impact=1`);
+      if (impRes.ok) {
+        const impJson = await impRes.json();
+        if (impJson.data?.hasImpact) {
+          setDeleteImpactModal({
+            noteId,
+            noteTitle: detail?.note.title ?? tr("Note", "Nota"),
+            impact: impJson.data,
+          });
+          return;
+        }
+      }
+    }
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current);
       autosaveTimerRef.current = null;
@@ -554,6 +647,55 @@ export function NotesWorkspace({
 
                 <Button
                   size="sm"
+                  variant="outline"
+                  data-tour="notes-link-learning"
+                  onClick={() => setShowLinkLearningModal(true)}
+                  className="h-8 px-2 text-xs"
+                  title={tr("Link to Learning", "Vincular ao Learning")}
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{tr("Link to Learning", "Vincular ao Learning")}</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowCreateLessonModal(true)}
+                  className="h-8 px-2 text-xs"
+                  title={tr("Create Lesson from Note", "Criar Aula da Nota")}
+                >
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  <span className="hidden lg:inline">{tr("Create Lesson", "Criar Aula")}</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={async () => {
+                    const res = await fetch("/api/learning/reviews", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "schedule",
+                        entityType: "note",
+                        entityId: detail.note.id,
+                        title: detail.note.title,
+                      }),
+                    });
+                    if (res.ok) {
+                      setReviewMsg(tr("Added to Review Queue", "Adicionada à Fila de Revisão"));
+                      setTimeout(() => setReviewMsg(null), 2500);
+                    }
+                  }}
+                  title={tr("Add to Spaced Repetition Review Queue", "Adicionar à Fila de Revisão Espaçada")}
+                  className="h-8 px-2 text-xs"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline">{reviewMsg ?? tr("Review", "Revisar")}</span>
+                </Button>
+
+                <Button
+                  size="sm"
                   variant="ghost"
                   onClick={async () => {
                     const res = await fetch(`/api/notes/${detail.note.id}/collab`, {
@@ -787,6 +929,170 @@ export function NotesWorkspace({
                             {taskStatusLabel(t.status)}
                           </Badge>
                         </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Linked Learning */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                    <span className="flex items-center gap-1">
+                      <GraduationCap className="h-3 w-3" /> {tr("Linked Learning", "Learning Vinculado")} ({linkedLearning.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowLinkLearningModal(true)}
+                      className="text-[var(--accent)] hover:underline"
+                    >
+                      + {tr("Link", "Vincular")}
+                    </button>
+                  </div>
+                  {linkedLearning.length === 0 ? (
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      {tr("Not linked to any course or lesson yet.", "Ainda não vinculada a nenhum curso ou aula.")}
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {linkedLearning.map((item) => (
+                        <div
+                          key={item.linkId}
+                          className="rounded-md border border-[var(--border)] px-2 py-1.5 text-xs"
+                        >
+                          <div className="flex items-start justify-between gap-1">
+                            <Link
+                              href={`/learning${item.course ? `?courseId=${item.course.id}` : ""}`}
+                              className="font-medium text-[var(--accent)] hover:underline truncate"
+                            >
+                              {item.course?.title ?? item.path?.title ?? tr("Learning", "Learning")}
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await fetch(`/api/learning/links?id=${item.linkId}`, { method: "DELETE" });
+                                void refetchLinkedLearning();
+                              }}
+                              title={tr("Unlink", "Desvincular")}
+                              className="text-[var(--muted-foreground)] hover:text-red-500"
+                            >
+                              <Unlink className="h-3 w-3" />
+                            </button>
+                          </div>
+                          {item.lesson && (
+                            <div className="text-[11px] text-[var(--muted-foreground)] truncate">
+                              {item.module ? `${item.module.title} → ` : ""}{item.lesson.title}
+                            </div>
+                          )}
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <Badge variant="outline" className="text-[10px]">
+                              {item.purpose.replace("_", " ")}
+                            </Badge>
+                            {item.lesson && (
+                              <Badge variant="outline" className="text-[10px]">
+                                {item.lesson.status}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Typed Note Relationships */}
+                <div>
+                  <div className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                    <Link2 className="h-3 w-3" /> {tr("Note Relationships", "Relações entre Notas")} ({noteRelations.length})
+                  </div>
+                  <div className="mb-2 flex flex-col gap-1">
+                    <select
+                      value={relLabel}
+                      onChange={(e) => setRelLabel(e.target.value)}
+                      className="h-7 rounded border border-[var(--border)] bg-[var(--background)] px-1.5 text-[11px]"
+                    >
+                      <option value="related_to">{tr("Related to", "Relacionada a")}</option>
+                      <option value="prerequisite_of">{tr("Prerequisite of", "Pré-requisito de")}</option>
+                      <option value="depends_on">{tr("Depends on", "Depende de")}</option>
+                      <option value="extends">{tr("Extends", "Estende")}</option>
+                      <option value="example_of">{tr("Example of", "Exemplo de")}</option>
+                      <option value="summary_of">{tr("Summary of", "Resumo de")}</option>
+                      <option value="reference_to">{tr("Reference to", "Referência para")}</option>
+                    </select>
+                    <div className="flex gap-1">
+                      <select
+                        value={relTargetId}
+                        onChange={(e) => setRelTargetId(e.target.value)}
+                        className="h-7 flex-1 min-w-0 rounded border border-[var(--border)] bg-[var(--background)] px-1.5 text-[11px]"
+                      >
+                        <option value="">{tr("Select note...", "Selecionar nota...")}</option>
+                        {notesList
+                          .filter((n) => n.id !== detail.note.id)
+                          .map((n) => (
+                            <option key={n.id} value={n.id}>
+                              {n.title}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={!relTargetId}
+                        onClick={async () => {
+                          if (!relTargetId) return;
+                          const mappedType =
+                            relLabel === "depends_on" || relLabel === "prerequisite_of"
+                              ? "blocks"
+                              : relLabel === "reference_to"
+                                ? "references"
+                                : relLabel === "summary_of" || relLabel === "extends"
+                                  ? "derived_from"
+                                  : "related_to";
+                          await fetch("/api/relations", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              sourceType: "note",
+                              sourceId: detail.note.id,
+                              targetType: "note",
+                              targetId: relTargetId,
+                              relationType: mappedType,
+                              metadata: { label: relLabel },
+                            }),
+                          });
+                          setRelTargetId("");
+                          void refetchRelations();
+                        }}
+                        className="rounded border border-[var(--border)] px-2 text-[11px] hover:bg-[var(--surface-muted)] disabled:opacity-40"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  {noteRelations.length > 0 && (
+                    <div className="space-y-1">
+                      {noteRelations.map((r) => (
+                        <div
+                          key={r.id}
+                          className="flex items-center justify-between gap-1 rounded border border-[var(--border)] px-2 py-1 text-[11px]"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setSelectedNoteId(r.otherEntity.id)}
+                            className="truncate text-left hover:underline"
+                          >
+                            <span className="text-[var(--muted-foreground)]">{r.label}:</span>{" "}
+                            {r.otherEntity.title}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await fetch(`/api/relations?id=${r.id}`, { method: "DELETE" });
+                              void refetchRelations();
+                            }}
+                            className="text-[var(--muted-foreground)] hover:text-red-500"
+                          >
+                            ×
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -1055,6 +1361,40 @@ export function NotesWorkspace({
             </div>
           </form>
         </div>
+      )}
+      {showLinkLearningModal && detail && (
+        <LinkToLearningModal
+          noteId={detail.note.id}
+          noteTitle={detail.note.title}
+          onClose={() => setShowLinkLearningModal(false)}
+          onLinked={() => void refetchLinkedLearning()}
+        />
+      )}
+
+      {showCreateLessonModal && detail && (
+        <CreateLessonFromNoteModal
+          noteId={detail.note.id}
+          noteTitle={detail.note.title}
+          onClose={() => setShowCreateLessonModal(false)}
+          onCreated={() => void refetchLinkedLearning()}
+        />
+      )}
+
+      {deleteImpactModal && (
+        <LinkedNoteDeleteDialog
+          noteTitle={deleteImpactModal.noteTitle}
+          impact={deleteImpactModal.impact}
+          onCancel={() => setDeleteImpactModal(null)}
+          onArchive={() => {
+            patchNote(deleteImpactModal.noteId, { isArchived: true });
+            setDeleteImpactModal(null);
+          }}
+          onConfirmDelete={() => {
+            const id = deleteImpactModal.noteId;
+            setDeleteImpactModal(null);
+            void handleDelete(id, true);
+          }}
+        />
       )}
     </div>
   );

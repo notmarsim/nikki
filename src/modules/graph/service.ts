@@ -120,6 +120,8 @@ export async function getGlobalGraph(params: {
   tag?: string;
   projectId?: string;
   courseId?: string;
+  noteId?: string;
+  isolatedOnly?: boolean;
   favoritesOnly?: boolean;
   search?: string;
   limit?: number;
@@ -541,6 +543,11 @@ export async function getGlobalGraph(params: {
       const sub = extractLocalSubgraph(filteredNodes, allEdges, center, 2);
       filteredNodes = sub.nodes;
     }
+    if (params.noteId) {
+      const center = makeNodeKey("note", params.noteId);
+      const sub = extractLocalSubgraph(filteredNodes, allEdges, center, 2);
+      filteredNodes = sub.nodes;
+    }
 
     const filteredSet = new Set(filteredNodes.map((n) => n.key));
     const filteredEdges = allEdges.filter(
@@ -553,6 +560,10 @@ export async function getGlobalGraph(params: {
       const t = nodeByKey.get(e.target);
       if (s) s.outDegree += 1;
       if (t) t.inDegree += 1;
+    }
+
+    if (params.isolatedOnly) {
+      filteredNodes = filteredNodes.filter((n) => n.inDegree === 0 && n.outDegree === 0);
     }
 
     const prefs = prefRows[0];
