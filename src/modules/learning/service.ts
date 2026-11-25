@@ -484,6 +484,69 @@ export async function linkLearningResource(
   });
 }
 
+export async function updateLearningPath(
+  userId: string,
+  pathId: string,
+  input: { title?: string; description?: string | null; color?: string; goal?: string | null }
+) {
+  return withUserRls(userId, async (tx) => {
+    const [updated] = await tx
+      .update(learningPaths)
+      .set({
+        ...(input.title !== undefined ? { title: input.title } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.color !== undefined ? { color: input.color } : {}),
+        ...(input.goal !== undefined ? { goal: input.goal } : {}),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(learningPaths.id, pathId), eq(learningPaths.userId, userId)))
+      .returning();
+
+    if (!updated) {
+      throw new LearningServiceError(404, "NOT_FOUND", "Learning path not found");
+    }
+    return updated;
+  });
+}
+
+export async function updateCourse(
+  userId: string,
+  courseId: string,
+  input: {
+    title?: string;
+    description?: string | null;
+    platform?: string | null;
+    url?: string | null;
+    category?: string | null;
+    status?: "not_started" | "in_progress" | "on_hold" | "completed" | "archived";
+    estimatedMinutes?: number | null;
+  }
+) {
+  return withUserRls(userId, async (tx) => {
+    const [updated] = await tx
+      .update(courses)
+      .set({
+        ...(input.title !== undefined ? { title: input.title } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.platform !== undefined ? { platform: input.platform } : {}),
+        ...(input.url !== undefined ? { url: input.url || null } : {}),
+        ...(input.category !== undefined ? { category: input.category } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+        ...(input.estimatedMinutes !== undefined
+          ? { estimatedMinutes: input.estimatedMinutes }
+          : {}),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(courses.id, courseId), eq(courses.userId, userId)))
+      .returning();
+
+    if (!updated) {
+      throw new LearningServiceError(404, "NOT_FOUND", "Course not found");
+    }
+    return updated;
+  });
+}
+
 export async function deleteLearningPath(userId: string, pathId: string) {
   return withUserRls(userId, async (tx) => {
     const deleted = await tx

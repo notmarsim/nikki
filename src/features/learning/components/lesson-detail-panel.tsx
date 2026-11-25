@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
   BookOpen,
   Calendar,
+  Check,
   CheckCircle2,
   CheckSquare,
   Circle,
@@ -93,6 +94,8 @@ export function LessonDetailPanel({
 
   // Study task / Calendar
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string | null>(null);
+  const [savingTitle, setSavingTitle] = useState(false);
 
   const load = async () => {
     const [dRes, nRes] = await Promise.all([
@@ -132,7 +135,74 @@ export function LessonDetailPanel({
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[var(--border)] pb-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold">{detail.lesson.title}</h3>
+            {editingTitle !== null ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const trimmed = editingTitle.trim();
+                  if (!trimmed) return;
+                  setSavingTitle(true);
+                  try {
+                    const res = await fetch(`/api/learning/lessons/${lessonId}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ title: trimmed }),
+                    });
+                    if (res.ok) {
+                      setEditingTitle(null);
+                      await load();
+                      onChanged();
+                    }
+                  } finally {
+                    setSavingTitle(false);
+                  }
+                }}
+                className="flex items-center gap-1.5"
+              >
+                <Input
+                  value={editingTitle}
+                  onChange={(e) => setEditingTitle(e.target.value)}
+                  className="h-7 text-sm font-semibold"
+                  autoFocus
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  variant="outline"
+                  disabled={savingTitle}
+                  className="h-7 px-2"
+                  title={tr("Save", "Salvar")}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditingTitle(null)}
+                  className="h-7 px-2"
+                  title={tr("Cancel", "Cancelar")}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </form>
+            ) : (
+              <>
+                <h3 className="text-base font-semibold">{detail.lesson.title}</h3>
+                <button
+                  type="button"
+                  onClick={() => setEditingTitle(detail.lesson.title)}
+                  title={tr("Rename lesson", "Renomear aula")}
+                  aria-label={tr(
+                    `Rename lesson ${detail.lesson.title}`,
+                    `Renomear aula ${detail.lesson.title}`
+                  )}
+                  className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
             <Badge variant="outline">{detail.lesson.difficulty}</Badge>
             <Badge variant="outline">{detail.lesson.status}</Badge>
           </div>

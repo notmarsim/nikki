@@ -7,6 +7,13 @@ export const createLearningPathSchema = z.object({
   goal: z.string().max(500).nullable().optional(),
 });
 
+export const updateLearningPathSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(160).optional(),
+  description: z.string().max(3000).nullable().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  goal: z.string().max(500).nullable().optional(),
+});
+
 export const createCourseSchema = z.object({
   title: z.string().trim().min(1, "Course title is required").max(200),
   description: z.string().max(5000).nullable().optional(),

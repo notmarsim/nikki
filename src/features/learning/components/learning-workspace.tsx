@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
+  Check,
   CheckCircle2,
   Circle,
   Edit3,
@@ -17,6 +18,7 @@ import {
   Sparkles,
   Timer,
   Trash2,
+  X,
 } from "lucide-react";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +108,39 @@ export function LearningWorkspace({
   const [newModuleTitle, setNewModuleTitle] = useState("");
   const [newLessonTitleByMod, setNewLessonTitleByMod] = useState<Record<string, string>>({});
   const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [renamingTarget, setRenamingTarget] = useState<{
+    kind: "path" | "course" | "lesson";
+    id: string;
+    title: string;
+  } | null>(null);
+  const [savingRename, setSavingRename] = useState(false);
+
+  const handleSaveRename = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!renamingTarget) return;
+    const trimmed = renamingTarget.title.trim();
+    if (!trimmed) return;
+    setSavingRename(true);
+    try {
+      const endpoint =
+        renamingTarget.kind === "path"
+          ? `/api/learning/paths/${renamingTarget.id}`
+          : renamingTarget.kind === "course"
+            ? `/api/learning/courses/${renamingTarget.id}`
+            : `/api/learning/lessons/${renamingTarget.id}`;
+      const res = await fetch(endpoint, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+      if (res.ok) {
+        setRenamingTarget(null);
+        await refresh();
+      }
+    } finally {
+      setSavingRename(false);
+    }
+  };
 
   const { data: overview = initialOverview } = useQuery({
     queryKey: ["learning-overview"],
@@ -377,22 +412,71 @@ export function LearningWorkspace({
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-sm"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold truncate">{p.title}</span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Badge variant="outline">{p.progress}%</Badge>
-                      <button
-                        type="button"
-                        onClick={() => handleDeletePath(p.id, p.title)}
-                        title={tr("Delete learning path", "Excluir trilha de aprendizado")}
-                        aria-label={tr(
-                          `Delete learning path ${p.title}`,
-                          `Excluir trilha de aprendizado ${p.title}`
-                        )}
-                        className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    {renamingTarget?.kind === "path" && renamingTarget.id === p.id ? (
+                      <form onSubmit={handleSaveRename} className="flex flex-1 items-center gap-1.5">
+                        <Input
+                          value={renamingTarget.title}
+                          onChange={(e) =>
+                            setRenamingTarget({ ...renamingTarget, title: e.target.value })
+                          }
+                          className="h-7 text-xs"
+                          autoFocus
+                        />
+                        <Button
+                          type="submit"
+                          size="sm"
+                          variant="outline"
+                          disabled={savingRename}
+                          className="h-7 px-2"
+                          title={tr("Save", "Salvar")}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setRenamingTarget(null)}
+                          className="h-7 px-2"
+                          title={tr("Cancel", "Cancelar")}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </form>
+                    ) : (
+                      <>
+                        <span className="font-semibold truncate">{p.title}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Badge variant="outline">{p.progress}%</Badge>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setRenamingTarget({ kind: "path", id: p.id, title: p.title })
+                            }
+                            title={tr("Rename learning path", "Renomear trilha de aprendizado")}
+                            aria-label={tr(
+                              `Rename learning path ${p.title}`,
+                              `Renomear trilha de aprendizado ${p.title}`
+                            )}
+                            className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePath(p.id, p.title)}
+                            title={tr("Delete learning path", "Excluir trilha de aprendizado")}
+                            aria-label={tr(
+                              `Delete learning path ${p.title}`,
+                              `Excluir trilha de aprendizado ${p.title}`
+                            )}
+                            className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-red-500"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div className="mt-1 text-xs text-[var(--muted-foreground)]">
                     {p.courses.length} {tr("courses", "cursos")}
@@ -464,8 +548,62 @@ export function LearningWorkspace({
             <Card>
               <CardHeader className="border-b border-[var(--border)] pb-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-xl">{courseDetail.course.title}</CardTitle>
+                  <div className="min-w-0 flex-1">
+                    {renamingTarget?.kind === "course" &&
+                    renamingTarget.id === courseDetail.course.id ? (
+                      <form onSubmit={handleSaveRename} className="flex items-center gap-1.5 max-w-md">
+                        <Input
+                          value={renamingTarget.title}
+                          onChange={(e) =>
+                            setRenamingTarget({ ...renamingTarget, title: e.target.value })
+                          }
+                          className="h-8 text-base font-semibold"
+                          autoFocus
+                        />
+                        <Button
+                          type="submit"
+                          size="sm"
+                          variant="outline"
+                          disabled={savingRename}
+                          title={tr("Save", "Salvar")}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setRenamingTarget(null)}
+                          title={tr("Cancel", "Cancelar")}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </form>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-xl truncate">
+                          {courseDetail.course.title}
+                        </CardTitle>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setRenamingTarget({
+                              kind: "course",
+                              id: courseDetail.course.id,
+                              title: courseDetail.course.title,
+                            })
+                          }
+                          title={tr("Rename course", "Renomear curso")}
+                          aria-label={tr(
+                            `Rename course ${courseDetail.course.title}`,
+                            `Renomear curso ${courseDetail.course.title}`
+                          )}
+                          className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                     <div className="mt-1 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
                       <span>
                         {courseDetail.course.completedLessons}/{courseDetail.course.totalLessons}{" "}
@@ -608,38 +746,98 @@ export function LearningWorkspace({
                                   key={lesson.id}
                                   className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-xs"
                                 >
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      await fetch(`/api/learning/lessons/${lesson.id}`, {
-                                        method: "PATCH",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({
-                                          status:
-                                            lesson.status === "completed"
-                                              ? "not_started"
-                                              : "completed",
-                                        }),
-                                      });
-                                      await refresh();
-                                    }}
-                                    className="flex items-center gap-2 text-left min-w-0 flex-1"
-                                  >
-                                    {lesson.status === "completed" ? (
-                                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                                    ) : (
-                                      <Circle className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
-                                    )}
-                                    <span
-                                      className={`truncate ${
-                                        lesson.status === "completed"
-                                          ? "line-through text-[var(--muted-foreground)]"
-                                          : "font-medium"
-                                      }`}
+                                  {renamingTarget?.kind === "lesson" &&
+                                  renamingTarget.id === lesson.id ? (
+                                    <form
+                                      onSubmit={handleSaveRename}
+                                      className="flex flex-1 items-center gap-1.5"
                                     >
-                                      {lesson.title}
-                                    </span>
-                                  </button>
+                                      <Input
+                                        value={renamingTarget.title}
+                                        onChange={(e) =>
+                                          setRenamingTarget({
+                                            ...renamingTarget,
+                                            title: e.target.value,
+                                          })
+                                        }
+                                        className="h-7 text-xs"
+                                        autoFocus
+                                      />
+                                      <Button
+                                        type="submit"
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={savingRename}
+                                        className="h-7 px-2"
+                                        title={tr("Save", "Salvar")}
+                                      >
+                                        <Check className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => setRenamingTarget(null)}
+                                        className="h-7 px-2"
+                                        title={tr("Cancel", "Cancelar")}
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </form>
+                                  ) : (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          await fetch(`/api/learning/lessons/${lesson.id}`, {
+                                            method: "PATCH",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({
+                                              status:
+                                                lesson.status === "completed"
+                                                  ? "not_started"
+                                                  : "completed",
+                                            }),
+                                          });
+                                          await refresh();
+                                        }}
+                                        className="flex items-center gap-2 text-left min-w-0 flex-1"
+                                      >
+                                        {lesson.status === "completed" ? (
+                                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                                        ) : (
+                                          <Circle className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
+                                        )}
+                                        <span
+                                          className={`truncate ${
+                                            lesson.status === "completed"
+                                              ? "line-through text-[var(--muted-foreground)]"
+                                              : "font-medium"
+                                          }`}
+                                        >
+                                          {lesson.title}
+                                        </span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setRenamingTarget({
+                                            kind: "lesson",
+                                            id: lesson.id,
+                                            title: lesson.title,
+                                          })
+                                        }
+                                        title={tr("Rename lesson", "Renomear aula")}
+                                        aria-label={tr(
+                                          `Rename lesson ${lesson.title}`,
+                                          `Renomear aula ${lesson.title}`
+                                        )}
+                                        className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                                      >
+                                        <Edit3 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() =>
