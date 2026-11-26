@@ -364,6 +364,30 @@ export async function createCourseModule(
   });
 }
 
+export async function updateCourseModule(
+  userId: string,
+  moduleId: string,
+  input: { title?: string; description?: string | null; sortOrder?: number }
+) {
+  return withUserRls(userId, async (tx) => {
+    const [updated] = await tx
+      .update(courseModules)
+      .set({
+        ...(input.title !== undefined ? { title: input.title } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(courseModules.id, moduleId), eq(courseModules.userId, userId)))
+      .returning();
+
+    if (!updated) {
+      throw new LearningServiceError(404, "MODULE_NOT_FOUND", "Module not found");
+    }
+    return updated;
+  });
+}
+
 export async function createLesson(
   userId: string,
   input: {

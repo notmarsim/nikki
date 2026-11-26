@@ -109,7 +109,7 @@ export function LearningWorkspace({
   const [newLessonTitleByMod, setNewLessonTitleByMod] = useState<Record<string, string>>({});
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [renamingTarget, setRenamingTarget] = useState<{
-    kind: "path" | "course" | "lesson";
+    kind: "path" | "course" | "module" | "lesson";
     id: string;
     title: string;
   } | null>(null);
@@ -127,7 +127,9 @@ export function LearningWorkspace({
           ? `/api/learning/paths/${renamingTarget.id}`
           : renamingTarget.kind === "course"
             ? `/api/learning/courses/${renamingTarget.id}`
-            : `/api/learning/lessons/${renamingTarget.id}`;
+            : renamingTarget.kind === "module"
+              ? `/api/learning/modules/${renamingTarget.id}`
+              : `/api/learning/lessons/${renamingTarget.id}`;
       const res = await fetch(endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -734,10 +736,67 @@ export function LearningWorkspace({
                             className="rounded-xl border border-[var(--border)] p-3.5 space-y-3"
                           >
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 font-semibold text-sm min-w-0">
-                                <BookOpen className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-                                <span className="truncate">{mod.title}</span>
-                              </div>
+                              {renamingTarget?.kind === "module" && renamingTarget.id === mod.id ? (
+                                <form
+                                  onSubmit={handleSaveRename}
+                                  className="flex flex-1 items-center gap-1.5"
+                                >
+                                  <Input
+                                    value={renamingTarget.title}
+                                    onChange={(e) =>
+                                      setRenamingTarget({
+                                        ...renamingTarget,
+                                        title: e.target.value,
+                                      })
+                                    }
+                                    className="h-7 text-sm font-semibold"
+                                    autoFocus
+                                  />
+                                  <Button
+                                    type="submit"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={savingRename}
+                                    className="h-7 px-2"
+                                    title={tr("Save", "Salvar")}
+                                  >
+                                    <Check className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setRenamingTarget(null)}
+                                    className="h-7 px-2"
+                                    title={tr("Cancel", "Cancelar")}
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </Button>
+                                </form>
+                              ) : (
+                                <div className="flex items-center gap-2 font-semibold text-sm min-w-0">
+                                  <BookOpen className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                                  <span className="truncate">{mod.title}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setRenamingTarget({
+                                        kind: "module",
+                                        id: mod.id,
+                                        title: mod.title,
+                                      })
+                                    }
+                                    title={tr("Rename module", "Renomear módulo")}
+                                    aria-label={tr(
+                                      `Rename module ${mod.title}`,
+                                      `Renomear módulo ${mod.title}`
+                                    )}
+                                    className="rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                                  >
+                                    <Edit3 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              )}
                               <Badge variant="outline" className="shrink-0">
                                 {mod.completedLessons}/{mod.totalLessons} ({mod.progress}%)
                               </Badge>

@@ -42,6 +42,12 @@ export const createModuleSchema = z.object({
   description: z.string().max(2000).nullable().optional(),
 });
 
+export const updateModuleSchema = z.object({
+  title: z.string().trim().min(1, "Module title is required").max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+});
+
 export const createLessonSchema = z.object({
   moduleId: z.string().uuid(),
   title: z.string().trim().min(1, "Lesson title is required").max(200),
