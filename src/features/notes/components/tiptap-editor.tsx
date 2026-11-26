@@ -514,6 +514,11 @@ export function TiptapEditor({
       {/* Floating BubbleMenu on Text Selection */}
       <BubbleMenu
         editor={editor}
+        shouldShow={({ editor: ed, state, from, to }) => {
+          if (ed.isActive("wikiLink")) return false;
+          if (state.selection.empty) return false;
+          return state.doc.textBetween(from, to, " ").trim().length > 0;
+        }}
         tippyOptions={{
           duration: 120,
           maxWidth: "none",
@@ -944,8 +949,8 @@ export function TiptapEditor({
         </div>
       )}
 
-      {/* Contextual Table Controls (only when cursor is inside a table) */}
-      {editor.isActive("table") && (
+      {/* Contextual Table Controls (only when editor is focused inside a table) */}
+      {editor.isFocused && editor.isActive("table") && (
         <div className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/70 px-2 py-1 text-xs">
           <span className="text-[var(--muted-foreground)] mr-1">Table:</span>
           <button

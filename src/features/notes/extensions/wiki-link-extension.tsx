@@ -10,9 +10,10 @@ function WikiLinkNodeView({ node }: NodeViewProps) {
   const label = (node.attrs.label as string) || "Untitled";
 
   return (
-    <NodeViewWrapper as="span" className="inline">
+    <NodeViewWrapper as="span" className="inline" contentEditable={false}>
       <Link
         href={`/notes?id=${noteId}`}
+        onMouseDown={(e) => e.stopPropagation()}
         className="mx-0.5 inline-flex items-center rounded bg-blue-500/15 px-1.5 py-0.5 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
       >
         [[{label}]]
