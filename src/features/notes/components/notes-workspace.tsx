@@ -439,15 +439,78 @@ export function NotesWorkspace({
     [notesList]
   );
 
-  const renderTree = (parentId: string | null, depth = 0): React.ReactNode => {
+  // Build file-tree parent map combining explicit parentId with outgoing [[wikiLink]] references
+  const effectiveParentMap = useMemo(() => {
+    const idSet = new Set(notesList.map((n) => n.id));
+    const map = new Map<string, string | null>();
+    for (const n of notesList) {
+      map.set(n.id, n.parentId && idSet.has(n.parentId) ? n.parentId : null);
+    }
+
+    const extractWikiTargets = (doc: NoteBlockDocument | undefined): string[] => {
+      if (!doc || !Array.isArray(doc.content)) return [];
+      const targets: string[] = [];
+      const walk = (nodes: unknown[]) => {
+        for (const raw of nodes) {
+          if (!raw || typeof raw !== "object") continue;
+          const node = raw as {
+            type?: string;
+            attrs?: { noteId?: unknown };
+            content?: unknown[];
+          };
+          if (node.type === "wikiLink" && typeof node.attrs?.noteId === "string") {
+            targets.push(node.attrs.noteId);
+          }
+          if (Array.isArray(node.content)) {
+            walk(node.content);
+          }
+        }
+      };
+      walk(doc.content);
+      return targets;
+    };
+
+    const createsCycle = (childId: string, candidateParentId: string): boolean => {
+      let cur: string | null = candidateParentId;
+      const seen = new Set<string>([childId]);
+      while (cur) {
+        if (seen.has(cur)) return true;
+        seen.add(cur);
+        cur = map.get(cur) ?? null;
+      }
+      return false;
+    };
+
+    for (const source of notesList) {
+      const targets = extractWikiTargets(source.contentJson);
+      for (const targetId of targets) {
+        if (targetId === source.id || !idSet.has(targetId)) continue;
+        if (map.get(targetId) === null && !createsCycle(targetId, source.id)) {
+          map.set(targetId, source.id);
+        }
+      }
+    }
+
+    return map;
+  }, [notesList]);
+
+  const renderTree = (
+    parentId: string | null,
+    depth = 0,
+    visited = new Set<string>()
+  ): React.ReactNode => {
     const children = filteredNotes.filter((n) =>
-      search.trim() ? depth === 0 : n.parentId === parentId
+      search.trim() ? depth === 0 : (effectiveParentMap.get(n.id) ?? null) === parentId
     );
     if (children.length === 0) return null;
 
     return children.map((note) => {
+      if (visited.has(note.id)) return null;
+      const nextVisited = new Set(visited);
+      nextVisited.add(note.id);
       const hasChildren =
-        !search.trim() && notesList.some((n) => n.parentId === note.id);
+        !search.trim() &&
+        notesList.some((n) => (effectiveParentMap.get(n.id) ?? null) === note.id);
       const isExpanded = expandedIds[note.id] ?? false;
       const isSelected = selectedNoteId === note.id;
 
@@ -512,7 +575,7 @@ export function NotesWorkspace({
             </button>
           </div>
 
-          {hasChildren && isExpanded && renderTree(note.id, depth + 1)}
+          {hasChildren && isExpanded && renderTree(note.id, depth + 1, nextVisited)}
         </div>
       );
     });

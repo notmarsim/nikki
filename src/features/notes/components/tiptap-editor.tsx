@@ -452,36 +452,65 @@ export function TiptapEditor({
   return (
     <div
       className="relative space-y-2"
-      onKeyDown={(e) => {
-        if (slashQuery !== null && filteredSlash.length > 0) {
-          if (e.key === "ArrowDown") {
+      onKeyDownCapture={(e) => {
+        if (slashQuery !== null) {
+          if (e.key === "Escape") {
             e.preventDefault();
-            setSlashIndex((i) => (i + 1) % filteredSlash.length);
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setSlashIndex((i) => (i - 1 + filteredSlash.length) % filteredSlash.length);
-          } else if (e.key === "Enter") {
-            e.preventDefault();
-            const chosen = filteredSlash[slashIndex];
-            if (chosen) executeSlash(chosen);
-          } else if (e.key === "Escape") {
+            e.stopPropagation();
             setSlashQuery(null);
+            return;
           }
-        } else if (wikiQuery !== null && filteredWiki.length > 0) {
-          if (e.key === "ArrowDown") {
+          if (filteredSlash.length > 0) {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              e.stopPropagation();
+              setSlashIndex((i) => (i + 1) % filteredSlash.length);
+              return;
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              e.stopPropagation();
+              setSlashIndex((i) => (i - 1 + filteredSlash.length) % filteredSlash.length);
+              return;
+            }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              const chosen = filteredSlash[slashIndex];
+              if (chosen) executeSlash(chosen);
+              return;
+            }
+          }
+        }
+
+        if (wikiQuery !== null) {
+          if (e.key === "Escape") {
             e.preventDefault();
-            setWikiIndex((i) => (i + 1) % filteredWiki.length);
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setWikiIndex((i) => (i - 1 + filteredWiki.length) % filteredWiki.length);
-          } else if (e.key === "Enter") {
-            e.preventDefault();
-            const chosen = filteredWiki[wikiIndex];
-            if (chosen) insertWikiLink(chosen);
-          } else if (e.key === "Escape") {
+            e.stopPropagation();
             setWikiQuery(null);
+            return;
           }
-          return;
+          if (filteredWiki.length > 0) {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              e.stopPropagation();
+              setWikiIndex((i) => (i + 1) % filteredWiki.length);
+              return;
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              e.stopPropagation();
+              setWikiIndex((i) => (i - 1 + filteredWiki.length) % filteredWiki.length);
+              return;
+            }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              const chosen = filteredWiki[wikiIndex];
+              if (chosen) insertWikiLink(chosen);
+              return;
+            }
+          }
         }
 
         if (matchesKeybinding(e, keybindings.bold)) {
